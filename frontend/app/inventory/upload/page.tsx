@@ -20,6 +20,7 @@ export default function InventoryUploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<InventoryUploadResult | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [syncingVinSolutions, setSyncingVinSolutions] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -115,6 +116,29 @@ export default function InventoryUploadPage() {
     }
   };
 
+  const handleSyncVinSolutions = async () => {
+    setSyncingVinSolutions(true);
+    try {
+      const result = await inventoryApi.syncVinSolutions();
+      
+      toast({
+        title: "VinSolutions Sync Complete",
+        description: result.message,
+      });
+      
+      // Navigate back to inventory page
+      router.push('/inventory');
+    } catch (error) {
+      toast({
+        title: "VinSolutions Sync Failed",
+        description: error instanceof Error ? error.message : "Failed to sync from VinSolutions",
+        variant: "destructive"
+      });
+    } finally {
+      setSyncingVinSolutions(false);
+    }
+  };
+
   const resetUpload = () => {
     setFile(null);
     setPreviewData([]);
@@ -182,6 +206,52 @@ export default function InventoryUploadPage() {
                 <span>Choose File</span>
               </Button>
             </label>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* VinSolutions Sync Section */}
+      <Card className="bg-gray-900/50 border-gray-800">
+        <CardHeader>
+          <CardTitle className="text-gray-100">Sync from VinSolutions</CardTitle>
+          <CardDescription className="text-gray-400">
+            Automatically sync your vehicle inventory from VinSolutions CRM
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="border-2 border-dashed border-purple-700 rounded-lg p-8 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto h-12 w-12 text-purple-500 mb-4">
+              <path d="M16 6h6v12h-6"/>
+              <path d="M13 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <path d="M16 12H8a3 3 0 1 0 0 6h13"/>
+            </svg>
+            <p className="text-lg font-medium text-gray-100 mb-2">
+              Sync from VinSolutions
+            </p>
+            <p className="text-sm text-gray-400 mb-4">
+              Pull your latest inventory directly from VinSolutions CRM
+            </p>
+            <Button
+              onClick={handleSyncVinSolutions}
+              disabled={syncingVinSolutions}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {syncingVinSolutions ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2">
+                    <path d="M16 6h6v12h-6"/>
+                    <path d="M13 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <path d="M16 12H8a3 3 0 1 0 0 6h13"/>
+                  </svg>
+                  Sync VinSolutions
+                </>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>

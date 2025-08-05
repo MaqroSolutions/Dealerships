@@ -6,6 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 import pandas as pd
 from io import BytesIO
+import httpx
+import os
+from datetime import datetime
 
 from maqro_backend.api.deps import get_db_session, get_current_user_id, get_optional_user_id, get_user_dealership_id, get_optional_user_dealership_id
 from maqro_backend.schemas.inventory import InventoryCreate, InventoryResponse, InventoryUpdate
@@ -261,4 +264,101 @@ async def get_inventory_count_for_dealership(
     """
     count = await get_inventory_count(session=db, dealership_id=dealership_id)
     return count
+
+
+@router.post("/inventory/pull-vinsolutions")
+async def pull_vinsolutions_inventory(
+    db: AsyncSession = Depends(get_db_session),
+    dealership_id: str = Depends(get_user_dealership_id)
+):
+    """
+    Pull vehicle inventory from VinSolutions API and sync to local database
+    
+    Headers required:
+    - Authorization: Bearer <JWT token>
+    """
+    # Get VinSolutions API credentials from environment
+    vinsolutions_api_key = os.getenv("VINSOLUTIONS_API_KEY")
+    vinsolutions_dealer_id = os.getenv("VINSOLUTIONS_DEALER_ID")
+    
+    if not vinsolutions_api_key or not vinsolutions_dealer_id:
+        raise HTTPException(
+            status_code=500, 
+            detail="VinSolutions API credentials not configured. Please set VINSOLUTIONS_API_KEY and VINSOLUTIONS_DEALER_ID environment variables."
+        )
+    
+    try:
+        # Make API call to VinSolutions
+        async with httpx.AsyncClient() as client:
+            headers = {
+                "Authorization": f"Bearer {vinsolutions_api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            # Get inventory from VinSolutions API
+            # Note: This is a placeholder URL - you'll need to replace with actual VinSolutions API endpoint
+            url = f"https://api.vinsolutions.com/v1/dealers/{vinsolutions_dealer_id}/inventory"
+            
+            response = await client.get(url, headers=headers)
+            
+            if response.status_code != 200:
+                logger.error(f"VinSolutions API error: {response.status_code} - {response.text}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to fetch inventory from VinSolutions API: {response.status_code}"
+                )
+            
+            inventory_data = response.json()
+            
+            # Transform VinSolutions data to our format
+            transformed_inventory = []
+            for vehicle in inventory_data.get("vehicles", []):
+                # Map VinSolutions fields to our inventory schema
+                # Adjust field mapping based on actual VinSolutions API response structure
+                transformed_vehicle = {
+                    "make": vehicle.get("make", ""),
+                    "model": vehicle.get("model", ""),
+                    "year": int(vehicle.get("year", 0)),
+                    "price": str(vehicle.get("price", 0)),
+                    "mileage": vehicle.get("mileage"),
+                    "description": vehicle.get("description", ""),
+                    "features": vehicle.get("features", ""),
+                    "status": "active"  # Default status
+                }
+                transformed_inventory.append(transformed_vehicle)
+            
+            # Bulk create inventory items
+            if transformed_inventory:
+                num_created = await bulk_create_inventory_items(
+                    session=db,
+                    inventory_data=transformed_inventory,
+                    dealership_id=dealership_id
+                )
+                
+                return {
+                    "message": f"Successfully synced {num_created} vehicles from VinSolutions",
+                    "success_count": num_created,
+                    "total_vehicles": len(transformed_inventory),
+                    "synced_at": datetime.utcnow().isoformat()
+                }
+            else:
+                return {
+                    "message": "No vehicles found in VinSolutions inventory",
+                    "success_count": 0,
+                    "total_vehicles": 0,
+                    "synced_at": datetime.utcnow().isoformat()
+                }
+                
+    except httpx.RequestError as e:
+        logger.error(f"Network error connecting to VinSolutions API: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to connect to VinSolutions API. Please check your internet connection and try again."
+        )
+    except Exception as e:
+        logger.error(f"Error syncing VinSolutions inventory: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to sync inventory from VinSolutions: {str(e)}"
+        )
     

@@ -10,6 +10,13 @@ export type InventoryUploadResult = {
   }>;
 };
 
+export type VinSolutionsSyncResult = {
+  message: string;
+  successCount: number;
+  totalVehicles: number;
+  syncedAt: string;
+};
+
 export type InventoryRow = {
   make: string;
   model: string;
@@ -67,6 +74,11 @@ export const inventoryApi = {
       errorCount: result.error_count || 0,
       errors: result.errors || []
     };
+  },
+
+  async syncVinSolutions(): Promise<VinSolutionsSyncResult> {
+    const api = await getAuthenticatedApi();
+    return api.post<VinSolutionsSyncResult>('/inventory/pull-vinsolutions', {});
   },
 
   async deleteInventory(id: string): Promise<void> {

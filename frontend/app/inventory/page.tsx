@@ -17,6 +17,7 @@ export default function InventoryPage() {
   const [inventory, setInventory] = useState<Inventory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [syncingVinSolutions, setSyncingVinSolutions] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -36,6 +37,29 @@ export default function InventoryPage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncVinSolutions = async () => {
+    setSyncingVinSolutions(true);
+    try {
+      const result = await inventoryApi.syncVinSolutions();
+      
+      toast({
+        title: "VinSolutions Sync Complete",
+        description: result.message,
+      });
+      
+      // Reload inventory to show new items
+      await loadInventory();
+    } catch (error) {
+      toast({
+        title: "VinSolutions Sync Failed",
+        description: error instanceof Error ? error.message : "Failed to sync from VinSolutions",
+        variant: "destructive"
+      });
+    } finally {
+      setSyncingVinSolutions(false);
     }
   };
 
@@ -96,13 +120,27 @@ export default function InventoryPage() {
             <h2 className="text-3xl font-bold text-gray-100 mb-2">Inventory Management</h2>
             <p className="text-gray-400 text-lg">Manage your vehicle inventory for AI-powered responses</p>
           </div>
-          <Button 
-            onClick={() => router.push('/inventory/upload')} 
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" />
-            Upload Inventory
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={() => router.push('/inventory/upload')} 
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              Upload Inventory
+            </Button>
+            <Button
+              onClick={handleSyncVinSolutions}
+              disabled={syncingVinSolutions}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+            >
+              {syncingVinSolutions ? (
+                <div className={`animate-spin rounded-full border-b-2 border-white ${UI.LOADING_SPINNER_SIZE}`}></div>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sync h-4 w-4"><path d="M16 6h6v12h-6"/><path d="M13 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M16 12H8a3 3 0 1 0 0 6h13"/></svg>
+              )}
+              {syncingVinSolutions ? 'Syncing...' : 'Sync VinSolutions'}
+            </Button>
+          </div>
         </div>
       </div>
 
