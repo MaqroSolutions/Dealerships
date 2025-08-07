@@ -69,16 +69,25 @@ async def get_lead_by_email(*, session: AsyncSession, email: str, dealership_id:
         return None
 
 async def get_leads_by_salesperson(
-        *, session: AsyncSession, salesperson_id: str
+        *, session: AsyncSession, salesperson_id: str, search_term: str = None
 ) -> list[Lead]:
-    """Return all leads assigned to a specific salesperson (newest first)"""
+    """Return all leads assigned to a specific salesperson (newest first) with optional search"""
     try:
         salesperson_uuid = uuid.UUID(salesperson_id)
-        result = await session.execute(
-            select(Lead)
-            .where(Lead.user_id == salesperson_uuid)
-            .order_by(Lead.created_at.desc())
-        )
+        query = select(Lead).where(Lead.user_id == salesperson_uuid)
+        
+        # Add search filter if provided
+        if search_term:
+            search_pattern = f"%{search_term}%"
+            query = query.where(
+                (Lead.name.ilike(search_pattern)) |
+                (Lead.phone.ilike(search_pattern)) |
+                (Lead.email.ilike(search_pattern)) |
+                (Lead.message.ilike(search_pattern))
+            )
+        
+        query = query.order_by(Lead.created_at.desc())
+        result = await session.execute(query)
         return result.scalars().all()
     except (ValueError, TypeError):
         return []

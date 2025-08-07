@@ -3,7 +3,7 @@ import type { Lead } from './supabase';
 
 export async function getMyLeads(searchTerm?: string): Promise<Lead[]> {
   const api = await getAuthenticatedApi();
-  const endpoint = searchTerm ? `/me/leads?search=${searchTerm}` : '/me/leads';
+  const endpoint = searchTerm ? `/me/leads?search=${encodeURIComponent(searchTerm)}` : '/me/leads';
   return api.get<Lead[]>(endpoint);
 }
 

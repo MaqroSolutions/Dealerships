@@ -22,10 +22,11 @@ dealer_router = APIRouter(prefix="/dealership", tags=["Dealer Leads"])
 
 @me_router.get("/leads", response_model=List[LeadResponse])
 async def get_my_leads(
+    search: str = None,
     db: AsyncSession = Depends(get_db_session),
     user_id: str = Depends(get_current_user_id),
 ):
-    leads = await get_leads_by_salesperson(session=db, salesperson_id=user_id)
+    leads = await get_leads_by_salesperson(session=db, salesperson_id=user_id, search_term=search)
     return [
         LeadResponse(
             id=str(lead.id),
