@@ -10,6 +10,7 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { updateMyProfile } from "@/lib/user-profile-api"
 import { toast } from "sonner"
 
 export default function LoginPage() {
@@ -36,8 +37,23 @@ export default function LoginPage() {
 
       if (error) throw error
       
-      // Show success message and redirect
-      toast.success('Welcome back!')
+      // Get the selected role from sessionStorage (if any)
+      const selectedRole = sessionStorage.getItem('selectedRole')
+      if (selectedRole) {
+        sessionStorage.removeItem('selectedRole') // Clean up
+        // Update user profile with selected role
+        try {
+          await updateMyProfile({ role: selectedRole })
+          toast.success(`Welcome back! You're now logged in as a ${selectedRole}.`)
+        } catch (profileError) {
+          console.error('Error updating user role:', profileError)
+          toast.success('Welcome back!')
+        }
+      } else {
+        toast.success('Welcome back!')
+      }
+      
+      // The auth provider will handle role-based redirects
       router.push('/')
     } catch (err: any) {
       setError(err.message || "Failed to sign in. Please check your credentials.")

@@ -42,12 +42,16 @@ export default function SignupPage() {
 
       if (error) throw error
       
+      // Get the selected role from sessionStorage
+      const selectedRole = sessionStorage.getItem('selectedRole') || 'salesperson'
+      sessionStorage.removeItem('selectedRole') // Clean up
+      
       // If signup is successful and we have a user, create their profile
       if (data.user) {
         try {
           await createUserProfile({
             full_name: formData.name,
-            role: 'salesperson',
+            role: selectedRole,
             timezone: 'America/New_York',
           })
         } catch (profileError) {
@@ -56,9 +60,14 @@ export default function SignupPage() {
         }
       }
       
-      // Show success message
-      toast.success('Account created successfully! Please check your email to verify your account.')
-      router.push('/login')
+      // Show success message and redirect based on role
+      toast.success(`Account created successfully! Welcome as a ${selectedRole}.`)
+      
+      if (selectedRole === 'admin') {
+        router.push('/admin')
+      } else {
+        router.push('/')
+      }
     } catch (err: any) {
       setError(err.message || "Failed to sign up. Please try again.")
       console.error("Signup error:", err)

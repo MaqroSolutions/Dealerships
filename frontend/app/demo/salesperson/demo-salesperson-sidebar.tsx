@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart3, MessageSquare, Settings, LayoutTemplateIcon as Template, Home, Upload, Car, Shield, UserPlus } from 'lucide-react'
+import { BarChart3, MessageSquare, Settings, LayoutTemplateIcon as Template, Home, Upload, Car } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -13,65 +13,42 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useAuth } from "@/components/auth/auth-provider"
 
-const getItems = (userRole?: string) => {
-  const baseItems = [
-    {
-      title: "Dashboard",
-      url: "/",
-      icon: Home,
-    },
-    {
-      title: "Conversations",
-      url: "/conversations",
-      icon: MessageSquare,
-    },
-    {
-      title: "Inventory",
-      url: "/inventory",
-      icon: Car,
-    },
-    {
-      title: "Upload Inventory",
-      url: "/inventory/upload",
-      icon: Upload,
-    },
-    {
-      title: "Template Manager",
-      url: "/templates",
-      icon: Template,
-    },
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: Settings,
-    },
-  ];
+const salespersonItems = [
+  {
+    title: "Dashboard",
+    url: "/demo/salesperson",
+    icon: Home,
+  },
+  {
+    title: "Conversations",
+    url: "/demo/salesperson/conversations",
+    icon: MessageSquare,
+  },
+  {
+    title: "Inventory",
+    url: "/demo/salesperson/inventory",
+    icon: Car,
+  },
+  {
+    title: "Upload Inventory",
+    url: "/demo/salesperson/inventory/upload",
+    icon: Upload,
+  },
+  {
+    title: "Template Manager",
+    url: "/demo/salesperson/templates",
+    icon: Template,
+  },
+  {
+    title: "Settings",
+    url: "/demo/salesperson/settings",
+    icon: Settings,
+  },
+];
 
-  // Add admin items if user is admin
-  if (userRole === 'admin') {
-    baseItems.push(
-      {
-        title: "Admin Dashboard",
-        url: "/admin",
-        icon: Shield,
-      },
-      {
-        title: "Invite Team",
-        url: "/admin/invite",
-        icon: UserPlus,
-      }
-    );
-  }
-
-  return baseItems;
-};
-
-export function AppSidebar() {
+export function DemoSalespersonSidebar() {
   const pathname = usePathname()
-  const { userRole } = useAuth()
-  const items = getItems(userRole)
 
   return (
     <Sidebar className="border-r border-gray-800">
@@ -87,7 +64,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {salespersonItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -107,4 +84,4 @@ export function AppSidebar() {
       </SidebarContent>
     </Sidebar>
   )
-}
+} 

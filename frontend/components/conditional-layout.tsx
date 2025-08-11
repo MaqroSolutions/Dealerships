@@ -3,9 +3,11 @@
 import { useAuth } from "@/components/auth/auth-provider"
 import { LandingNav } from "@/components/landing-nav"
 import { AppNav } from "@/components/app-nav"
+import { usePathname } from "next/navigation"
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
+  const pathname = usePathname()
 
   // Show loading state while checking authentication
   if (loading) {
@@ -14,6 +16,11 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
         <div className="text-white">Loading...</div>
       </div>
     )
+  }
+
+  // For demo routes, render children directly (no landing nav bar)
+  if (!user && pathname.startsWith("/demo/")) {
+    return <>{children}</>
   }
 
   // Show app layout for authenticated users, landing layout for unauthenticated users

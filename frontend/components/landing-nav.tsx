@@ -26,13 +26,13 @@ export function LandingNav({ children }: { children?: React.ReactNode }) {
             {/* Navigation buttons */}
             <div className="flex items-center gap-4">
               <Link
-                href="/login"
+                href="/role-select?action=signin"
                 className="text-gray-300 hover:text-white font-medium transition-colors"
               >
                 Sign In
               </Link>
               <Link
-                href="/signup"
+                href="/role-select?action=signup"
                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-2 rounded-full transition-all duration-200 transform hover:scale-105"
               >
                 Sign Up

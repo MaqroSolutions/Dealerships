@@ -1,6 +1,8 @@
 "use client"
 
-import { Sparkles, MessageSquare, TrendingUp, Users } from "lucide-react"
+import { Sparkles, MessageSquare, TrendingUp, Users, Eye, ArrowRight } from "lucide-react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export function Hero() {
   return (
@@ -35,7 +37,7 @@ export function Hero() {
             </p>
             
             {/* Trust indicators */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 text-sm text-gray-400">
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 text-sm text-gray-400 mb-8">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                 <span>No credit card required</span>
@@ -48,6 +50,24 @@ export function Hero() {
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                 <span>Free 14-day trial</span>
               </div>
+            </div>
+
+            {/* Demo Links */}
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+              <Link href="/demo/admin">
+                <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Admin Dashboard
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+              <Link href="/demo/salesperson">
+                <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800">
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Salesperson Dashboard
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             </div>
           </div>
           

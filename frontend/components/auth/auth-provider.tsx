@@ -4,24 +4,28 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useRouter, usePathname } from "next/navigation";
+import { getMyProfile } from "@/lib/user-profile-api";
 
 // Create context
 type AuthContextType = {
   user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  userRole?: string;
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signOut: async () => {},
+  userRole: undefined,
 });
 
 // Auth provider component
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | undefined>(undefined);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -29,7 +33,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setUserRole(undefined);
     router.push("/login");
+  };
+
+  // Get user profile and role
+  const getUserProfile = async (userId: string) => {
+    try {
+      const profile = await getMyProfile();
+      setUserRole(profile.role);
+      return profile.role;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      // Default to salesperson role if profile fetch fails
+      setUserRole('salesperson');
+      return 'salesperson';
+    }
   };
 
   useEffect(() => {
@@ -48,12 +67,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
         console.log('AuthProvider: Session result:', session ? 'User found' : 'No user');
         setUser(session?.user || null);
+        
+        if (session?.user) {
+          // Get user role
+          const role = await getUserProfile(session.user.id);
+          console.log('AuthProvider: User role:', role);
+        }
+        
         setLoading(false);
         
-        // If no user and not on login page, signup page, or auth callback, redirect to root
+        // If no user and not on login page, signup page, role-select, demo pages, or auth callback, redirect to root
         if (!session?.user && 
             pathname !== "/login" && 
             pathname !== "/signup" && 
+            pathname !== "/role-select" &&
+            !pathname.startsWith("/demo/") &&
             pathname !== "/" &&
             !pathname.includes("/auth/") && 
             pathname !== "/forgot-password") {
@@ -75,9 +103,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth state changes
     try {
       console.log('AuthProvider: Setting up auth listener...');
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         console.log('AuthProvider: Auth state change:', event, session ? 'User found' : 'No user');
         setUser(session?.user || null);
+        
+        if (session?.user) {
+          // Get user role
+          const role = await getUserProfile(session.user.id);
+          console.log('AuthProvider: User role:', role);
+        } else {
+          setUserRole(undefined);
+        }
+        
         setLoading(false);
 
         // Handle auth events
@@ -85,7 +122,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           router.push("/");
         } else if (event === "SIGNED_IN" && 
                   (pathname === "/login" || pathname === "/signup")) {
-          router.push("/");
+          // Role-based redirect logic
+          if (session?.user) {
+            const role = await getUserProfile(session.user.id);
+            if (role === 'admin') {
+              router.push("/admin");
+            } else {
+              router.push("/");
+            }
+          } else {
+            router.push("/");
+          }
         }
       });
 
@@ -107,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     loading,
     signOut,
+    userRole,
   };
 
   return (

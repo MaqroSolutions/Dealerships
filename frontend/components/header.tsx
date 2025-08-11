@@ -112,6 +112,11 @@ export function Header() {
                 {loading ? 'Loading...' : user?.email || 'My Account'}
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-gray-800" />
+              <Link href="/admin">
+                <DropdownMenuItem className="cursor-pointer hover:bg-gray-800">
+                  Admin Dashboard
+                </DropdownMenuItem>
+              </Link>
               <Link href="/settings">
                 <DropdownMenuItem className="cursor-pointer hover:bg-gray-800">
                   Settings
