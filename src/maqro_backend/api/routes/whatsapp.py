@@ -273,7 +273,7 @@ async def whatsapp_webhook(
                                 )
                                 
                                 # Send new verification message to salesperson
-                                verification_message = f"📝 Edited Response for {pending_approval.customer_phone}:\n\nCustomer: {pending_approval.customer_message}\n\nEdit Request: {edit_request}\n\nNew Suggested Reply: {new_ai_response_text}\n\n📱 Reply 'YES' to send or 'NO' to reject."
+                                verification_message = f"📝 Edited Response for {pending_approval.customer_phone}:\n\nCustomer: {pending_approval.customer_message}\n\nEdit Request: {edit_request}\n\nNew Suggested Reply: {new_ai_response_text}\n\n📱 Reply 'YES' to send, 'NO' to reject, or 'EDIT' followed by your changes."
                                 
                                 whatsapp_result = await whatsapp_service.send_message(normalized_phone, verification_message)
                                 
