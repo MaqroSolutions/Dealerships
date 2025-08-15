@@ -120,9 +120,10 @@ class PendingApproval(Base):
     customer_message = Column(Text, nullable=False)
     generated_response = Column(Text, nullable=False)
     customer_phone = Column(Text, nullable=False)
-    status = Column(Text, nullable=False, default="pending")  # 'pending', 'approved', 'rejected', 'expired'
+    status = Column(Text, nullable=False, default="pending")  # 'pending', 'approved', 'rejected', 'expired', 'editing'
     dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), nullable=False)
     expires_at = Column(DateTime(timezone=True), server_default=text("now() + interval '1 hour'"))
+    edit_request = Column(Text, nullable=True)  # Stores the edit request from salesperson
 
     # Relationships
     lead = relationship("Lead", back_populates="pending_approvals")

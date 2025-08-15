@@ -690,6 +690,32 @@ async def update_approval_status(
         return None
 
 
+async def update_approval_with_edit_request(
+    *, 
+    session: AsyncSession, 
+    approval_id: str, 
+    edit_request: str
+) -> Optional[PendingApproval]:
+    """Update a pending approval with an edit request and set status to 'editing'"""
+    try:
+        approval_uuid = uuid.UUID(approval_id)
+        approval = await session.get(PendingApproval, approval_uuid)
+        
+        if not approval:
+            return None
+        
+        approval.status = "editing"
+        approval.edit_request = edit_request
+        approval.updated_at = datetime.now(pytz.UTC)
+        
+        await session.commit()
+        await session.refresh(approval)
+        logger.info(f"Updated approval {approval_id} with edit request and set status to editing")
+        return approval
+    except (ValueError, TypeError):
+        return None
+
+
 async def expire_pending_approvals_for_user(
     *, session: AsyncSession, user_id: str
 ) -> int:
@@ -752,7 +778,7 @@ async def cleanup_expired_approvals(*, session: AsyncSession) -> int:
 
 
 def is_approval_command(message: str) -> bool:
-    """Check if a message is an approval/rejection command"""
+    """Check if a message is an approval/rejection/edit command"""
     if not message:
         return False
     
@@ -770,13 +796,18 @@ def is_approval_command(message: str) -> bool:
         "do not send", "reject it", "cancel it", "skip it", "no thanks"
     ]
     
-    all_commands = approval_commands + rejection_commands
+    # Edit commands
+    edit_commands = [
+        "edit", "modify", "change", "update", "revise", "rewrite"
+    ]
+    
+    all_commands = approval_commands + rejection_commands + edit_commands
     
     return message_lower in all_commands
 
 
 def parse_approval_command(message: str) -> str:
-    """Parse approval command and return 'approved' or 'rejected'"""
+    """Parse approval command and return 'approved', 'rejected', or 'edit'"""
     if not message:
         return "unknown"
     
@@ -792,12 +823,52 @@ def parse_approval_command(message: str) -> str:
         "do not send", "reject it", "cancel it", "skip it", "no thanks"
     ]
     
+    edit_commands = [
+        "edit", "modify", "change", "update", "revise", "rewrite"
+    ]
+    
     if message_lower in approval_commands:
         return "approved"
     elif message_lower in rejection_commands:
         return "rejected"
+    elif message_lower in edit_commands:
+        return "edit"
     else:
         return "unknown"
+
+
+def is_edit_request(message: str) -> bool:
+    """Check if a message starts with an edit command"""
+    if not message:
+        return False
+    
+    message_lower = message.lower().strip()
+    edit_commands = ["edit", "modify", "change", "update", "revise", "rewrite"]
+    
+    # Check if message starts with any edit command
+    for command in edit_commands:
+        if message_lower.startswith(command):
+            return True
+    
+    return False
+
+
+def extract_edit_request(message: str) -> str:
+    """Extract the edit request part from a message that starts with an edit command"""
+    if not message:
+        return ""
+    
+    message_lower = message.lower().strip()
+    edit_commands = ["edit", "modify", "change", "update", "revise", "rewrite"]
+    
+    # Find which edit command is used
+    for command in edit_commands:
+        if message_lower.startswith(command):
+            # Remove the edit command and any extra whitespace
+            edit_part = message[len(command):].strip()
+            return edit_part
+    
+    return message.strip()
 
 
 # =============================================================================

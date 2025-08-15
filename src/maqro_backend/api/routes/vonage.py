@@ -13,17 +13,20 @@ from ...api.deps import get_db_session, get_current_user_id, get_user_dealership
 from ...services.sms_service import sms_service
 from ...services.salesperson_sms_service import salesperson_sms_service
 from ...crud import (
-    get_lead_by_phone, 
     create_lead, 
+    get_lead_by_phone, 
     create_conversation,
-    get_all_conversation_history,
-    get_user_profile_by_user_id,
     get_salesperson_by_phone,
+    get_user_profile_by_user_id,
+    get_all_conversation_history,
     create_pending_approval,
     get_pending_approval_by_user,
     update_approval_status,
+    update_approval_with_edit_request,
     is_approval_command,
-    parse_approval_command
+    parse_approval_command,
+    is_edit_request,
+    extract_edit_request
 )
 from ...schemas.lead import LeadCreate
 from ...services.ai_services import get_last_customer_message
@@ -139,7 +142,7 @@ async def vonage_webhook(
             logger.info(f"Is approval command '{message_text}': {is_approval_command(message_text)}")
             
             if pending_approval and is_approval_command(message_text):
-                # This is an approval/rejection command
+                # This is an approval/rejection/edit command
                 approval_decision = parse_approval_command(message_text)
                 
                 if approval_decision == "approved":
@@ -195,9 +198,127 @@ async def vonage_webhook(
                         "approval_id": str(pending_approval.id),
                         "sent_to_customer": False
                     }
+                
+                elif approval_decision == "edit":
+                    # Handle edit request
+                    if is_edit_request(message_text):
+                        edit_request = extract_edit_request(message_text)
+                        
+                        if edit_request:
+                            # Update approval with edit request
+                            await update_approval_with_edit_request(
+                                session=db,
+                                approval_id=str(pending_approval.id),
+                                edit_request=edit_request
+                            )
+                            
+                            # Generate new response with edit request
+                            try:
+                                # Get conversation history for AI response
+                                all_conversations_raw = await get_all_conversation_history(db, lead_id=str(pending_approval.lead_id))
+                                
+                                # Convert SQLAlchemy objects to dictionaries for RAG service
+                                all_conversations = [
+                                    {
+                                        "id": str(conv.id),
+                                        "message": conv.message,
+                                        "sender": conv.sender,
+                                        "created_at": conv.created_at.isoformat() if conv.created_at else None
+                                    }
+                                    for conv in all_conversations_raw
+                                ]
+                                
+                                # Add the edit request to the context
+                                edit_context = f"Customer message: {pending_approval.customer_message}\n\nSalesperson edit request: {edit_request}\n\nPlease incorporate this edit request into the response."
+                                
+                                # Use enhanced RAG system to find relevant vehicles
+                                vehicles = enhanced_rag_service.search_vehicles_with_context(
+                                    edit_context, 
+                                    all_conversations, 
+                                    top_k=3
+                                )
+                                
+                                # Generate enhanced AI response with edit request
+                                enhanced_response = enhanced_rag_service.generate_enhanced_response(
+                                    edit_context,
+                                    vehicles,
+                                    all_conversations,
+                                    None  # We don't have lead name in this context
+                                )
+                                
+                                new_ai_response_text = enhanced_response['response_text']
+                                
+                                # Create new pending approval with the edited response
+                                new_pending_approval = await create_pending_approval(
+                                    session=db,
+                                    lead_id=str(pending_approval.lead_id),
+                                    user_id=str(pending_approval.user_id),
+                                    customer_message=pending_approval.customer_message,
+                                    generated_response=new_ai_response_text,
+                                    customer_phone=pending_approval.customer_phone,
+                                    dealership_id=default_dealership_id
+                                )
+                                
+                                # Send new verification message to salesperson
+                                verification_message = f"📝 Edited Response for {pending_approval.customer_phone}:\n\nCustomer: {pending_approval.customer_message}\n\nEdit Request: {edit_request}\n\nNew Suggested Reply: {new_ai_response_text}\n\n📱 Reply 'YES' to send or 'NO' to reject."
+                                
+                                sms_result = await sms_service.send_sms(normalized_phone, verification_message)
+                                
+                                if sms_result["success"]:
+                                    logger.info(f"Created new pending approval {new_pending_approval.id} with edited response")
+                                    return {
+                                        "status": "success",
+                                        "message": "Edit request processed, new response generated and pending approval",
+                                        "approval_id": str(new_pending_approval.id),
+                                        "edit_request": edit_request,
+                                        "new_response": new_ai_response_text
+                                    }
+                                else:
+                                    logger.error(f"Failed to send edited response verification message: {sms_result['error']}")
+                                    return {
+                                        "status": "error",
+                                        "message": "Edit processed but failed to send verification message",
+                                        "approval_id": str(new_pending_approval.id),
+                                        "error": sms_result["error"]
+                                    }
+                                    
+                            except Exception as edit_error:
+                                logger.error(f"Error processing edit request: {edit_error}")
+                                # Fallback: just acknowledge the edit request
+                                fallback_message = f"✅ Edit request received: {edit_request}\n\nI'm processing your edit request. Please wait for the updated response."
+                                await sms_service.send_sms(normalized_phone, fallback_message)
+                                
+                                return {
+                                    "status": "partial_success",
+                                    "message": "Edit request received but processing failed",
+                                    "approval_id": str(pending_approval.id),
+                                    "edit_request": edit_request,
+                                    "error": str(edit_error)
+                                }
+                        else:
+                            # No edit request provided
+                            help_message = "Please provide your edit request after 'EDIT'. For example:\n\nEDIT\nAdd that we have financing available"
+                            await sms_service.send_sms(normalized_phone, help_message)
+                            
+                            return {
+                                "status": "help_sent",
+                                "message": "Sent help message for edit request",
+                                "approval_id": str(pending_approval.id)
+                            }
+                    else:
+                        # Unknown command, let them know
+                        help_message = "I didn't understand. Reply with 'YES' to send the response to the customer, 'NO' to reject it, or 'EDIT' followed by your changes."
+                        await sms_service.send_sms(normalized_phone, help_message)
+                        
+                        return {
+                            "status": "help_sent",
+                            "message": "Sent help message for approval command",
+                            "approval_id": str(pending_approval.id)
+                        }
+                        
                 else:
                     # Unknown command, let them know
-                    help_message = "I didn't understand. Reply with 'YES' to send the response to the customer, or 'NO' to reject it."
+                    help_message = "I didn't understand. Reply with 'YES' to send the response to the customer, 'NO' to reject it, or 'EDIT' followed by your changes."
                     await sms_service.send_sms(normalized_phone, help_message)
                     
                     return {
@@ -307,7 +428,7 @@ async def vonage_webhook(
                     )
                     
                     # Send verification message to salesperson
-                    verification_message = f"RAG Response for {existing_lead.name} ({normalized_phone}):\n\nCustomer: {message_text}\n\nSuggested Reply: {ai_response_text}\n\n📱 Reply 'YES' to send or 'NO' to reject."
+                    verification_message = f"RAG Response for {existing_lead.name} ({normalized_phone}):\n\nCustomer: {message_text}\n\nSuggested Reply: {ai_response_text}\n\n📱 Reply 'YES' to send, 'NO' to reject, or 'EDIT' followed by your changes."
                     
                     sms_result = await sms_service.send_sms(assigned_user.phone, verification_message)
                     
