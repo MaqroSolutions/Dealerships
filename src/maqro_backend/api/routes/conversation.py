@@ -274,4 +274,4 @@ async def generate_rag_response(
         
     except Exception as e:
         logger.error(f"Error generating RAG response: {e}")
-        raise HTTPException(status_code=500, detail=f"Error generating response: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate response")

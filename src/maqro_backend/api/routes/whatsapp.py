@@ -2,6 +2,8 @@
 WhatsApp Business API routes for sending and receiving WhatsApp messages
 """
 from fastapi import APIRouter, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any
 import logging
@@ -33,6 +35,9 @@ from ...schemas.lead import LeadCreate
 from ...services.ai_services import get_last_customer_message
 
 logger = logging.getLogger(__name__)
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
@@ -73,6 +78,7 @@ async def whatsapp_webhook_verify(request: Request):
 
 
 @router.post("/webhook")
+@limiter.limit("200/minute")  # High limit for legitimate webhook traffic
 async def whatsapp_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db_session),

@@ -1,7 +1,9 @@
 """
 Inventory API routes for Supabase integration
 """
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 import pandas as pd
@@ -21,6 +23,9 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
@@ -235,7 +240,9 @@ async def delete_inventory_item(
 
 
 @router.post("/inventory/upload")
+@limiter.limit("10/minute")  # Generous for file uploads, prevents abuse
 async def upload_inventory_file(
+    request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db_session),
     dealership_id: str = Depends(get_user_dealership_id)
@@ -297,7 +304,7 @@ async def upload_inventory_file(
         }
     except Exception as e:
         logger.error(f"Database error during bulk insert: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to save inventory to database: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save inventory to database")
 
 
 @router.get("/inventory/count", response_model=int)

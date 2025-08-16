@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 import pytz
@@ -20,12 +22,17 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 router = APIRouter()
 
 enhanced_rag_service = None
 
 @router.post("/conversations/{lead_id}/ai-response")
+@limiter.limit("20/minute")  # Generous limit for real users, blocks abuse
 async def generate_conversation_ai_response(
+    request: Request,
     lead_id: int, 
     request_data: AIResponseRequest | None = None,
     db: AsyncSession = Depends(get_db_session),
@@ -109,7 +116,9 @@ async def generate_conversation_ai_response(
 
 
 @router.post("/ai-response/general")
+@limiter.limit("20/minute")  # Generous limit for real users, blocks abuse
 async def generate_general_ai_response(
+    request: Request,
     request_data: GeneralAIRequest,
     enhanced_rag_service: EnhancedRAGService = Depends(get_enhanced_rag_services),
     user_id: str = Depends(get_current_user_id)
@@ -148,7 +157,9 @@ async def generate_general_ai_response(
         raise HTTPException(status_code=500, detail="Failed to generate AI response") 
     
 @router.post("/ai-response/enhanced")
+@limiter.limit("20/minute")  # Generous limit for real users, blocks abuse
 async def generate_enhanced_ai_response(
+    request: Request,
     request_data: GeneralAIRequest,
     enhanced_rag_service: EnhancedRAGService = Depends(get_enhanced_rag_services),
     user_id: str = Depends(get_current_user_id)
