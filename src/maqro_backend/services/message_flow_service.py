@@ -201,8 +201,11 @@ class MessageFlowService:
                     "I didn't understand your response. Here are your options:\n\n"
                     "• Reply 'YES' to send the suggested response to the customer\n"
                     "• Reply 'NO' to reject the response\n"
-                    "• Reply 'EDIT [your instructions]' to have me regenerate the response\n"
-                    "• Reply 'FORCE [your message]' to send your custom message directly"
+                    "• Reply 'EDIT [instructions]' to have me regenerate the response\n"
+                    "• Reply 'FORCE [your message]' to send your custom message directly\n\n"
+                    "Examples:\n"
+                    "• EDIT Make it more friendly and mention financing\n"
+                    "• FORCE Hi John! I'll call you in 5 minutes to discuss the Toyota Camry."
                 )
                 
                 return {
@@ -351,17 +354,31 @@ class MessageFlowService:
                 for conv in all_conversations_raw
             ]
             
-            # Create enhanced prompt with edit instructions
-            enhanced_prompt = f"{pending_approval.customer_message}\n\nSalesperson edit request: {edit_instructions}"
+            # Create enhanced prompt that prioritizes the edit instructions
+            # The edit should take priority over the original response content
+            enhanced_prompt = f"""Customer inquiry: {pending_approval.customer_message}
+
+IMPORTANT: The salesperson has requested specific edits to the response. 
+These edits MUST be included and take priority over other content.
+
+Salesperson edit requirements: {edit_instructions}
+
+Please generate a response that:
+1. Addresses the customer's inquiry
+2. Incorporates ALL the requested edits as the primary focus
+3. Ensures no conflicting information with the edit requirements
+4. Maintains a professional and helpful tone
+
+Generate a response that prioritizes the edit instructions:"""
             
-            # Generate new response using RAG
+            # Generate new response using RAG with edit-focused prompt
             vehicles = enhanced_rag_service.search_vehicles_with_context(
                 enhanced_prompt,
                 all_conversations,
                 top_k=3
             )
             
-            # Generate enhanced AI response with edit instructions
+            # Generate enhanced AI response with edit instructions as priority
             enhanced_response = enhanced_rag_service.generate_enhanced_response(
                 enhanced_prompt,
                 vehicles,
@@ -370,6 +387,50 @@ class MessageFlowService:
             )
             
             new_response_text = enhanced_response['response_text']
+            
+            # Validate that the edit requirements are actually included in the response
+            edit_requirements_met = self._validate_edit_requirements(
+                new_response_text, 
+                edit_instructions
+            )
+            
+            if not edit_requirements_met:
+                # If edit requirements weren't met, try to regenerate with stronger emphasis
+                logger.warning(f"Edit requirements not fully met, regenerating with stronger emphasis")
+                stronger_prompt = f"""Customer inquiry: {pending_approval.customer_message}
+
+CRITICAL: The salesperson has requested these specific edits that MUST be included:
+"{edit_instructions}"
+
+Generate a response that PRIORITIZES these edits above all else. 
+The response should be built around these edit requirements, not just include them as an afterthought.
+
+Focus on: {edit_instructions}"""
+                
+                # Regenerate with stronger emphasis
+                vehicles_retry = enhanced_rag_service.search_vehicles_with_context(
+                    stronger_prompt,
+                    all_conversations,
+                    top_k=3
+                )
+                
+                enhanced_response_retry = enhanced_rag_service.generate_enhanced_response(
+                    stronger_prompt,
+                    vehicles_retry,
+                    all_conversations,
+                    "Customer"
+                )
+                
+                new_response_text = enhanced_response_retry['response_text']
+                
+                # Validate again
+                edit_requirements_met = self._validate_edit_requirements(
+                    new_response_text, 
+                    edit_instructions
+                )
+                
+                if not edit_requirements_met:
+                    logger.warning(f"Edit requirements still not met after retry, proceeding with current response")
             
             # Create new pending approval with the edited response
             new_pending_approval = await create_pending_approval(
@@ -389,13 +450,17 @@ class MessageFlowService:
                 status="expired"
             )
             
-            # Send new response for approval
+            # Send new response for approval with FORCE option included
             approval_message = (
                 f"🔄 Response edited and regenerated!\n\n"
                 f"Customer: {pending_approval.customer_message}\n\n"
                 f"Edit instructions: {edit_instructions}\n\n"
                 f"New suggested reply: {new_response_text}\n\n"
-                f"📱 Reply 'YES' to send, 'NO' to reject, or 'EDIT [instructions]' to edit again."
+                f"📱 Reply with:\n"
+                f"• 'YES' to send this response\n"
+                f"• 'NO' to reject it\n"
+                f"• 'EDIT [instructions]' to edit again\n"
+                f"• 'FORCE [your message]' to send your custom message directly"
             )
             
             # Send approval message to salesperson
@@ -421,7 +486,8 @@ class MessageFlowService:
                     "approval_id": str(new_pending_approval.id),
                     "old_approval_id": str(pending_approval.id),
                     "edit_instructions": edit_instructions,
-                    "new_response": new_response_text
+                    "new_response": new_response_text,
+                    "edit_requirements_met": edit_requirements_met
                 }
             else:
                 logger.error(f"Failed to send edit approval message: {send_result['error']}")
@@ -439,6 +505,54 @@ class MessageFlowService:
                 "error": "Edit error",
                 "message": "Sorry, there was an error editing the response. Please try again."
             }
+    
+    def _validate_edit_requirements(self, response_text: str, edit_instructions: str) -> bool:
+        """Validate that the edit requirements are actually included in the response"""
+        try:
+            # Convert both to lowercase for comparison
+            response_lower = response_text.lower()
+            edit_lower = edit_instructions.lower()
+            
+            # Extract key phrases from edit instructions
+            key_phrases = []
+            
+            # Look for common edit patterns
+            if "friendly" in edit_lower or "more friendly" in edit_lower:
+                key_phrases.extend(["friendly", "warm", "welcoming", "😊", "thanks", "excited"])
+            
+            if "financing" in edit_lower or "apr" in edit_lower or "payment" in edit_lower:
+                key_phrases.extend(["financing", "apr", "payment", "0%", "promotion", "offer"])
+            
+            if "call" in edit_lower or "phone" in edit_lower:
+                key_phrases.extend(["call", "phone", "contact", "reach out"])
+            
+            if "test drive" in edit_lower:
+                key_phrases.extend(["test drive", "schedule", "appointment"])
+            
+            if "price" in edit_lower or "cost" in edit_lower:
+                key_phrases.extend(["price", "cost", "value", "$"])
+            
+            # Check if key phrases are present in response
+            phrases_found = sum(1 for phrase in key_phrases if phrase in response_lower)
+            
+            # If we have specific key phrases, check if at least 60% are found
+            if key_phrases:
+                return phrases_found >= len(key_phrases) * 0.6
+            
+            # If no specific key phrases, do a general content check
+            # Look for common words that should be present based on edit context
+            edit_words = [word for word in edit_lower.split() if len(word) > 3]
+            response_words = response_lower.split()
+            
+            # Check if edit words appear in response
+            matching_words = sum(1 for word in edit_words if word in response_words)
+            
+            return matching_words >= len(edit_words) * 0.5
+            
+        except Exception as e:
+            logger.error(f"Error validating edit requirements: {e}")
+            # If validation fails, assume requirements are met to avoid blocking the flow
+            return True
     
     async def _force_send_custom_message(
         self,
@@ -746,7 +860,7 @@ class MessageFlowService:
                 f"• 'YES' to send this response\n"
                 f"• 'NO' to reject it\n"
                 f"• 'EDIT [instructions]' to have me improve it\n"
-                f"• 'FORCE [your message]' to send your own message"
+                f"• 'FORCE [your message]' to send your own message directly"
             )
             
             # Send approval message to salesperson

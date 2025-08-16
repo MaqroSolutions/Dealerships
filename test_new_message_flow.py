@@ -45,6 +45,10 @@ def print_approval_options():
     print("   • Reply 'NO' to reject the response")
     print("   • Reply 'EDIT [instructions]' to have me regenerate the response")
     print("   • Reply 'FORCE [your message]' to send your custom message directly")
+    print("\n💡 Edit Examples:")
+    print("   • EDIT Make it more friendly and mention financing")
+    print("   • EDIT Focus on the test drive experience")
+    print("   • EDIT Include our current promotions")
 
 
 async def simulate_customer_message():
@@ -135,29 +139,31 @@ async def simulate_salesperson_responses(customer_message, rag_response):
     
     # Scenario 3: Edit Request
     print_scenario("Scenario 3: Edit Request", "Salesperson requests edits to the response")
-    edit_request = "EDIT Make it more friendly and mention our current financing promotion with 0% APR for qualified buyers"
+    edit_request = "EDIT Make it more friendly and mention our financing promotion with 0% APR for qualified buyers"
     print_message("Salesperson", edit_request)
     
     print("\n🔄 Processing edit request...")
-    print("   🔄 Regenerating response with edit instructions...")
+    print("   🔄 Regenerating response with edit instructions as priority...")
+    print("   📋 Edit requirements: friendly tone + financing promotion")
     
     # Simulate regenerated response
     await asyncio.sleep(2)
     
-    edited_response = """Hi John! Thanks so much for your interest in the Toyota Camry! 😊 We're excited to help you find the perfect vehicle.
+    edited_response = """Hi John! 😊 Thanks so much for your interest in the Toyota Camry! We're absolutely thrilled to help you find the perfect vehicle.
 
-Great news - we currently have 3 beautiful Camry models in stock:
+🎉 EXCITING NEWS: We're currently running an AMAZING financing promotion with 0% APR for qualified buyers! This could save you thousands in interest!
+
+We have 3 beautiful Camry models in stock:
 
 • 2023 Toyota Camry LE - $28,500
 • 2023 Toyota Camry SE - $31,200  
 • 2023 Toyota Camry XLE - $35,800
 
-🎉 Special Financing Offer: We're currently running a fantastic promotion with 0% APR financing for qualified buyers! This could save you thousands in interest.
-
-All models come with our comprehensive warranty and we'd love to show you around. Would you like to schedule a test drive or get more details about any specific model? We're here to make your car-buying experience amazing! 🚗✨"""
+All models come with our comprehensive warranty and we'd love to show you around! Would you like to schedule a test drive or get more details about our financing options? We're here to make your car-buying experience absolutely amazing! 🚗✨"""
     
-    print(f"   ✅ New response generated:\n       {edited_response[:100]}...")
-    print("   📱 New approval request sent to salesperson")
+    print(f"   ✅ New response generated with edits prioritized:\n       {edited_response[:100]}...")
+    print("   ✅ Edit requirements validated and met")
+    print("   📱 New approval request sent to salesperson (includes FORCE option)")
     
     # Scenario 4: Force Send Custom Message
     print_scenario("Scenario 4: Force Send", "Salesperson sends their own custom message")
@@ -213,7 +219,7 @@ def print_flow_summary():
 4. 📋 Salesperson can:
    • ✅ YES - Approve and send RAG response
    • ❌ NO - Reject (no message sent)
-   • 🔄 EDIT [instructions] - Regenerate with edits
+   • 🔄 EDIT [instructions] - Regenerate with edits as priority
    • 🚀 FORCE [message] - Send custom message directly
 5. 💬 Customer receives approved/custom message
 6. 📊 All interactions logged in conversation history
@@ -224,6 +230,14 @@ def print_flow_summary():
    • Maintains human touch in customer communication
    • Full audit trail of all interactions
    • Flexible response options for different situations
+   • Edit requirements are prioritized and validated
+   • FORCE option available at every approval step
+
+💡 EDIT FEATURES:
+   • Edit instructions take priority over original content
+   • Automatic validation that edits are included
+   • Retry mechanism if requirements aren't met
+   • FORCE option always available for custom messages
 """)
 
 
