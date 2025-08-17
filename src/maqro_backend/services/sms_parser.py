@@ -26,9 +26,20 @@ class SMSParser:
         
         self.api_key = os.getenv("OPENAI_API_KEY")
         if not self.api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
+            logger.warning("OPENAI_API_KEY environment variable is not set. LLM parsing will not work.")
+            logger.warning("SMS parsing will fall back to basic pattern matching only.")
+            self.api_key = None
         
-        self.client = openai.OpenAI(api_key=self.api_key)
+        if self.api_key:
+            try:
+                self.client = openai.OpenAI(api_key=self.api_key)
+                logger.info("OpenAI client initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize OpenAI client: {e}")
+                self.api_key = None
+        else:
+            self.client = None
+            
         self.model = "gpt-4o-mini"  # Using GPT-4o-mini for cost efficiency
         
         # System prompt for the LLM
@@ -151,9 +162,11 @@ For test drive scheduling, the JSON should look like:
         
         try:
             # Use LLM to parse the message
+            logger.info(f"Attempting to parse message with LLM: {message[:100]}...")
             parsed_data = self._parse_with_llm(message)
             
             if parsed_data and "type" in parsed_data:
+                logger.info(f"LLM parsing successful: {parsed_data.get('type')}")
                 # Determine confidence based on extracted data quality
                 confidence = self._assess_confidence(parsed_data)
                 
@@ -163,11 +176,9 @@ For test drive scheduling, the JSON should look like:
                     "confidence": confidence
                 }
             else:
-                return {
-                    "type": "unknown",
-                    "data": {},
-                    "confidence": "low"
-                }
+                logger.warning("LLM parsing failed, using fallback parsing")
+                # Fallback to basic pattern matching if LLM fails
+                return self._fallback_parse(message)
                 
         except Exception as e:
             logger.error(f"Error parsing message with LLM: {e}")
@@ -176,7 +187,12 @@ For test drive scheduling, the JSON should look like:
     
     def _parse_with_llm(self, message: str) -> Optional[Dict[str, Any]]:
         """Parse message using OpenAI chat completions"""
+        if self.client is None:
+            logger.warning("OpenAI client not initialized. Cannot parse message with LLM.")
+            return None
+
         try:
+            logger.info(f"Sending message to OpenAI for parsing: {message[:100]}...")
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -188,6 +204,7 @@ For test drive scheduling, the JSON should look like:
             )
             
             content = response.choices[0].message.content.strip()
+            logger.info(f"OpenAI response: {content}")
             
             # Try to extract JSON from the response
             try:
@@ -198,6 +215,7 @@ For test drive scheduling, the JSON should look like:
                     content = content.split("```")[1].split("```")[0]
                 
                 parsed_data = json.loads(content)
+                logger.info(f"Successfully parsed JSON: {parsed_data}")
                 return parsed_data
                 
             except json.JSONDecodeError as e:
@@ -281,26 +299,41 @@ For test drive scheduling, the JSON should look like:
         
         # Simple keyword-based fallback for different message types
         if any(word in message_lower for word in ["met", "lead", "customer", "prospect"]):
+            # Try to extract basic information from the message
+            name = self._extract_name_from_message(message)
+            phone = self._extract_phone_from_message(message)
+            email = self._extract_email_from_message(message)
+            car_interest = self._extract_car_interest_from_message(message)
+            price_range = self._extract_price_from_message(message)
+            
             return {
                 "type": "lead_creation",
-                "name": "Unknown",
-                "phone": None,
-                "email": None,
-                "car_interest": "Unknown",
-                "price_range": None,
+                "name": name or "Customer from SMS",
+                "phone": phone or "Unknown",
+                "email": email or "Not provided",
+                "car_interest": car_interest or "Vehicle of interest",
+                "price_range": price_range or "Not specified",
                 "source": "SMS Lead Creation (Fallback)"
             }
         elif any(word in message_lower for word in ["picked up", "inventory", "vehicle", "car", "add"]):
+            # Try to extract basic vehicle information
+            year = self._extract_year_from_message(message)
+            make = self._extract_make_from_message(message)
+            model = self._extract_model_from_message(message)
+            mileage = self._extract_mileage_from_message(message)
+            condition = self._extract_condition_from_message(message)
+            price = self._extract_price_from_message(message)
+            
             return {
                 "type": "inventory_update",
-                "year": None,
-                "make": "Unknown",
-                "model": "Unknown",
-                "mileage": None,
-                "condition": "Unknown",
-                "price": None,
-                "description": "Vehicle from SMS",
-                "features": "Unknown condition"
+                "year": year or 2020,
+                "make": make or "Vehicle",
+                "model": model or "Model",
+                "mileage": mileage or 0,
+                "condition": condition or "Unknown",
+                "price": price or "TBD",
+                "description": f"{year or 'Unknown'} {make or 'Vehicle'} {model or 'Model'} from SMS",
+                "features": f"Condition: {condition or 'Unknown'}"
             }
         elif any(word in message_lower for word in ["status", "check", "details", "lead", "customer"]) and any(word in message_lower for word in ["what", "how", "?"]):
             return {
@@ -348,6 +381,205 @@ For test drive scheduling, the JSON should look like:
         return {
             "type": "unknown"
         }
+    
+    def _extract_name_from_message(self, message: str) -> Optional[str]:
+        """Extract a potential name from the message"""
+        import re
+        
+        # Look for capitalized words that might be names
+        # Common patterns: "I just met [Name]", "Met [Name]", "Customer [Name]"
+        patterns = [
+            r"I just met (\w+)",
+            r"Met (\w+)",
+            r"Customer (\w+)",
+            r"(\w+) wants to",
+            r"(\w+) is interested"
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, message, re.IGNORECASE)
+            if match:
+                name = match.group(1)
+                # Check if it's a reasonable name (not a common word)
+                if len(name) > 2 and name.lower() not in ['the', 'and', 'for', 'with', 'from', 'this', 'that']:
+                    return name
+        
+        return None
+    
+    def _extract_phone_from_message(self, message: str) -> Optional[str]:
+        """Extract phone number from the message"""
+        import re
+        
+        # Look for phone number patterns
+        phone_patterns = [
+            r"(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})",  # 555-123-4567
+            r"\((\d{3})\)\s*\d{3}[-.\s]?\d{4}",   # (555) 123-4567
+            r"(\d{10,11})"                         # 5551234567
+        ]
+        
+        for pattern in phone_patterns:
+            match = re.search(pattern, message)
+            if match:
+                phone = match.group(1)
+                # Clean the phone number
+                clean_phone = re.sub(r'[^\d]', '', phone)
+                if len(clean_phone) >= 10:
+                    return self._clean_phone(clean_phone)
+        
+        return None
+    
+    def _extract_email_from_message(self, message: str) -> Optional[str]:
+        """Extract email address from the message"""
+        import re
+        
+        # Look for email pattern
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        match = re.search(email_pattern, message)
+        
+        if match:
+            return match.group(0)
+        
+        return None
+    
+    def _extract_car_interest_from_message(self, message: str) -> Optional[str]:
+        """Extract car interest from the message"""
+        import re
+        
+        # Look for car-related keywords
+        car_keywords = [
+            'toyota', 'honda', 'ford', 'chevrolet', 'nissan', 'bmw', 'mercedes', 'audi',
+            'subaru', 'mazda', 'hyundai', 'kia', 'volkswagen', 'jeep', 'dodge', 'chrysler',
+            'sedan', 'suv', 'truck', 'hatchback', 'wagon', 'convertible', 'coupe'
+        ]
+        
+        message_lower = message.lower()
+        found_interests = []
+        
+        for keyword in car_keywords:
+            if keyword in message_lower:
+                found_interests.append(keyword.title())
+        
+        if found_interests:
+            return ', '.join(found_interests)
+        
+        return None
+    
+    def _extract_price_from_message(self, message: str) -> Optional[str]:
+        """Extract price information from the message"""
+        import re
+        
+        # Look for price patterns
+        price_patterns = [
+            r'\$(\d+(?:,\d{3})*(?:\.\d{2})?)',  # $25,000 or $25.50
+            r'(\d+)K',                           # 25K
+            r'(\d+)k',                           # 25k
+            r'around \$(\d+)',                   # around $25,000
+            r'price range.*?(\d+)',              # price range of $25
+        ]
+        
+        for pattern in price_patterns:
+            match = re.search(pattern, message, re.IGNORECASE)
+            if match:
+                price = match.group(1)
+                if 'K' in pattern or 'k' in pattern:
+                    # Convert K notation to full price
+                    try:
+                        value = int(price) * 1000
+                        return f"${value:,}"
+                    except ValueError:
+                        continue
+                else:
+                    return f"${price}"
+        
+        return None
+    
+    def _extract_year_from_message(self, message: str) -> Optional[int]:
+        """Extract year from the message"""
+        import re
+        
+        # Look for year patterns (4-digit years)
+        year_pattern = r'\b(19|20)\d{2}\b'
+        match = re.search(year_pattern, message)
+        
+        if match:
+            try:
+                return int(match.group(0))
+            except ValueError:
+                pass
+        
+        return None
+    
+    def _extract_make_from_message(self, message: str) -> Optional[str]:
+        """Extract vehicle make from the message"""
+        import re
+        
+        # Look for common vehicle makes
+        makes = [
+            'toyota', 'honda', 'ford', 'chevrolet', 'nissan', 'bmw', 'mercedes', 'audi',
+            'subaru', 'mazda', 'hyundai', 'kia', 'volkswagen', 'jeep', 'dodge', 'chrysler'
+        ]
+        
+        message_lower = message.lower()
+        for make in makes:
+            if make in message_lower:
+                return make.title()
+        
+        return None
+    
+    def _extract_model_from_message(self, message: str) -> Optional[str]:
+        """Extract vehicle model from the message"""
+        import re
+        
+        # Look for common vehicle models
+        models = [
+            'camry', 'civic', 'accord', 'corolla', 'f-150', 'silverado', 'altima', 'sentra',
+            '3 series', 'c-class', 'a4', 'outback', 'cx-5', 'tucson', 'sportage', 'golf'
+        ]
+        
+        message_lower = message.lower()
+        for model in models:
+            if model in message_lower:
+                return model.title()
+        
+        return None
+    
+    def _extract_mileage_from_message(self, message: str) -> Optional[int]:
+        """Extract mileage from the message"""
+        import re
+        
+        # Look for mileage patterns
+        mileage_patterns = [
+            r'(\d+(?:,\d{3})*)\s*miles?',  # 45,000 miles
+            r'(\d+)\s*miles?',              # 45000 miles
+            r'(\d+(?:,\d{3})*)\s*mi',       # 45,000 mi
+        ]
+        
+        for pattern in mileage_patterns:
+            match = re.search(pattern, message, re.IGNORECASE)
+            if match:
+                mileage_str = match.group(1).replace(',', '')
+                try:
+                    return int(mileage_str)
+                except ValueError:
+                    pass
+        
+        return None
+    
+    def _extract_condition_from_message(self, message: str) -> Optional[str]:
+        """Extract vehicle condition from the message"""
+        import re
+        
+        # Look for condition keywords
+        conditions = [
+            'excellent', 'good', 'fair', 'poor', 'like new', 'new', 'used', 'pre-owned'
+        ]
+        
+        message_lower = message.lower()
+        for condition in conditions:
+            if condition in message_lower:
+                return condition.title()
+        
+        return None
     
     def _clean_phone(self, phone: str) -> str:
         """Clean and normalize phone number"""

@@ -170,13 +170,23 @@ class MessageFlowService:
             
             if result.get("success"):
                 logger.info(f"Successfully processed salesperson business message: {result.get('message', 'No message')}")
+                
+                # Check if the business function created something with incomplete information
+                has_incomplete_info = result.get("has_incomplete_info", False)
+                business_function = result.get("business_function", "unknown")
+                
+                response_message = result.get("message", "Message processed successfully")
+                if has_incomplete_info:
+                    response_message += "\n\n⚠️ Note: Some information was incomplete. Please update the record with additional details when possible."
+                
                 return {
                     "success": True,
-                    "message": result.get("message", "Message processed successfully"),
+                    "message": response_message,
                     "has_pending_approval": False,
-                    "business_function": result.get("type", "unknown"),
+                    "business_function": business_function,
                     "lead_id": result.get("lead_id"),
-                    "inventory_id": result.get("inventory_id")
+                    "inventory_id": result.get("inventory_id"),
+                    "has_incomplete_info": has_incomplete_info
                 }
             else:
                 logger.warning(f"Failed to process salesperson business message: {result.get('error', 'Unknown error')}")

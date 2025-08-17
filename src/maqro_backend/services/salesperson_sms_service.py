@@ -67,12 +67,24 @@ class SalespersonSMSService:
             # Parse the message to determine intent and extract data
             parsed_message = sms_parser.parse_message(message_text)
             
-            # Both LLM and fallback parsing now return the same structure
-            parsed_data = parsed_message
+            # Handle different parsing result structures
+            # LLM parsing returns {type, data, confidence}, fallback parsing returns data directly
+            if isinstance(parsed_message, dict) and "data" in parsed_message and "confidence" in parsed_message:
+                # LLM parsing structure
+                parsed_data = parsed_message["data"]
+                confidence = parsed_message["confidence"]
+                logger.info(f"Using LLM parsed data with confidence: {confidence}")
+            else:
+                # Fallback parsing structure - data is directly in parsed_message
+                parsed_data = parsed_message
+                confidence = "fallback"
+                logger.info("Using fallback parsed data")
             
             logger.info(f"Parsed message type: {parsed_data.get('type')}")
+            logger.info(f"Full parsed data: {parsed_data}")
             
             if parsed_data["type"] == "lead_creation":
+                logger.info(f"Processing lead creation with data: {parsed_data}")
                 return await self._handle_lead_creation(
                     session=session,
                     salesperson=salesperson,
@@ -81,6 +93,7 @@ class SalespersonSMSService:
                 )
             
             elif parsed_data["type"] == "inventory_update":
+                logger.info(f"Processing inventory update with data: {parsed_data}")
                 return await self._handle_inventory_update(
                     session=session,
                     salesperson=salesperson,
@@ -160,27 +173,45 @@ class SalespersonSMSService:
         """Handle lead creation from salesperson SMS"""
         try:
             # Validate required fields
-            if not parsed_data.get("name") or not parsed_data.get("phone"):
+            logger.info(f"Validating lead creation data: {parsed_data}")
+            logger.info(f"Name field: {parsed_data.get('name')}")
+            logger.info(f"Phone field: {parsed_data.get('phone')}")
+            
+            # Check if we have at least a name or phone number
+            name = parsed_data.get("name")
+            phone = parsed_data.get("phone")
+            
+            # Allow leads to be created with partial information
+            if not name and not phone:
+                logger.warning(f"Missing both name and phone - cannot create lead")
                 return {
                     "success": False,
                     "error": "Missing required fields",
-                    "message": "Please provide both name and phone number for the lead."
+                    "message": "Please provide at least a name or phone number for the lead. The system couldn't extract this information from your message."
                 }
             
-            # Create lead data with robust fallbacks
-            source_value = parsed_data.get("source") or "SMS Lead Creation"  # Handle None values
-            car_interest_value = parsed_data.get("car_interest") or "Unknown"
+            # Use fallback values for missing information
+            final_name = name if name and name not in ["Unknown", "Customer from SMS"] else "Customer from SMS"
+            final_phone = phone if phone and phone not in ["Unknown", "Not provided"] else "Phone number needed"
+            final_email = parsed_data.get("email") or "Not provided"
+            final_car_interest = parsed_data.get("car_interest") or "Vehicle of interest"
+            final_price_range = parsed_data.get("price_range") or "Not specified"
+            final_source = parsed_data.get("source") or "SMS Lead Creation"
             
+            logger.info(f"Using final values - Name: {final_name}, Phone: {final_phone}, Email: {final_email}")
+            
+            # Create lead data with the available information
             lead_data = LeadCreate(
-                name=parsed_data["name"],
-                phone=parsed_data["phone"],
-                email=parsed_data.get("email"),
-                car_interest=car_interest_value,  # LLM extracts 'car_interest', matches DB field
-                source=source_value,  # Ensure never None
-                max_price=parsed_data.get("price_range"),  # Allow None for optional field
+                name=final_name,
+                phone=final_phone,
+                email=final_email,
+                car_interest=final_car_interest,
+                source=final_source,
+                max_price=final_price_range,
                 message=f"Lead created via SMS by {salesperson.full_name}. "
-                        f"Car interest: {car_interest_value}. "
-                        f"Price range: {parsed_data.get('price_range') or 'Not specified'}."
+                        f"Car interest: {final_car_interest}. "
+                        f"Price range: {final_price_range}. "
+                        f"Note: Some information may be incomplete - please update the lead with additional details."
             )
             
             # Create the lead
@@ -208,11 +239,13 @@ class SalespersonSMSService:
                           f"Phone: {lead.phone}\n"
                           f"Email: {lead.email or 'Not provided'}\n"
                           f"Car Interest: {lead.car_interest}\n"
-                          f"Price Range: {parsed_data.get('price_range', 'Not specified')}\n"
+                          f"Price Range: {final_price_range}\n"
                           f"Lead ID: {lead.id}\n\n"
-                          f"The lead has been assigned to you and added to your pipeline.",
+                          f"The lead has been assigned to you and added to your pipeline."
+                          f"{' ⚠️ Some information may be incomplete - please update the lead with additional details.' if final_name == 'Customer from SMS' or final_phone == 'Phone number needed' else ''}",
                 "lead_id": str(lead.id),
-                "lead_name": lead.name
+                "lead_name": lead.name,
+                "has_incomplete_info": final_name == 'Customer from SMS' or final_phone == 'Phone number needed'
             }
             
         except Exception as e:
@@ -233,28 +266,47 @@ class SalespersonSMSService:
         """Handle inventory update from salesperson SMS"""
         try:
             # Validate required fields
-            if not all(key in parsed_data for key in ["year", "make", "model"]):
+            logger.info(f"Validating inventory update data: {parsed_data}")
+            logger.info(f"Year field: {parsed_data.get('year')}")
+            logger.info(f"Make field: {parsed_data.get('make')}")
+            logger.info(f"Model field: {parsed_data.get('model')}")
+            
+            # Check if we have at least make and model (year can be estimated)
+            year = parsed_data.get("year")
+            make = parsed_data.get("make")
+            model = parsed_data.get("model")
+            
+            # Allow inventory to be created with partial information
+            if not make and not model:
+                logger.warning(f"Missing both make and model - cannot create inventory item")
                 return {
                     "success": False,
                     "error": "Missing required fields",
-                    "message": "Please provide year, make, and model for the vehicle."
+                    "message": "Please provide at least the make and model of the vehicle. The system couldn't extract this information from your message."
                 }
             
-            # Set default price if not provided
-            price = parsed_data.get("price", "0")
-            if not price or price == "0":
-                price = "TBD"  # To be determined
+            # Use fallback values for missing information
+            final_year = year if year and year not in ["Unknown", 0] else 2020  # Default to current year
+            final_make = make if make and make not in ["Unknown", "Vehicle"] else "Vehicle"
+            final_model = model if model and model not in ["Unknown", "Model"] else "Model"
+            final_mileage = parsed_data.get("mileage") or 0
+            final_condition = parsed_data.get("condition") or "Unknown"
+            final_price = parsed_data.get("price") or "TBD"
+            final_description = parsed_data.get("description") or f"{final_year} {final_make} {final_model} from SMS"
+            final_features = parsed_data.get("features") or f"Condition: {final_condition}"
             
-            # Create inventory data
+            logger.info(f"Using final values - Year: {final_year}, Make: {final_make}, Model: {final_model}")
+            
+            # Create inventory data with the available information
             inventory_data = {
-                "year": parsed_data["year"],
-                "make": parsed_data["make"],
-                "model": parsed_data["model"],
-                "price": price,
-                "mileage": parsed_data.get("mileage"),
-                "description": parsed_data.get("description", f"{parsed_data['year']} {parsed_data['make']} {parsed_data['model']}"),
-                "features": parsed_data.get("features", ""),
-                "condition": parsed_data.get("condition", "Unknown"),  # Add condition field
+                "year": final_year,
+                "make": final_make,
+                "model": final_model,
+                "price": final_price,
+                "mileage": final_mileage,
+                "description": final_description,
+                "features": final_features,
+                "condition": final_condition,
                 "status": "active"
             }
             
@@ -285,12 +337,14 @@ class SalespersonSMSService:
                           f"Make: {inventory_item.make}\n"
                           f"Model: {inventory_item.model}\n"
                           f"Mileage: {inventory_item.mileage or 'Not specified'}\n"
-                          f"Condition: {parsed_data.get('condition', 'Not specified')}\n"
+                          f"Condition: {final_condition}\n"
                           f"Price: ${inventory_item.price if inventory_item.price != 'TBD' else 'TBD'}\n"
                           f"Inventory ID: {inventory_item.id}\n\n"
-                          f"The vehicle is now available in your inventory.",
+                          f"The vehicle is now available in your inventory."
+                          f"{' ⚠️ Some information may be incomplete - please update the inventory item with additional details.' if final_make == 'Vehicle' or final_model == 'Model' else ''}",
                 "inventory_id": str(inventory_item.id),
-                "vehicle_info": f"{inventory_item.year} {inventory_item.make} {inventory_item.model}"
+                "vehicle_info": f"{inventory_item.year} {inventory_item.make} {inventory_item.model}",
+                "has_incomplete_info": final_make == 'Vehicle' or final_model == 'Model'
             }
             
         except Exception as e:
