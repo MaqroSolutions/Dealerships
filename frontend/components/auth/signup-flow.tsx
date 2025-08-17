@@ -79,8 +79,13 @@ export function SignupFlow() {
       })
 
       if (result.success) {
-        toast.success('Dealership account created successfully! Please check your email to verify your account.')
-        router.push('/login')
+        if (result.requiresEmailVerification) {
+          toast.success('Account created! Please check your email to verify your account before completing setup.')
+          router.push('/login')
+        } else {
+          toast.success('Dealership account created successfully!')
+          router.push('/admin/dashboard')
+        }
       } else {
         setError(result.error || 'Failed to create dealership account')
       }
