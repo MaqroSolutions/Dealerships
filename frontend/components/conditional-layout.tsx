@@ -1,19 +1,16 @@
 "use client"
 
-import { useAuth } from "@/components/auth/auth-provider"
+import { useRoleBasedAuth } from "@/components/auth/role-based-auth-provider"
 import { LandingNav } from "@/components/landing-nav"
 import { AppNav } from "@/components/app-nav"
+import { LoadingScreen } from "@/components/ui/loading-spinner"
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
+  const { user, loading } = useRoleBasedAuth()
 
   // Show loading state while checking authentication
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="text-white">Loading...</div>
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   // Show app layout for authenticated users, landing layout for unauthenticated users

@@ -60,6 +60,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('AuthProvider: Redirecting to root');
           router.push("/");
         }
+        
+        // If user is authenticated, check role-based routing
+        if (session?.user) {
+          // Import and use the role-based routing logic
+          import('@/hooks/use-user-role').then(async ({ useUserRole }) => {
+            try {
+              // Get user profile to determine role
+              const response = await fetch('/api/user-profiles/me', {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`
+                }
+              });
+              
+              if (response.ok) {
+                const profile = await response.json();
+                const userRole = profile.role;
+                
+                // Role-based routing logic
+                if (userRole === 'owner' || userRole === 'manager') {
+                  // Admin users should be in admin routes
+                  if (pathname === "/" || pathname.startsWith("/app/")) {
+                    console.log('AuthProvider: Redirecting admin to admin dashboard');
+                    router.push("/admin/dashboard");
+                  }
+                } else if (userRole === 'salesperson') {
+                  // Salesperson users should be in app routes
+                  if (pathname === "/" || pathname.startsWith("/admin/")) {
+                    console.log('AuthProvider: Redirecting salesperson to app');
+                    router.push("/app/leads");
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('AuthProvider: Error checking user role:', error);
+            }
+          });
+        }
       } catch (error) {
         console.error('AuthProvider: Error getting session:', error);
         setLoading(false);

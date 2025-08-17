@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart3, MessageSquare, Settings, LayoutTemplateIcon as Template, Home, Upload, Car } from 'lucide-react'
+import { BarChart3, MessageSquare, Settings, LayoutTemplateIcon as Template, Home, Upload, Car, Users, Building2, TrendingUp } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -13,42 +13,80 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useUserRole } from "@/hooks/use-user-role"
 
-const items = [
+const adminItems = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/admin/dashboard",
     icon: Home,
   },
   {
-    title: "Conversations",
-    url: "/conversations",
+    title: "Team Management",
+    url: "/admin/team",
+    icon: Users,
+  },
+  {
+    title: "All Leads",
+    url: "/admin/leads",
     icon: MessageSquare,
   },
   {
     title: "Inventory",
-    url: "/inventory",
+    url: "/admin/inventory",
     icon: Car,
   },
   {
-    title: "Upload Inventory",
-    url: "/inventory/upload",
-    icon: Upload,
-  },
-  {
-    title: "Template Manager",
-    url: "/templates",
-    icon: Template,
+    title: "Analytics",
+    url: "/admin/analytics",
+    icon: TrendingUp,
   },
   {
     title: "Settings",
-    url: "/settings",
+    url: "/admin/settings",
+    icon: Settings,
+  },
+]
+
+const salespersonItems = [
+  {
+    title: "My Leads",
+    url: "/app/leads",
+    icon: MessageSquare,
+  },
+  {
+    title: "Conversations",
+    url: "/app/conversations",
+    icon: MessageSquare,
+  },
+  {
+    title: "Inventory",
+    url: "/app/inventory",
+    icon: Car,
+  },
+  {
+    title: "Settings",
+    url: "/app/settings",
     icon: Settings,
   },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { role, loading } = useUserRole()
+
+  // Determine which items to show based on user role
+  const getItems = () => {
+    if (loading) return []
+    
+    if (role === 'owner' || role === 'manager') {
+      return adminItems
+    } else {
+      return salespersonItems
+    }
+  }
+
+  const items = getItems()
 
   return (
     <Sidebar className="border-r border-gray-800">

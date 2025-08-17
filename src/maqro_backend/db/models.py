@@ -184,6 +184,7 @@ class Dealership(Base):
     pending_approvals = relationship("PendingApproval", back_populates="dealership")
     user_roles = relationship("UserRole", back_populates="dealership")
     dealership_settings = relationship("DealershipSetting", back_populates="dealership")
+    invites = relationship("Invite", back_populates="dealership")
 
 
 class PendingApproval(Base):
@@ -205,3 +206,23 @@ class PendingApproval(Base):
     # Relationships
     lead = relationship("Lead", back_populates="pending_approvals")
     dealership = relationship("Dealership", back_populates="pending_approvals")
+
+
+class Invite(Base):
+    """Invite model for salesperson invitations"""
+    __tablename__ = "invites"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), nullable=False)
+    email = Column(Text, nullable=False)
+    token = Column(Text, nullable=False, unique=True)
+    role_name = Column(Text, nullable=False)  # 'owner', 'manager', 'salesperson', 'admin'
+    invited_by = Column(UUID(as_uuid=True), nullable=False)  # References auth.users(id)
+    expires_at = Column(DateTime(timezone=True), server_default=text("now() + interval '7 days'"))
+    used_at = Column(DateTime(timezone=True))
+    status = Column(Text, nullable=False, default="pending")  # 'pending', 'accepted', 'expired', 'cancelled'
+
+    # Relationships
+    dealership = relationship("Dealership", back_populates="invites")

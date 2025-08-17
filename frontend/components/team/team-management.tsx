@@ -1,0 +1,490 @@
+/**
+ * Refactored team management component
+ * Handles team member management and invite system
+ */
+
+"use client"
+
+import React, { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { 
+  Users, 
+  Mail, 
+  Copy,
+  Trash2,
+  UserPlus,
+  Plus
+} from "lucide-react"
+import { toast } from "sonner"
+import { RoleBasedAuthAPI, InviteData, UserRole } from "@/lib/auth/role-based-auth"
+import { getDealershipProfile } from "@/lib/user-profile-api"
+import type { UserProfile } from "@/lib/supabase"
+
+interface TeamMember extends UserProfile {
+  role: string
+}
+
+interface TeamManagementState {
+  teamMembers: TeamMember[]
+  invites: InviteData[]
+  loading: boolean
+  inviteDialogOpen: boolean
+  inviteForm: {
+    email: string
+    role_name: UserRole
+  }
+}
+
+export function TeamManagement() {
+  const [state, setState] = useState<TeamManagementState>({
+    teamMembers: [],
+    invites: [],
+    loading: true,
+    inviteDialogOpen: false,
+    inviteForm: {
+      email: '',
+      role_name: 'salesperson'
+    }
+  })
+
+  useEffect(() => {
+    loadTeamData()
+  }, [])
+
+  const loadTeamData = async () => {
+    try {
+      setState(prev => ({ ...prev, loading: true }))
+      
+      const [members, invitesData] = await Promise.all([
+        getDealershipProfile(),
+        RoleBasedAuthAPI.getDealershipInvites()
+      ])
+      
+      setState(prev => ({
+        ...prev,
+        teamMembers: members,
+        invites: invitesData,
+        loading: false
+      }))
+    } catch (error) {
+      console.error('Error loading team data:', error)
+      toast.error('Failed to load team data')
+      setState(prev => ({ ...prev, loading: false }))
+    }
+  }
+
+  const handleCreateInvite = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    try {
+      const result = await RoleBasedAuthAPI.createInvite(state.inviteForm)
+      
+      if (result.success) {
+        toast.success('Invite sent successfully!')
+        setState(prev => ({
+          ...prev,
+          inviteDialogOpen: false,
+          inviteForm: { email: '', role_name: 'salesperson' }
+        }))
+        loadTeamData() // Refresh the data
+      } else {
+        toast.error(result.error || 'Failed to send invite')
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send invite')
+    }
+  }
+
+  const handleCancelInvite = async (inviteId: string) => {
+    try {
+      const result = await RoleBasedAuthAPI.cancelInvite(inviteId)
+      
+      if (result.success) {
+        toast.success('Invite cancelled')
+        loadTeamData() // Refresh the data
+      } else {
+        toast.error(result.error || 'Failed to cancel invite')
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to cancel invite')
+    }
+  }
+
+  const copyInviteLink = (token: string) => {
+    const inviteUrl = `${window.location.origin}/signup?token=${token}`
+    navigator.clipboard.writeText(inviteUrl)
+    toast.success('Invite link copied to clipboard!')
+  }
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'owner':
+        return 'bg-red-500/20 text-red-400 border-red-500/30'
+      case 'manager':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      case 'salesperson':
+        return 'bg-green-500/20 text-green-400 border-green-500/30'
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    }
+  }
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      case 'accepted':
+        return 'bg-green-500/20 text-green-400 border-green-500/30'
+      case 'expired':
+        return 'bg-red-500/20 text-red-400 border-red-500/30'
+      case 'cancelled':
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    }
+  }
+
+  const pendingInvites = state.invites.filter(invite => invite.status === 'pending')
+  const recentInvites = state.invites.filter(invite => invite.status !== 'pending')
+
+  if (state.loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-400">Loading team data...</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-100">Team Management</h1>
+          <p className="text-gray-400 mt-2">
+            Manage your sales team and invite new members
+          </p>
+        </div>
+        <Dialog open={state.inviteDialogOpen} onOpenChange={(open) => setState(prev => ({ ...prev, inviteDialogOpen: open }))}>
+          <DialogTrigger asChild>
+            <Button className="bg-green-600 hover:bg-green-700">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Invite Member
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-gray-900 border-gray-800">
+            <DialogHeader>
+              <DialogTitle className="text-gray-100">Invite Team Member</DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Send an invitation to join your dealership team
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateInvite} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-200">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={state.inviteForm.email}
+                  onChange={(e) => setState(prev => ({ 
+                    ...prev, 
+                    inviteForm: { ...prev.inviteForm, email: e.target.value }
+                  }))}
+                  className="bg-gray-800 border-gray-700 text-gray-100"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role" className="text-gray-200">Role</Label>
+                <Select
+                  value={state.inviteForm.role_name}
+                  onValueChange={(value: UserRole) => 
+                    setState(prev => ({ 
+                      ...prev, 
+                      inviteForm: { ...prev.inviteForm, role_name: value }
+                    }))
+                  }
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectItem value="salesperson">Salesperson</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="owner">Owner</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setState(prev => ({ ...prev, inviteDialogOpen: false }))}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                  Send Invite
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Team Members */}
+      <TeamMembersSection 
+        teamMembers={state.teamMembers} 
+        getRoleBadgeColor={getRoleBadgeColor} 
+      />
+
+      {/* Pending Invites */}
+      <PendingInvitesSection 
+        invites={pendingInvites}
+        getRoleBadgeColor={getRoleBadgeColor}
+        onCopyLink={copyInviteLink}
+        onCancelInvite={handleCancelInvite}
+      />
+
+      {/* Recent Invites */}
+      {recentInvites.length > 0 && (
+        <RecentInvitesSection 
+          invites={recentInvites}
+          getRoleBadgeColor={getRoleBadgeColor}
+          getStatusBadgeColor={getStatusBadgeColor}
+        />
+      )}
+    </div>
+  )
+}
+
+// Sub-components for better separation of concerns
+function TeamMembersSection({ 
+  teamMembers, 
+  getRoleBadgeColor 
+}: { 
+  teamMembers: TeamMember[]
+  getRoleBadgeColor: (role: string) => string
+}) {
+  return (
+    <Card className="bg-gray-900/70 border-gray-800">
+      <CardHeader>
+        <CardTitle className="text-gray-100">Team Members</CardTitle>
+        <CardDescription className="text-gray-400">
+          {teamMembers.length} active team members
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {teamMembers.map((member) => (
+            <TeamMemberCard 
+              key={member.id} 
+              member={member} 
+              getRoleBadgeColor={getRoleBadgeColor} 
+            />
+          ))}
+          {teamMembers.length === 0 && <EmptyTeamState />}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function TeamMemberCard({ 
+  member, 
+  getRoleBadgeColor 
+}: { 
+  member: TeamMember
+  getRoleBadgeColor: (role: string) => string
+}) {
+  return (
+    <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
+      <div className="flex items-center space-x-4">
+        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+          <span className="text-white font-semibold">
+            {member.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+          </span>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-200">{member.full_name}</p>
+          <p className="text-xs text-gray-400">{member.email}</p>
+        </div>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Badge className={getRoleBadgeColor(member.role)}>
+          {member.role}
+        </Badge>
+      </div>
+    </div>
+  )
+}
+
+function EmptyTeamState() {
+  return (
+    <div className="text-center py-8">
+      <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+      <p className="text-gray-400">No team members yet</p>
+      <p className="text-gray-500 text-sm">Invite your first team member to get started</p>
+    </div>
+  )
+}
+
+function PendingInvitesSection({ 
+  invites, 
+  getRoleBadgeColor, 
+  onCopyLink, 
+  onCancelInvite 
+}: { 
+  invites: InviteData[]
+  getRoleBadgeColor: (role: string) => string
+  onCopyLink: (token: string) => void
+  onCancelInvite: (inviteId: string) => void
+}) {
+  return (
+    <Card className="bg-gray-900/70 border-gray-800">
+      <CardHeader>
+        <CardTitle className="text-gray-100">Pending Invites</CardTitle>
+        <CardDescription className="text-gray-400">
+          {invites.length} pending invitations
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {invites.map((invite) => (
+            <PendingInviteCard 
+              key={invite.id} 
+              invite={invite} 
+              getRoleBadgeColor={getRoleBadgeColor}
+              onCopyLink={onCopyLink}
+              onCancelInvite={onCancelInvite}
+            />
+          ))}
+          {invites.length === 0 && <EmptyInvitesState />}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function PendingInviteCard({ 
+  invite, 
+  getRoleBadgeColor, 
+  onCopyLink, 
+  onCancelInvite 
+}: { 
+  invite: InviteData
+  getRoleBadgeColor: (role: string) => string
+  onCopyLink: (token: string) => void
+  onCancelInvite: (inviteId: string) => void
+}) {
+  return (
+    <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
+      <div className="flex items-center space-x-4">
+        <Mail className="w-5 h-5 text-gray-400" />
+        <div>
+          <p className="text-sm font-medium text-gray-200">{invite.email}</p>
+          <p className="text-xs text-gray-400">
+            Invited {new Date(invite.created_at).toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Badge className={getRoleBadgeColor(invite.role_name)}>
+          {invite.role_name}
+        </Badge>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onCopyLink(invite.token)}
+        >
+          <Copy className="w-4 h-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onCancelInvite(invite.id)}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function EmptyInvitesState() {
+  return (
+    <div className="text-center py-8">
+      <Mail className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+      <p className="text-gray-400">No pending invites</p>
+    </div>
+  )
+}
+
+function RecentInvitesSection({ 
+  invites, 
+  getRoleBadgeColor, 
+  getStatusBadgeColor 
+}: { 
+  invites: InviteData[]
+  getRoleBadgeColor: (role: string) => string
+  getStatusBadgeColor: (status: string) => string
+}) {
+  return (
+    <Card className="bg-gray-900/70 border-gray-800">
+      <CardHeader>
+        <CardTitle className="text-gray-100">Recent Invites</CardTitle>
+        <CardDescription className="text-gray-400">
+          History of recent invitations
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {invites.slice(0, 5).map((invite) => (
+            <div
+              key={invite.id}
+              className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg"
+            >
+              <div className="flex items-center space-x-4">
+                <Mail className="w-5 h-5 text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-200">{invite.email}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(invite.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge className={getRoleBadgeColor(invite.role_name)}>
+                  {invite.role_name}
+                </Badge>
+                <Badge className={getStatusBadgeColor(invite.status)}>
+                  {invite.status}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

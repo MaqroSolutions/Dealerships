@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update
-from .db.models import Lead, Conversation, Inventory, UserProfile, Dealership, PendingApproval, Role, UserRole
+from .db.models import Lead, Conversation, Inventory, UserProfile, Dealership, PendingApproval, Role, UserRole, Invite
 from .schemas.conversation import MessageCreate
 from .schemas.lead import LeadCreate
 from .utils.phone_utils import normalize_phone_number
@@ -1081,3 +1081,156 @@ async def user_has_permission_level(
     required_level = hierarchy.get(required_role, 100)
     
     return current_level >= required_level
+
+
+# =============================================================================
+# INVITE CRUD OPERATIONS
+# =============================================================================
+
+async def create_invite(
+    *, 
+    session: AsyncSession, 
+    dealership_id: str, 
+    email: str, 
+    role_name: str, 
+    invited_by: str,
+    expires_in_days: int = 7
+) -> Invite:
+    """Create a new invite for a salesperson"""
+    try:
+        from .db.models import Invite
+        
+        dealership_uuid = uuid.UUID(dealership_id)
+        invited_by_uuid = uuid.UUID(invited_by)
+        
+        # Validate role name
+        valid_roles = ['owner', 'manager', 'salesperson', 'admin']
+        if role_name not in valid_roles:
+            raise ValueError(f"Invalid role '{role_name}'. Must be one of: {valid_roles}")
+        
+        # Generate a unique token
+        import secrets
+        token = secrets.token_urlsafe(32)
+        
+        # Calculate expiration
+        from datetime import datetime, timedelta
+        expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+        
+        invite = Invite(
+            dealership_id=dealership_uuid,
+            email=email.lower(),
+            token=token,
+            role_name=role_name,
+            invited_by=invited_by_uuid,
+            expires_at=expires_at,
+            status="pending"
+        )
+        
+        session.add(invite)
+        await session.commit()
+        await session.refresh(invite)
+        
+        return invite
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Invalid data format: {str(e)}")
+
+
+async def get_invite_by_token(
+    *, 
+    session: AsyncSession, 
+    token: str
+) -> Invite | None:
+    """Get an invite by its token"""
+    try:
+        from .db.models import Invite
+        
+        result = await session.execute(
+            select(Invite).where(Invite.token == token)
+        )
+        return result.scalar_one_or_none()
+    except Exception:
+        return None
+
+
+async def get_invite_by_id(
+    *, 
+    session: AsyncSession, 
+    invite_id: str
+) -> Invite | None:
+    """Get an invite by its ID"""
+    try:
+        invite_uuid = uuid.UUID(invite_id)
+        return await session.get(Invite, invite_uuid)
+    except (ValueError, TypeError):
+        return None
+
+
+async def get_invites_by_dealership(
+    *, 
+    session: AsyncSession, 
+    dealership_id: str
+) -> List[Invite]:
+    """Get all invites for a dealership"""
+    try:
+        from .db.models import Invite
+        
+        dealership_uuid = uuid.UUID(dealership_id)
+        
+        result = await session.execute(
+            select(Invite).where(Invite.dealership_id == dealership_uuid)
+            .order_by(Invite.created_at.desc())
+        )
+        return result.scalars().all()
+    except (ValueError, TypeError):
+        return []
+
+
+async def update_invite_status(
+    *, 
+    session: AsyncSession, 
+    invite_id: str, 
+    status: str,
+    used_at: datetime = None
+) -> Invite | None:
+    """Update an invite's status"""
+    try:
+        from .db.models import Invite
+        
+        invite_uuid = uuid.UUID(invite_id)
+        
+        result = await session.execute(
+            select(Invite).where(Invite.id == invite_uuid)
+        )
+        invite = result.scalar_one_or_none()
+        
+        if invite:
+            invite.status = status
+            if used_at:
+                invite.used_at = used_at
+            await session.commit()
+            await session.refresh(invite)
+            return invite
+        return None
+    except (ValueError, TypeError):
+        return None
+
+
+async def expire_old_invites(*, session: AsyncSession) -> int:
+    """Expire all old invites and return count of expired invites"""
+    try:
+        from .db.models import Invite
+        from datetime import datetime
+        
+        result = await session.execute(
+            update(Invite)
+            .where(
+                Invite.status == "pending",
+                Invite.expires_at < datetime.utcnow()
+            )
+            .values(status="expired")
+        )
+        
+        await session.commit()
+        return result.rowcount
+    except Exception:
+        return 0

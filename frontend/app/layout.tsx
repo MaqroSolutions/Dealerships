@@ -4,8 +4,8 @@ import { Inter } from 'next/font/google'
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
-import { AuthProvider } from "@/components/auth/auth-provider"
-import { ConditionalLayout } from "@/components/conditional-layout"
+import { ClientAuthWrapper } from "@/components/auth/client-auth-wrapper"
+import { ConditionalLayoutWrapper } from "@/components/conditional-layout-wrapper"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -20,14 +20,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} bg-gray-950 text-gray-100`}>
         <ThemeProvider attribute="class" defaultTheme="dark">
-          <AuthProvider>
-            <ConditionalLayout>
+          <ClientAuthWrapper>
+            <ConditionalLayoutWrapper>
               {children}
-            </ConditionalLayout>
-          </AuthProvider>
+            </ConditionalLayoutWrapper>
+          </ClientAuthWrapper>
         </ThemeProvider>
         <Toaster />
       </body>
