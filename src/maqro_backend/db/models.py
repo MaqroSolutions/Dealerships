@@ -4,7 +4,7 @@ SQLAlchemy models for Supabase integration
 These models match the Supabase schema defined in frontend/supabase/schema.sql
 """
 from sqlalchemy import Column, String, Text, DateTime, Integer, ForeignKey, func, text, Boolean, JSON
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, INET
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -205,3 +205,32 @@ class PendingApproval(Base):
     # Relationships
     lead = relationship("Lead", back_populates="pending_approvals")
     dealership = relationship("Dealership", back_populates="pending_approvals")
+
+
+class PasswordResetToken(Base):
+    """Password reset token model for secure password reset flow"""
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)  # References auth.users(id)
+    token_hash = Column(Text, nullable=False, unique=True)
+    used_at = Column(DateTime(timezone=True))
+    ip_address = Column(INET)
+    user_agent = Column(Text)
+
+
+class PasswordResetAuditLog(Base):
+    """Audit log for password reset events"""
+    __tablename__ = "password_reset_audit_log"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(UUID(as_uuid=True))  # References auth.users(id), nullable for failed attempts
+    event_type = Column(Text, nullable=False)  # 'request_reset', 'token_created', 'token_used', 'password_changed'
+    ip_address = Column(INET)
+    user_agent = Column(Text)
+    success = Column(Boolean, nullable=False)
+    error_message = Column(Text)
+    event_metadata = Column(JSON, default={})

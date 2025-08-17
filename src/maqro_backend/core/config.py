@@ -11,16 +11,24 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str
 
     # Vonage SMS Configuration (Legacy - keeping for transition)
-    vonage_api_key: str | None = None
-    vonage_api_secret: str | None = None
-    vonage_phone_number: str | None = None
+    vonage_api_key: Optional[str] = None
+    vonage_api_secret: Optional[str] = None
+    vonage_phone_number: Optional[str] = None
 
     # WhatsApp Business API Configuration
-    whatsapp_access_token: str | None = None
-    whatsapp_phone_number_id: str | None = None
-    whatsapp_webhook_verify_token: str | None = None
-    whatsapp_app_secret: str | None = None
+    whatsapp_access_token: Optional[str] = None
+    whatsapp_phone_number_id: Optional[str] = None
+    whatsapp_webhook_verify_token: Optional[str] = None
+    whatsapp_app_secret: Optional[str] = None
     whatsapp_api_version: str = "v21.0"
+
+    # Email Configuration for password reset
+    smtp_server: Optional[str] = None
+    smtp_port: int = 587
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+    default_from_email: Optional[str] = None
+    app_url: str = "http://localhost:3000"
 
     rag_config_path: str = "config.yaml"
     rag_index_name: str = "vehicle_index"
