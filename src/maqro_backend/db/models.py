@@ -3,11 +3,87 @@ SQLAlchemy models for Supabase integration
 
 These models match the Supabase schema defined in frontend/supabase/schema.sql
 """
-from sqlalchemy import Column, String, Text, DateTime, Integer, ForeignKey, func, text
+from sqlalchemy import Column, String, Text, DateTime, Integer, ForeignKey, func, text, Boolean, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
+
+
+class Role(Base):
+    """Role model for user permissions"""
+    __tablename__ = "roles"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
+    name = Column(Text, nullable=False, unique=True)
+    description = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    user_roles = relationship("UserRole", back_populates="role")
+
+
+class UserRole(Base):
+    """User role assignments per dealership"""
+    __tablename__ = "user_roles"
+
+    user_id = Column(UUID(as_uuid=True), ForeignKey("auth.users.id"), primary_key=True)
+    dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), primary_key=True)
+    role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    role = relationship("Role", back_populates="user_roles")
+    dealership = relationship("Dealership", back_populates="user_roles")
+
+
+class SettingDefinition(Base):
+    """Setting definitions and metadata"""
+    __tablename__ = "setting_definitions"
+
+    key = Column(Text, primary_key=True)
+    data_type = Column(Text, nullable=False)
+    description = Column(Text)
+    default_value = Column(JSON)
+    allowed_values = Column(JSON)
+    is_dealership_level = Column(Boolean, default=True)
+    is_user_level = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    dealership_settings = relationship("DealershipSetting", back_populates="definition")
+    user_settings = relationship("UserSetting", back_populates="definition")
+
+
+class DealershipSetting(Base):
+    """Dealership-level settings"""
+    __tablename__ = "dealership_settings"
+
+    dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), primary_key=True)
+    setting_key = Column(Text, ForeignKey("setting_definitions.key"), primary_key=True)
+    setting_value = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_by = Column(UUID(as_uuid=True))
+
+    # Relationships
+    dealership = relationship("Dealership", back_populates="dealership_settings")
+    definition = relationship("SettingDefinition", back_populates="dealership_settings")
+
+
+class UserSetting(Base):
+    """User-level settings and preferences"""
+    __tablename__ = "user_settings"
+
+    user_id = Column(UUID(as_uuid=True), primary_key=True)
+    setting_key = Column(Text, ForeignKey("setting_definitions.key"), primary_key=True)
+    setting_value = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_by = Column(UUID(as_uuid=True))
+
+    # Relationships
+    definition = relationship("SettingDefinition", back_populates="user_settings")
 
 
 class Lead(Base):
@@ -99,13 +175,15 @@ class Dealership(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     name = Column(Text, nullable=False)
     location = Column(Text)
-    # crm_api_key = Column(Text) # Note: Should be encrypted at rest
+    integration_config = Column(JSON, default={})
 
     # Relationships
     user_profiles = relationship("UserProfile", back_populates="dealership")
     inventory = relationship("Inventory", back_populates="dealership")
     leads = relationship("Lead", back_populates="dealership")
     pending_approvals = relationship("PendingApproval", back_populates="dealership")
+    user_roles = relationship("UserRole", back_populates="dealership")
+    dealership_settings = relationship("DealershipSetting", back_populates="dealership")
 
 
 class PendingApproval(Base):

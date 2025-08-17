@@ -7,6 +7,8 @@ from maqro_rag import VehicleRetriever, EnhancedRAGService
 from ..db.session import get_db
 from ..core.lifespan import get_retriever, get_enhanced_rag_service
 from ..db.models import UserProfile
+from ..services.roles_service import RolesService
+from ..services.settings_service import SettingsService
 from .auth import get_current_user_id, get_optional_user_id
 import logging
 import uuid
@@ -111,3 +113,99 @@ async def get_optional_user_dealership_id(
 # Re-export secure authentication functions from auth module
 # These replace the old insecure header-based authentication
 # get_current_user_id and get_optional_user_id are now imported from .auth
+
+
+# New permission-based dependencies for settings system
+async def require_dealership_manager(
+    user_id: str = Depends(get_current_user_id),
+    dealership_id: str = Depends(get_user_dealership_id),
+    db: AsyncSession = Depends(get_db_session)
+) -> str:
+    """
+    Dependency that requires manager or owner role for dealership operations.
+    
+    Returns:
+        str: User ID if user has sufficient permissions
+        
+    Raises:
+        HTTPException: If user doesn't have manager+ permissions
+    """
+    has_permission = await RolesService.user_can_manage_settings(
+        db, user_id, dealership_id
+    )
+    
+    if not has_permission:
+        logger.warning(f"❌ User {user_id} denied manager access to dealership {dealership_id}")
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions. Manager or owner role required."
+        )
+    
+    logger.info(f"✅ User {user_id} granted manager access to dealership {dealership_id}")
+    return user_id
+
+
+async def require_dealership_owner(
+    user_id: str = Depends(get_current_user_id),
+    dealership_id: str = Depends(get_user_dealership_id),
+    db: AsyncSession = Depends(get_db_session)
+) -> str:
+    """
+    Dependency that requires owner role for sensitive operations.
+    
+    Returns:
+        str: User ID if user has owner permissions
+        
+    Raises:
+        HTTPException: If user doesn't have owner permissions
+    """
+    has_permission = await RolesService.user_can_assign_roles(
+        db, user_id, dealership_id
+    )
+    
+    if not has_permission:
+        logger.warning(f"❌ User {user_id} denied owner access to dealership {dealership_id}")
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions. Owner role required."
+        )
+    
+    logger.info(f"✅ User {user_id} granted owner access to dealership {dealership_id}")
+    return user_id
+
+
+async def get_user_role_info(
+    user_id: str = Depends(get_current_user_id),
+    dealership_id: str = Depends(get_user_dealership_id),
+    db: AsyncSession = Depends(get_db_session)
+) -> tuple[str, str, str]:
+    """
+    Get user role information for the current dealership.
+    
+    Returns:
+        tuple[str, str, str]: (user_id, dealership_id, role_name)
+        
+    Raises:
+        HTTPException: If user has no role in the dealership
+    """
+    role_name = await RolesService.get_user_role_name(db, user_id, dealership_id)
+    
+    if not role_name:
+        logger.error(f"❌ User {user_id} has no role in dealership {dealership_id}")
+        raise HTTPException(
+            status_code=403,
+            detail="User has no role assigned in this dealership"
+        )
+    
+    return user_id, dealership_id, role_name
+
+
+# Service dependencies
+async def get_settings_service() -> SettingsService:
+    """Dependency to get settings service instance"""
+    return SettingsService()
+
+
+async def get_roles_service() -> RolesService:
+    """Dependency to get roles service instance"""
+    return RolesService()

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update
-from .db.models import Lead, Conversation, Inventory, UserProfile, Dealership, PendingApproval
+from .db.models import Lead, Conversation, Inventory, UserProfile, Dealership, PendingApproval, Role, UserRole
 from .schemas.conversation import MessageCreate
 from .schemas.lead import LeadCreate
 from .utils.phone_utils import normalize_phone_number
@@ -912,3 +912,172 @@ async def get_rag_stats(
     except Exception as e:
         logger.error(f"Error getting RAG stats for dealership {dealership_id}: {e}")
         return {"error": str(e)}
+
+
+# =============================================================================
+# ROLE-BASED CRUD OPERATIONS
+# =============================================================================
+
+async def get_role_by_name(*, session: AsyncSession, name: str) -> Role | None:
+    """Get a role by its name"""
+    result = await session.execute(
+        select(Role).where(Role.name == name)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_all_roles(*, session: AsyncSession) -> List[Role]:
+    """Get all available roles"""
+    result = await session.execute(select(Role))
+    return result.scalars().all()
+
+
+async def assign_user_role(
+    *, 
+    session: AsyncSession, 
+    user_id: str, 
+    dealership_id: str, 
+    role_name: str
+) -> UserRole | None:
+    """Assign a role to a user at a dealership"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+        dealership_uuid = uuid.UUID(dealership_id)
+        
+        # Get the role
+        role = await get_role_by_name(session=session, name=role_name)
+        if not role:
+            raise ValueError(f"Role '{role_name}' not found")
+        
+        # Check if user already has a role at this dealership
+        existing_result = await session.execute(
+            select(UserRole).where(
+                UserRole.user_id == user_uuid,
+                UserRole.dealership_id == dealership_uuid
+            )
+        )
+        existing_role = existing_result.scalar_one_or_none()
+        
+        if existing_role:
+            # Update existing role
+            existing_role.role_id = role.id
+            user_role = existing_role
+        else:
+            # Create new role assignment
+            user_role = UserRole(
+                user_id=user_uuid,
+                dealership_id=dealership_uuid,
+                role_id=role.id
+            )
+            session.add(user_role)
+        
+        await session.commit()
+        await session.refresh(user_role)
+        return user_role
+        
+    except (ValueError, TypeError) as e:
+        await session.rollback()
+        raise ValueError(f"Invalid UUID format or role: {str(e)}")
+
+
+async def get_user_role_by_dealership(
+    *, 
+    session: AsyncSession, 
+    user_id: str, 
+    dealership_id: str
+) -> UserRole | None:
+    """Get a user's role at a specific dealership"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+        dealership_uuid = uuid.UUID(dealership_id)
+        
+        result = await session.execute(
+            select(UserRole).where(
+                UserRole.user_id == user_uuid,
+                UserRole.dealership_id == dealership_uuid
+            )
+        )
+        return result.scalar_one_or_none()
+    except (ValueError, TypeError):
+        return None
+
+
+async def remove_user_role(
+    *, 
+    session: AsyncSession, 
+    user_id: str, 
+    dealership_id: str
+) -> bool:
+    """Remove a user's role from a dealership"""
+    user_role = await get_user_role_by_dealership(
+        session=session, 
+        user_id=user_id, 
+        dealership_id=dealership_id
+    )
+    
+    if user_role:
+        await session.delete(user_role)
+        await session.commit()
+        return True
+    return False
+
+
+async def get_dealership_users_with_roles(
+    *, 
+    session: AsyncSession, 
+    dealership_id: str
+) -> List[tuple[UserProfile, UserRole, Role]]:
+    """Get all users in a dealership with their roles"""
+    try:
+        dealership_uuid = uuid.UUID(dealership_id)
+        
+        result = await session.execute(
+            select(UserProfile, UserRole, Role).join(
+                UserRole, UserProfile.user_id == UserRole.user_id
+            ).join(
+                Role, UserRole.role_id == Role.id
+            ).where(
+                UserProfile.dealership_id == dealership_uuid,
+                UserRole.dealership_id == dealership_uuid
+            )
+        )
+        
+        return result.all()
+    except (ValueError, TypeError):
+        return []
+
+
+async def user_has_permission_level(
+    *, 
+    session: AsyncSession, 
+    user_id: str, 
+    dealership_id: str, 
+    required_role: str
+) -> bool:
+    """Check if user has at least the required role level"""
+    user_role = await get_user_role_by_dealership(
+        session=session, 
+        user_id=user_id, 
+        dealership_id=dealership_id
+    )
+    
+    if not user_role:
+        return False
+    
+    # Load the role relationship if not already loaded
+    if not hasattr(user_role, 'role') or user_role.role is None:
+        await session.refresh(user_role, ['role'])
+    
+    current_role = user_role.role.name
+    
+    # Role hierarchy
+    hierarchy = {
+        "salesperson": 40,
+        "manager": 80,
+        "owner": 100
+    }
+    
+    current_level = hierarchy.get(current_role, 0)
+    required_level = hierarchy.get(required_role, 100)
+    
+    return current_level >= required_level
