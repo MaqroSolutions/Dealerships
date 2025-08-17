@@ -5,6 +5,7 @@ This service implements the new flow where:
 1. Customer messages go to RAG and generate responses
 2. Responses are sent to salesperson for approval
 3. Salesperson can approve (YES), reject (NO), edit (EDIT), or force send (FORCE)
+4. Salesperson messages are processed for lead creation and inventory updates
 """
 import logging
 from typing import Dict, Any, Optional, Tuple
@@ -26,6 +27,7 @@ from ..crud import (
 )
 from ..schemas.lead import LeadCreate
 from maqro_rag import EnhancedRAGService
+from .salesperson_sms_service import salesperson_sms_service
 
 logger = logging.getLogger(__name__)
 
@@ -128,12 +130,15 @@ class MessageFlowService:
                 )
             else:
                 # No pending approval - this is a regular salesperson message
-                logger.info(f"No pending approval for salesperson {salesperson_profile.user_id}")
-                return {
-                    "success": True,
-                    "message": "No pending approvals. You can continue with your regular sales activities.",
-                    "has_pending_approval": False
-                }
+                # Process it for lead creation, inventory updates, or other salesperson functions
+                logger.info(f"Processing salesperson message for lead/inventory management: {salesperson_profile.user_id}")
+                return await self._process_salesperson_business_message(
+                    session=session,
+                    salesperson_profile=salesperson_profile,
+                    message_text=message_text,
+                    dealership_id=dealership_id,
+                    message_source=message_source
+                )
                 
         except Exception as e:
             logger.error(f"Error handling salesperson message: {e}")
@@ -141,6 +146,53 @@ class MessageFlowService:
                 "success": False,
                 "error": "Salesperson message processing error",
                 "message": "Sorry, there was an error processing your message. Please try again."
+            }
+    
+    async def _process_salesperson_business_message(
+        self,
+        session: AsyncSession,
+        salesperson_profile: Any,
+        message_text: str,
+        dealership_id: str,
+        message_source: str
+    ) -> Dict[str, Any]:
+        """Process salesperson message for lead creation, inventory updates, or other business functions"""
+        try:
+            logger.info(f"Processing business message from salesperson {salesperson_profile.user_id}: {message_text}")
+            
+            # Use the salesperson SMS service to handle lead creation and inventory updates
+            result = await salesperson_sms_service.process_salesperson_message(
+                session=session,
+                from_number=salesperson_profile.phone,
+                message_text=message_text,
+                dealership_id=dealership_id
+            )
+            
+            if result.get("success"):
+                logger.info(f"Successfully processed salesperson business message: {result.get('message', 'No message')}")
+                return {
+                    "success": True,
+                    "message": result.get("message", "Message processed successfully"),
+                    "has_pending_approval": False,
+                    "business_function": result.get("type", "unknown"),
+                    "lead_id": result.get("lead_id"),
+                    "inventory_id": result.get("inventory_id")
+                }
+            else:
+                logger.warning(f"Failed to process salesperson business message: {result.get('error', 'Unknown error')}")
+                return {
+                    "success": False,
+                    "error": result.get("error", "Processing failed"),
+                    "message": result.get("message", "Sorry, there was an error processing your message. Please try again."),
+                    "has_pending_approval": False
+                }
+                
+        except Exception as e:
+            logger.error(f"Error processing salesperson business message: {e}")
+            return {
+                "success": False,
+                "error": "Business message processing error",
+                "message": "Sorry, there was an error processing your business message. Please try again."
             }
     
     async def _process_approval_response(

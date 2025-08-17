@@ -67,59 +67,64 @@ class SalespersonSMSService:
             # Parse the message to determine intent and extract data
             parsed_message = sms_parser.parse_message(message_text)
             
-            if parsed_message["type"] == "lead_creation":
+            # Both LLM and fallback parsing now return the same structure
+            parsed_data = parsed_message
+            
+            logger.info(f"Parsed message type: {parsed_data.get('type')}")
+            
+            if parsed_data["type"] == "lead_creation":
                 return await self._handle_lead_creation(
                     session=session,
                     salesperson=salesperson,
-                    parsed_data=parsed_message["data"],
+                    parsed_data=parsed_data,
                     dealership_id=dealership_id
                 )
             
-            elif parsed_message["type"] == "inventory_update":
+            elif parsed_data["type"] == "inventory_update":
                 return await self._handle_inventory_update(
                     session=session,
                     salesperson=salesperson,
-                    parsed_data=parsed_message["data"],
+                    parsed_data=parsed_data,
                     dealership_id=dealership_id
                 )
             
-            elif parsed_message["type"] == "lead_inquiry":
+            elif parsed_data["type"] == "lead_inquiry":
                 return await self._handle_lead_inquiry(
                     session=session,
                     salesperson=salesperson,
-                    parsed_data=parsed_message["data"],
+                    parsed_data=parsed_data,
                     dealership_id=dealership_id
                 )
             
-            elif parsed_message["type"] == "inventory_inquiry":
+            elif parsed_data["type"] == "inventory_inquiry":
                 return await self._handle_inventory_inquiry(
                     session=session,
                     salesperson=salesperson,
-                    parsed_data=parsed_message["data"],
+                    parsed_data=parsed_data,
                     dealership_id=dealership_id
                 )
             
-            elif parsed_message["type"] == "general_question":
+            elif parsed_data["type"] == "general_question":
                 return await self._handle_general_question(
                     session=session,
                     salesperson=salesperson,
-                    parsed_data=parsed_message["data"],
+                    parsed_data=parsed_data,
                     dealership_id=dealership_id
                 )
             
-            elif parsed_message["type"] == "status_update":
+            elif parsed_data["type"] == "status_update":
                 return await self._handle_status_update(
                     session=session,
                     salesperson=salesperson,
-                    parsed_data=parsed_message["data"],
+                    parsed_data=parsed_data,
                     dealership_id=dealership_id
                 )
             
-            elif parsed_message["type"] == "test_drive_scheduling":
+            elif parsed_data["type"] == "test_drive_scheduling":
                 return await self._handle_test_drive_scheduling(
                     session=session,
                     salesperson=salesperson,
-                    parsed_data=parsed_message["data"],
+                    parsed_data=parsed_data,
                     dealership_id=dealership_id
                 )
             
