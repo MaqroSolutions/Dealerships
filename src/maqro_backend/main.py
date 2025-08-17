@@ -34,17 +34,34 @@ origins = [
     
     # Production Frontend
     "https://dealerships-two.vercel.app",  # Current Vercel deployment
+    "https://dealerships-git-feature-crm-maqro2s-projects.vercel.app",  # Feature branch deployment
     "https://usemaqro.com",  # Your custom domain
     "https://www.usemaqro.com",  # With www subdomain
-
+    
+    # Vercel Preview Deployments (for feature branches)
+    "https://*.vercel.app",  # All Vercel subdomains
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Origin",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers",
+        "Cache-Control",
+        "Pragma"
+    ],
+    expose_headers=["Content-Length", "Content-Type"],
+    max_age=86400,  # Cache preflight response for 24 hours
 )
 
 # Include all API routes
