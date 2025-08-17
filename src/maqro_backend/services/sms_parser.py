@@ -283,93 +283,70 @@ For test drive scheduling, the JSON should look like:
         if any(word in message_lower for word in ["met", "lead", "customer", "prospect"]):
             return {
                 "type": "lead_creation",
-                "data": {
-                    "name": "Unknown",
-                    "phone": None,
-                    "email": None,
-                    "car_interest": "Unknown",
-                    "price_range": None,
-                    "source": "SMS Lead Creation (Fallback)"
-                },
-                "confidence": "low"
+                "name": "Unknown",
+                "phone": None,
+                "email": None,
+                "car_interest": "Unknown",
+                "price_range": None,
+                "source": "SMS Lead Creation (Fallback)"
             }
         elif any(word in message_lower for word in ["picked up", "inventory", "vehicle", "car", "add"]):
             return {
                 "type": "inventory_update",
-                "data": {
-                    "year": None,
-                    "make": "Unknown",
-                    "model": "Unknown",
-                    "mileage": None,
-                    "condition": "Unknown",
-                    "price": None,
-                    "description": "Vehicle from SMS",
-                    "features": "Unknown condition"
-                },
-                "confidence": "low"
+                "year": None,
+                "make": "Unknown",
+                "model": "Unknown",
+                "mileage": None,
+                "condition": "Unknown",
+                "price": None,
+                "description": "Vehicle from SMS",
+                "features": "Unknown condition"
             }
         elif any(word in message_lower for word in ["status", "check", "details", "lead", "customer"]) and any(word in message_lower for word in ["what", "how", "?"]):
             return {
                 "type": "lead_inquiry",
-                "data": {
-                    "lead_identifier": "Unknown",
-                    "inquiry_type": "status",
-                    "search_by": "unknown"
-                },
-                "confidence": "low"
+                "lead_identifier": "Unknown",
+                "inquiry_type": "status",
+                "search_by": "unknown"
             }
         elif any(word in message_lower for word in ["stock", "available", "have", "price"]) and any(word in message_lower for word in ["what", "how", "?"]):
             return {
                 "type": "inventory_inquiry",
-                "data": {
-                    "search_criteria": {
-                        "make": "Unknown",
-                        "model": "Unknown",
-                        "year": None,
-                        "price_range": None
-                    },
-                    "inquiry_type": "availability"
+                "search_criteria": {
+                    "make": "Unknown",
+                    "model": "Unknown",
+                    "year": None,
+                    "price_range": None
                 },
-                "confidence": "low"
+                "inquiry_type": "availability"
             }
         elif any(word in message_lower for word in ["schedule", "help", "need", "question"]) or "?" in message:
             return {
                 "type": "general_question",
-                "data": {
-                    "question_topic": "general",
-                    "urgency": "medium",
-                    "details": message
-                },
-                "confidence": "low"
+                "question_topic": "general",
+                "urgency": "medium",
+                "details": message
             }
         elif any(word in message_lower for word in ["update", "progress", "coming", "decided", "test drive"]):
             return {
                 "type": "status_update",
-                "data": {
-                    "lead_identifier": "Unknown",
-                    "update_type": "progress",
-                    "details": message
-                },
-                "confidence": "low"
+                "lead_identifier": "Unknown",
+                "update_type": "progress",
+                "details": message
             }
         elif any(word in message_lower for word in ["test drive", "schedule", "appointment"]) and any(word in message_lower for word in ["customer", "wants", "interested"]):
             return {
                 "type": "test_drive_scheduling",
-                "data": {
-                    "customer_name": "Unknown",
-                    "customer_phone": "Unknown",
-                    "vehicle_interest": "Unknown",
-                    "preferred_date": "Unknown",
-                    "preferred_time": "Unknown",
-                    "special_requests": "None"
-                },
-                "confidence": "low"
+                "customer_name": "Unknown",
+                "customer_phone": "Unknown",
+                "vehicle_interest": "Unknown",
+                "preferred_date": "Unknown",
+                "preferred_time": "Unknown",
+                "special_requests": "None"
             }
         
         return {
-            "type": "unknown",
-            "data": {},
-            "confidence": "low"
+            "type": "unknown"
         }
     
     def _clean_phone(self, phone: str) -> str:
