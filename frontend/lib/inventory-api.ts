@@ -4,6 +4,8 @@ import { getAuthenticatedApi } from './api-client';
 export type InventoryUploadResult = {
   successCount: number;
   errorCount: number;
+  embeddingsGenerated?: number; // New field for embedding count
+  embeddingsError?: string | null; // New field for embedding errors
   errors: Array<{
     row: number;
     error: string;
@@ -21,7 +23,7 @@ export type InventoryRow = {
   make: string;
   model: string;
   year: number;
-  price: number;
+  price: number | string; // Support both numbers and strings like "TBD"
   mileage?: number;
   description?: string;
   features?: string;
@@ -30,7 +32,8 @@ export type InventoryRow = {
 export const inventoryApi = {
   async getInventory(): Promise<Inventory[]> {
     const api = await getAuthenticatedApi();
-    return api.get<Inventory[]>('/inventory');
+    const result = await api.get<Inventory[]>('/inventory');
+    return result;
   },
 
   async uploadInventory(file: File): Promise<InventoryUploadResult> {
@@ -72,6 +75,8 @@ export const inventoryApi = {
     return {
       successCount: result.success_count || 0,
       errorCount: result.error_count || 0,
+      embeddingsGenerated: result.embeddings_generated || 0,
+      embeddingsError: result.embeddings_error || null,
       errors: result.errors || []
     };
   },

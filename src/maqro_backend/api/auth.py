@@ -142,9 +142,10 @@ def decode_jwt_token(token: str) -> dict:
         )
         return payload
     except jwt.PyJWTError as e:
+        logger.error(f"JWT validation error: {str(e)}")
         raise HTTPException(
             status_code=401, 
-            detail=f"Token validation failed: {str(e)}"
+            detail="Invalid or expired token"
         )
 
 
