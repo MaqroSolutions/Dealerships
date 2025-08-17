@@ -35,10 +35,13 @@ When a salesperson receives a RAG response for approval, they have four options:
 **Example:** `NO`
 
 #### 🔄 **EDIT** - Regenerate with Instructions
-- Requests the AI to regenerate the response
-- Includes specific editing instructions
+- Requests the AI to regenerate the response with edits as priority
+- Edit instructions take precedence over original content
+- Automatic validation ensures edits are included
+- Retry mechanism if requirements aren't met
 - Creates new approval request with edited response
 - Original approval is marked as "expired"
+- FORCE option always available for custom messages
 
 **Example:** `EDIT Make it more friendly and mention our financing options`
 
@@ -51,6 +54,31 @@ When a salesperson receives a RAG response for approval, they have four options:
 **Example:** `FORCE Hi John! This is Sarah. I'd love to call you in 5 minutes to discuss the Toyota Camry.`
 
 ## Technical Implementation
+
+### New Service: `MessageFlowService`
+
+### Edit Priority and Validation System
+
+The new edit system ensures that salesperson edit requests take priority over the original response content:
+
+1. **Priority Prompting**: Edit instructions are embedded in the RAG prompt with explicit priority markers
+2. **Content Validation**: Automatic validation checks that edit requirements are actually included
+3. **Retry Mechanism**: If edits aren't met, the system regenerates with stronger emphasis
+4. **Conflict Prevention**: Ensures no conflicting information between edits and response content
+
+**Example Edit Prompt:**
+```
+IMPORTANT: The salesperson has requested specific edits to the response. 
+These edits MUST be included and take priority over other content.
+
+Salesperson edit requirements: Make it more friendly and mention financing
+
+Please generate a response that:
+1. Addresses the customer's inquiry
+2. Incorporates ALL the requested edits as the primary focus
+3. Ensures no conflicting information with the edit requirements
+4. Maintains a professional and helpful tone
+```
 
 ### New Service: `MessageFlowService`
 
@@ -94,6 +122,12 @@ Both SMS and WhatsApp webhooks now use the new message flow service:
 - Prevents inappropriate or inaccurate messages from reaching customers
 - Maintains brand voice and messaging standards
 
+### 🚀 **FORCE Option Always Available**
+- Salespeople can send custom messages at any approval step
+- Available for initial responses, edited responses, and re-edits
+- Provides ultimate flexibility for urgent or personal communications
+- Bypasses AI generation entirely when needed
+
 ### 👨‍💼 **Salesperson Empowerment**
 - Salespeople can personalize responses based on their relationship with customers
 - Quick approval process with simple commands
@@ -132,10 +166,17 @@ Result: Customer receives no response
 Customer: "I'm interested in financing options"
 System: [Generates RAG response about financing]
 Salesperson: "EDIT Make it more friendly and mention our 0% APR promotion"
-System: [Generates new response with edits]
+System: [Generates new response with edits as priority]
+System: [Validates that edits are included]
 Salesperson: "YES"
-Result: Customer receives the edited response
+Result: Customer receives the edited response with edits prioritized
 ```
+
+**Edit Features:**
+- Edit instructions take priority over original content
+- Automatic validation ensures requirements are met
+- Retry mechanism if edits aren't properly included
+- FORCE option available for the edited response approval
 
 ### Scenario 4: Custom Message
 ```
