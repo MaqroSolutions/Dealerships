@@ -134,7 +134,7 @@ export default function ProfileSettings() {
               </Label>
               <Input
                 id="name"
-                value={profile.name}
+                value={profile.name || ""}
                 onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                 className="bg-gray-800 border-gray-700 text-gray-100"
               />
@@ -145,7 +145,7 @@ export default function ProfileSettings() {
               </Label>
               <Input
                 id="phone"
-                value={profile.phone}
+                value={profile.phone || ""}
                 onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                 className="bg-gray-800 border-gray-700 text-gray-100"
               />
@@ -156,7 +156,7 @@ export default function ProfileSettings() {
               </Label>
               <Input
                 id="role"
-                value={profile.role}
+                value={profile.role || ""}
                 disabled
                 className="bg-gray-800 border-gray-700 text-gray-100 opacity-60"
               />

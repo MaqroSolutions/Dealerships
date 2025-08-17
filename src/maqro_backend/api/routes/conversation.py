@@ -292,12 +292,23 @@ async def generate_rag_response(
             db=db
         )
         
-        # 7. Save the customer message
+        # 7. Evaluate auto-response decision
+        from maqro_backend.services.auto_response_service import AutoResponseService
+        
+        auto_response_decision = await AutoResponseService.should_auto_respond(
+            db=db,
+            user_id=user_id,
+            message=customer_message,
+            retrieved_vehicles=retrieved_cars
+        )
+        
+        # 8. Save the customer message
         await create_message(session=db, message_in=message_data)
         
         return {
             "response": response_text,
             "retrieved_vehicles": len(retrieved_cars),
+            "auto_response": auto_response_decision,
             "vehicle_query": {
                 "make": vehicle_query.make,
                 "model": vehicle_query.model,

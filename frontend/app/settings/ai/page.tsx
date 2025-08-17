@@ -142,7 +142,7 @@ export default function AISettings() {
           <div className="space-y-2">
             <Label className="text-gray-300">Dealership Name</Label>
             <Input
-              value={settings.ai_dealership_name}
+              value={settings.ai_dealership_name || ""}
               onChange={(e) => setSettings({ ...settings, ai_dealership_name: e.target.value })}
               placeholder="How AI should refer to your dealership"
               className="bg-gray-800 border-gray-700 text-gray-100"

@@ -277,3 +277,39 @@ async def get_effective_setting_for_dealership(
     except Exception as e:
         logger.error(f"Error getting effective setting {setting_key}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error getting effective setting")
+
+
+@router.get("/settings/auto-response-status")
+async def get_auto_response_status(
+    db: AsyncSession = Depends(get_db_session),
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Get current auto-response settings for the user
+    
+    Returns the user's current auto-response configuration with descriptions.
+    """
+    try:
+        # Get current settings
+        auto_respond_enabled = await SettingsService.get_user_setting(
+            db, user_id, 'auto_respond_enabled'
+        )
+        
+        frequency = await SettingsService.get_user_setting(
+            db, user_id, 'auto_respond_frequency'
+        ) or "medium"
+        
+        # Get frequency description
+        from ...services.auto_response_service import AutoResponseService
+        frequency_description = AutoResponseService.get_frequency_description(frequency)
+        
+        return {
+            "enabled": bool(auto_respond_enabled),
+            "frequency": frequency,
+            "frequency_description": frequency_description,
+            "user_id": user_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting auto-response status: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get auto-response status")
