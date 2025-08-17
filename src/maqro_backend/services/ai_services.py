@@ -12,6 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import asyncio
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -323,7 +326,9 @@ def _generate_match_response(query: str, vehicles: List[Dict[str, Any]], custome
 async def generate_contextual_ai_response(
     conversations: List[Dict], 
     vehicles: List[Dict[str, Any]], 
-    lead_name: Optional[str] = None
+    lead_name: Optional[str] = None,
+    user_id: Optional[str] = None,
+    db: Optional[AsyncSession] = None
 ) -> str:
     """
     Generate AI response considering full conversation context
@@ -352,11 +357,42 @@ async def generate_contextual_ai_response(
     try:
         from maqro_rag.prompt_builder import PromptBuilder, AgentConfig
         
-        # Create agent config from context
+        # Create agent config from dealership settings
+        ai_persona = "professional"  # Default fallback
+        dealership_name = "our dealership"  # Default fallback
+        
+        # Try to get dynamic settings if db and user_id are available
+        if db and user_id:
+            try:
+                from .settings_service import SettingsService
+                ai_persona = await SettingsService.get_user_setting(db, user_id, 'ai_persona') or "professional"
+                dealership_name = await SettingsService.get_user_setting(db, user_id, 'ai_dealership_name') or "our dealership"
+            except Exception as e:
+                logger.warning(f"Failed to get AI settings for user {user_id}, using defaults: {str(e)}")
+                # Continue with defaults
+        
+        # Map persona to tone and blurb
+        persona_mapping = {
+            "friendly": {
+                "tone": "friendly",
+                "blurb": "friendly, enthusiastic car salesperson"
+            },
+            "professional": {
+                "tone": "professional", 
+                "blurb": "professional, knowledgeable automotive consultant"
+            },
+            "casual": {
+                "tone": "casual",
+                "blurb": "casual, approachable car expert"
+            }
+        }
+        
+        persona_config = persona_mapping.get(ai_persona, persona_mapping["professional"])
+        
         agent_config = AgentConfig(
-            tone="friendly",
-            dealership_name="our dealership",
-            persona_blurb="friendly, persuasive car salesperson"
+            tone=persona_config["tone"],
+            dealership_name=dealership_name or "our dealership",
+            persona_blurb=persona_config["blurb"]
         )
         
         prompt_builder = PromptBuilder(agent_config)

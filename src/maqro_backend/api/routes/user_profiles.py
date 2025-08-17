@@ -5,8 +5,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id
-from maqro_backend.schemas.user_profile import UserProfileCreate, UserProfileResponse, UserProfileUpdate
+from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id, require_dealership_manager
+from maqro_backend.schemas.user_profile import (
+    UserProfileCreate, 
+    UserProfileResponse, 
+    UserProfileUpdate,
+    UserProfileWithRoleResponse,
+    UserProfileLegacyResponse
+)
+from maqro_backend.services.roles_service import RolesService
+from maqro_backend.schemas.roles import RoleResponse
 from maqro_backend.crud import (
     create_user_profile,
     get_user_profile_by_user_id,
@@ -122,15 +130,68 @@ async def update_my_profile(
     )
 
 
+@router.get("/user-profiles/me/with-role", response_model=UserProfileWithRoleResponse)
+async def get_my_profile_with_role(
+    db: AsyncSession = Depends(get_db_session),
+    user_id: str = Depends(get_current_user_id),
+    dealership_id: str = Depends(get_user_dealership_id)
+):
+    """
+    Get the current user's profile with role information
+    
+    Returns enhanced profile data including the user's role in the current dealership.
+    """
+    # Get basic profile
+    profile = await get_user_profile_by_user_id(session=db, user_id=user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    
+    # Get role information
+    try:
+        user_role = await RolesService.get_user_role(db, user_id, dealership_id)
+        
+        role_info = None
+        role_name = None
+        
+        if user_role:
+            role_info = RoleResponse(
+                id=str(user_role.role.id),
+                name=user_role.role.name,
+                description=user_role.role.description,
+                created_at=user_role.role.created_at
+            )
+            role_name = user_role.role.name
+            
+    except Exception as e:
+        logger.warning(f"Failed to get role info for user {user_id}: {str(e)}")
+        role_info = None
+        role_name = None
+    
+    return UserProfileWithRoleResponse(
+        id=str(profile.id),
+        user_id=str(profile.user_id),
+        dealership_id=str(profile.dealership_id) if profile.dealership_id else None,
+        full_name=profile.full_name,
+        phone=profile.phone,
+        timezone=profile.timezone,
+        created_at=profile.created_at,
+        updated_at=profile.updated_at,
+        role=role_info,
+        role_name=role_name
+    )
+
+
 @router.get("/user-profiles/dealership", response_model=List[UserProfileResponse])
 async def get_dealership_user_profiles(
     db: AsyncSession = Depends(get_db_session),
-    dealership_id: str = Depends(get_user_dealership_id)
+    dealership_id: str = Depends(get_user_dealership_id),
+    manager_user_id: str = Depends(require_dealership_manager)  # Added permission check
 ):
     """
     Get all user profiles for the current dealership
     
-    Note: This should typically be restricted to admin users only
+    Requires manager or owner role.
+    Returns all user profiles in the dealership.
     """
     profiles = await get_user_profiles_by_dealership(session=db, dealership_id=dealership_id)
     
@@ -141,7 +202,6 @@ async def get_dealership_user_profiles(
             dealership_id=str(profile.dealership_id) if profile.dealership_id else None,
             full_name=profile.full_name,
             phone=profile.phone,
-            role=profile.role,
             timezone=profile.timezone,
             created_at=profile.created_at,
             updated_at=profile.updated_at

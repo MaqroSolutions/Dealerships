@@ -29,12 +29,48 @@ entity_parser = EntityParser()
 
 logger.info("Initialized Database RAG system for conversation API")
 
-# Default agent config
+# Default agent config (fallback only)
 default_agent_config = AgentConfig(
     tone="friendly",
-    dealership_name="our dealership",
+    dealership_name="our dealership", 
     persona_blurb="friendly, persuasive car salesperson"
 )
+
+async def get_dynamic_agent_config(db: AsyncSession, user_id: str) -> AgentConfig:
+    """Get agent config based on user/dealership settings"""
+    try:
+        from maqro_backend.services.settings_service import SettingsService
+        
+        # Get AI settings for this user/dealership
+        ai_persona = await SettingsService.get_user_setting(db, user_id, 'ai_persona') or "professional"
+        dealership_name = await SettingsService.get_user_setting(db, user_id, 'ai_dealership_name') or "our dealership"
+        
+        # Map persona to tone and blurb
+        persona_mapping = {
+            "friendly": {
+                "tone": "friendly",
+                "blurb": "friendly, enthusiastic car salesperson"
+            },
+            "professional": {
+                "tone": "professional", 
+                "blurb": "professional, knowledgeable automotive consultant"
+            },
+            "casual": {
+                "tone": "casual",
+                "blurb": "casual, approachable car expert"
+            }
+        }
+        
+        persona_config = persona_mapping.get(ai_persona, persona_mapping["professional"])
+        
+        return AgentConfig(
+            tone=persona_config["tone"],
+            dealership_name=dealership_name,
+            persona_blurb=persona_config["blurb"]
+        )
+    except Exception as e:
+        logger.warning(f"Failed to get dynamic agent config for user {user_id}, using default: {str(e)}")
+        return default_agent_config
 
 
 @router.post("/messages")
@@ -227,29 +263,33 @@ async def generate_rag_response(
     
     # 5. Build prompt and generate response
     try:
-        prompt_builder = PromptBuilder(default_agent_config)
+        # Get dynamic agent config based on user/dealership settings
+        dynamic_agent_config = await get_dynamic_agent_config(db, user_id)
+        prompt_builder = PromptBuilder(dynamic_agent_config)
         
         if retrieved_cars and len(retrieved_cars) > 0:
             # Use grounded prompt with retrieved vehicles
             prompt = prompt_builder.build_grounded_prompt(
                 user_message=customer_message,
                 retrieved_cars=retrieved_cars,
-                agent_config=default_agent_config
+                agent_config=dynamic_agent_config
             )
         else:
             # Use generic prompt for fallback
             prompt = prompt_builder.build_generic_prompt(
                 user_message=customer_message,
-                agent_config=default_agent_config
+                agent_config=dynamic_agent_config
             )
         
-        # 6. Generate response using existing AI service
+        # 6. Generate response using existing AI service with dynamic settings
         from maqro_backend.services.ai_services import generate_contextual_ai_response
         
         response_text = await generate_contextual_ai_response(
             conversations=conversations,
             vehicles=retrieved_cars,
-            lead_name=lead.name
+            lead_name=lead.name,
+            user_id=user_id,
+            db=db
         )
         
         # 7. Save the customer message
