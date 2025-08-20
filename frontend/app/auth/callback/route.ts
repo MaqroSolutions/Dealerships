@@ -9,7 +9,6 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code');
 
   if (code) {
-    // Create a Supabase client for the Server Component
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     
@@ -23,26 +22,103 @@ export async function GET(request: Request) {
       }
       
       if (session?.user) {
-        console.log('🔍 User confirmed email, checking for setup completion...');
-        console.log('✅ Session established for user:', session.user.id);
+        console.log('✅ Email confirmed, user logged in:', session.user.id);
         
-        // Check if user has a profile and dealership
+        // Check if user has a profile
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('user_id', session.user.id)
           .single();
         
-        if (!profile) {
-          console.log('🔍 No profile found, redirecting to setup-complete...');
-          // User needs to complete setup - redirect to setup-complete
-          return NextResponse.redirect(new URL('/setup-complete', requestUrl.origin));
-        } else {
-          console.log('✅ User profile already exists, redirecting to dashboard');
-          // User already has profile, redirect based on role
+        if (profile) {
+          // User has profile, redirect to appropriate dashboard
+          console.log('✅ User profile exists, redirecting to dashboard');
           if (profile.role === 'owner' || profile.role === 'admin' || profile.role === 'manager') {
             return NextResponse.redirect(new URL('/admin/dashboard', requestUrl.origin));
           } else {
+            return NextResponse.redirect(new URL('/app/leads', requestUrl.origin));
+          }
+        } else {
+          // No profile yet, handle post-confirmation setup directly
+          console.log('🔍 No profile found, handling post-confirmation setup');
+          
+          const userMetadata = session.user.user_metadata;
+          const signupFlow = userMetadata?.signup_flow;
+          const signupCompleted = userMetadata?.signup_completed;
+
+          if (signupCompleted) {
+            console.log('❌ Signup marked as completed but no profile exists');
+            return NextResponse.redirect(new URL('/login?error=profile_missing', requestUrl.origin));
+          }
+
+          if (!signupFlow) {
+            console.log('❌ No signup flow found in metadata');
+            return NextResponse.redirect(new URL('/login?error=no_signup_data', requestUrl.origin));
+          }
+
+          console.log('📝 Processing signup flow:', signupFlow);
+
+          // Prepare signup data from metadata
+          const formData = {
+            full_name: userMetadata.name,
+            email: session.user.email || '',
+            dealership_name: userMetadata.dealership_name,
+            location: userMetadata.location || '',
+            phone: userMetadata.phone || ''
+          };
+
+          const signupData = {
+            flow: signupFlow,
+            formData: formData,
+            invite_token: userMetadata.invite_token
+          };
+
+          // Handle the post-confirmation setup
+          if (signupFlow === 'dealership') {
+            const { data: result, error: functionError } = await supabase.rpc('handle_initial_setup', {
+              p_user_id: session.user.id,
+              p_dealership_name: formData.dealership_name || 'My Dealership',
+              p_full_name: formData.full_name
+            });
+
+            if (functionError || !result?.success) {
+              console.error('❌ Error in dealership setup:', functionError || result?.error);
+              return NextResponse.redirect(new URL('/login?error=setup_failed', requestUrl.origin));
+            }
+
+            // Update user metadata to mark signup as completed
+            await supabase.auth.updateUser({
+              data: { signup_completed: true }
+            });
+
+            console.log('✅ Dealership setup completed, redirecting to admin dashboard');
+            return NextResponse.redirect(new URL('/admin/dashboard', requestUrl.origin));
+
+          } else if (signupFlow === 'sales') {
+            if (!userMetadata.invite_token) {
+              console.error('❌ Missing invite token for sales signup');
+              return NextResponse.redirect(new URL('/login?error=missing_invite', requestUrl.origin));
+            }
+
+            const { data: result, error: functionError } = await supabase.rpc('handle_sales_signup', {
+              p_user_id: session.user.id,
+              p_invite_token: userMetadata.invite_token,
+              p_full_name: formData.full_name,
+              p_phone: formData.phone || null
+            });
+
+            if (functionError || !result?.success) {
+              console.error('❌ Error in sales signup:', functionError || result?.error);
+              return NextResponse.redirect(new URL('/login?error=setup_failed', requestUrl.origin));
+            }
+
+            // Update user metadata to mark signup as completed
+            await supabase.auth.updateUser({
+              data: { signup_completed: true }
+            });
+
+            console.log('✅ Sales signup completed, redirecting to leads dashboard');
             return NextResponse.redirect(new URL('/app/leads', requestUrl.origin));
           }
         }

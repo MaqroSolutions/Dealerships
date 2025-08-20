@@ -52,12 +52,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Define public routes that don't require authentication
         const publicRoutes = [
-          "/login", 
-          "/signup", 
-          "/", 
-          "/confirm-email",
-          "/setup-complete"
-        ];
+          '/',
+          '/login',
+          '/signup',
+          '/confirm-email',
+          '/setup-complete',
+          '/test-signup',
+          '/test'
+        ]
         const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/");
         
         // If no user and not on public route, redirect to root

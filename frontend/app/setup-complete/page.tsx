@@ -5,18 +5,6 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { LoadingScreen } from '@/components/ui/loading-spinner'
 
-interface PendingSignupData {
-  flow: 'dealership' | 'sales'
-  formData: {
-    full_name: string
-    email: string
-    dealership_name?: string
-    location?: string
-    phone?: string
-  }
-  invite_token?: string
-}
-
 export default function SetupCompletePage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
@@ -25,39 +13,23 @@ export default function SetupCompletePage() {
   useEffect(() => {
     const completeSetup = async () => {
       try {
-        // Wait a moment for the session to be established
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
         // Get current user
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         
-        if (userError) {
-          console.error('❌ Error getting user:', userError)
+        if (userError || !user) {
+          console.error('❌ No authenticated user found')
           setStatus('error')
-          setMessage('Authentication error. Please try signing up again.')
+          setMessage('No authenticated user found. Please try signing up again.')
           return
         }
-        
-        if (!user) {
-          console.log('🔍 No user found, waiting for session...')
-          // Wait a bit more and try again
-          await new Promise(resolve => setTimeout(resolve, 2000))
-          
-          const { data: { user: retryUser } } = await supabase.auth.getUser()
-          if (!retryUser) {
-            setStatus('error')
-            setMessage('No authenticated user found. Please try signing up again.')
-            return
-          }
-        }
 
-        console.log('✅ User authenticated:', user?.id)
+        console.log('✅ User authenticated:', user.id)
 
         // Check if user already has a profile
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('*')
-          .eq('user_id', user!.id)
+          .eq('user_id', user.id)
           .single()
 
         if (profile) {
@@ -71,72 +43,60 @@ export default function SetupCompletePage() {
           return
         }
 
-        console.log('🔍 No profile found, checking for pending signup data')
+        console.log('🔍 No profile found, checking user metadata')
 
-        // Check for pending signup data in localStorage
-        const pendingSignupStr = localStorage.getItem('pendingSignup')
-        if (!pendingSignupStr) {
-          // No pending signup data found - this might happen if user refreshed the page
-          // Try to get data from user metadata as fallback
-          const userMetadata = user!.user_metadata
-          if (userMetadata?.dealership_name && userMetadata?.name) {
-            console.log('📝 Using user metadata for setup')
-            // We have metadata, create a pending data object
-            const pendingData: PendingSignupData = {
-              flow: 'dealership',
-              formData: {
-                full_name: userMetadata.name,
-                email: user!.email || '',
-                dealership_name: userMetadata.dealership_name,
-                location: userMetadata.location || '',
-                phone: userMetadata.phone || ''
-              }
-            }
-            
-            // Call the post-confirmation API
-            const response = await fetch('/api/auth/post-confirm', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(pendingData)
-            })
+        // Get signup data from user metadata
+        const userMetadata = user.user_metadata
+        const signupFlow = userMetadata?.signup_flow
+        const signupCompleted = userMetadata?.signup_completed
 
-            const result = await response.json()
-
-            if (result.success) {
-              setStatus('success')
-              setMessage('Setup completed successfully! Redirecting to dashboard...')
-              
-              setTimeout(() => {
-                router.push(result.redirect)
-              }, 2000)
-            } else {
-              setStatus('error')
-              setMessage(result.error || 'Failed to complete setup. Please try again.')
-            }
-          } else {
-            setStatus('error')
-            setMessage('No pending signup data found. Please try signing up again.')
-          }
+        if (signupCompleted) {
+          console.log('✅ Signup already completed')
+          // Signup was completed but profile doesn't exist - this shouldn't happen
+          setStatus('error')
+          setMessage('Account setup issue detected. Please contact support.')
           return
         }
 
-        console.log('📝 Found pending signup data')
+        if (!signupFlow) {
+          console.error('❌ No signup flow found in metadata')
+          setStatus('error')
+          setMessage('No signup data found. Please try signing up again.')
+          return
+        }
 
-        const pendingData: PendingSignupData = JSON.parse(pendingSignupStr)
+        console.log('📝 Found signup flow:', signupFlow)
+
+        // Prepare signup data from metadata
+        const formData = {
+          full_name: userMetadata.name,
+          email: user.email || '',
+          dealership_name: userMetadata.dealership_name,
+          location: userMetadata.location || '',
+          phone: userMetadata.phone || ''
+        }
+
+        const signupData = {
+          flow: signupFlow,
+          formData: formData,
+          invite_token: userMetadata.invite_token
+        }
 
         // Call the post-confirmation API
         const response = await fetch('/api/auth/post-confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(pendingData)
+          body: JSON.stringify(signupData)
         })
 
         const result = await response.json()
 
         if (result.success) {
-          // Clear pending signup data
-          localStorage.removeItem('pendingSignup')
-          
+          // Update user metadata to mark signup as completed
+          await supabase.auth.updateUser({
+            data: { signup_completed: true }
+          })
+
           setStatus('success')
           setMessage('Setup completed successfully! Redirecting to dashboard...')
           

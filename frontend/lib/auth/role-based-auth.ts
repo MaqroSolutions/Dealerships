@@ -92,9 +92,18 @@ export class RoleBasedAuthAPI {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return null
 
-      const api = await getAuthenticatedApi()
-      const profile = await api.get('/user-profiles/me')
+      // Call the Next.js API route instead of backend API
+      const response = await fetch('/api/user-profiles/me')
       
+      if (!response.ok) {
+        if (response.status === 404) {
+          // User doesn't have a profile yet - this is normal during signup
+          return null
+        }
+        throw new Error(`Failed to get user profile: ${response.status}`)
+      }
+      
+      const profile = await response.json()
       const role = normalizeRole(profile.role || 'salesperson')
       
       return {

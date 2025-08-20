@@ -73,14 +73,7 @@ export function DualSignupFlow() {
     setError(null)
 
     try {
-      // Store pending signup data
-      const pendingData: PendingSignupData = {
-        flow: 'dealership',
-        formData: formData
-      }
-      localStorage.setItem('pendingSignup', JSON.stringify(pendingData))
-
-      // Sign up with Supabase
+      // Sign up with Supabase, storing signup data in user metadata
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -89,7 +82,9 @@ export function DualSignupFlow() {
             name: formData.full_name,
             dealership_name: formData.dealership_name,
             location: formData.location,
-            phone: formData.phone
+            phone: formData.phone,
+            signup_flow: 'dealership', // Store flow type in metadata
+            signup_completed: false // Track if setup is complete
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
@@ -104,11 +99,10 @@ export function DualSignupFlow() {
         toast.success('Account created! Please check your email to verify your account.')
       } else if (data.session) {
         // Email confirmation not required (auto-confirmed)
-        await handlePostConfirmation(pendingData)
+        await handlePostConfirmation('dealership', formData)
       }
     } catch (err: any) {
       setError(err.message || "Failed to sign up. Please try again.")
-      localStorage.removeItem('pendingSignup')
     } finally {
       setIsLoading(false)
     }
@@ -134,15 +128,7 @@ export function DualSignupFlow() {
         throw new Error(verifyResult.reason || 'Invalid or expired invite token')
       }
 
-      // Store pending signup data
-      const pendingData: PendingSignupData = {
-        flow: 'sales',
-        formData: formData,
-        invite_token: inviteToken
-      }
-      localStorage.setItem('pendingSignup', JSON.stringify(pendingData))
-
-      // Sign up with Supabase
+      // Sign up with Supabase, storing signup data in user metadata
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -150,7 +136,9 @@ export function DualSignupFlow() {
           data: {
             name: formData.full_name,
             phone: formData.phone,
-            invite_token: inviteToken
+            invite_token: inviteToken,
+            signup_flow: 'sales', // Store flow type in metadata
+            signup_completed: false // Track if setup is complete
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
@@ -165,32 +153,35 @@ export function DualSignupFlow() {
         toast.success('Account created! Please check your email to verify your account.')
       } else if (data.session) {
         // Email confirmation not required (auto-confirmed)
-        await handlePostConfirmation(pendingData)
+        await handlePostConfirmation('sales', formData, inviteToken)
       }
     } catch (err: any) {
       setError(err.message || "Failed to sign up. Please try again.")
-      localStorage.removeItem('pendingSignup')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handlePostConfirmation = async (pendingData: PendingSignupData) => {
+  const handlePostConfirmation = async (flow: 'dealership' | 'sales', formData: any, inviteToken?: string) => {
     try {
       const response = await fetch('/api/auth/post-confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pendingData)
+        body: JSON.stringify({ flow, formData, invite_token: inviteToken })
       })
 
       const result = await response.json()
 
       if (result.success) {
-        localStorage.removeItem('pendingSignup')
-        toast.success('Account setup completed successfully!')
+        // Update user metadata to mark signup as completed
+        await supabase.auth.updateUser({
+          data: { signup_completed: true }
+        })
+
+        toast.success('Account setup completed!')
         router.push(result.redirect)
       } else {
-        throw new Error(result.error || 'Failed to complete account setup')
+        throw new Error(result.error || 'Failed to complete setup')
       }
     } catch (err: any) {
       setError(err.message || 'Failed to complete account setup')

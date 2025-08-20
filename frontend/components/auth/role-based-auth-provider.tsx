@@ -88,39 +88,63 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
         
         // Define public routes that don't require authentication
         const publicRoutes = [
-          "/login", 
-          "/signup", 
-          "/", 
-          "/confirm-email",
-          "/setup-complete"
-        ];
+          '/',
+          '/login',
+          '/signup',
+          '/confirm-email',
+          '/setup-complete',
+          '/test-signup',
+          '/test'
+        ]
         const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/");
         
-        // Handle role-based routing
-        if (session?.user && userInfo) {
+        // If user is authenticated, check role-based routing
+        if (session?.user) {
           // Don't redirect if on setup-complete or confirm-email pages
           if (pathname === "/setup-complete" || pathname === "/confirm-email") {
             return;
           }
           
-          const redirectPath = RouteProtection.getRedirectPath(userInfo)
-          
-          // Only redirect if user is on a page that doesn't match their role
-          const shouldRedirect = (
-            (userInfo.isAdmin && !pathname.startsWith('/admin/') && pathname !== '/admin/dashboard') ||
-            (!userInfo.isAdmin && !pathname.startsWith('/app/') && pathname !== '/app/leads') ||
-            pathname === '/'
-          )
-          
-          if (shouldRedirect) {
-            console.log(`RoleBasedAuthProvider: Redirecting ${userInfo.role} to ${redirectPath}`)
-            router.push(redirectPath)
-          }
-        } else if (session?.user && !userInfo) {
-          // User is authenticated but has no profile - needs to complete setup
-          if (pathname !== "/setup-complete") {
-            console.log('RoleBasedAuthProvider: No profile found, redirecting to setup-complete')
-            router.push("/setup-complete")
+          // Check if user has a profile
+          try {
+            const response = await fetch('/api/user-profiles/me');
+            
+            if (response.ok) {
+              const profile = await response.json();
+              const userRole = profile.role;
+              
+              // Role-based routing logic
+              if (userRole === 'owner' || userRole === 'manager') {
+                // Admin users should be in admin routes
+                if (pathname === "/" || pathname.startsWith("/app/")) {
+                  console.log('RoleBasedAuthProvider: Redirecting admin to admin dashboard');
+                  router.push("/admin/dashboard");
+                }
+              } else if (userRole === 'salesperson') {
+                // Salesperson users should be in app routes
+                if (pathname === "/" || pathname.startsWith("/admin/")) {
+                  console.log('RoleBasedAuthProvider: Redirecting salesperson to leads dashboard');
+                  router.push("/app/leads");
+                }
+              }
+            } else if (response.status === 404) {
+              // User doesn't have a profile yet - this is normal during signup
+              // Don't redirect, let the auth callback handle it
+              console.log('RoleBasedAuthProvider: User has no profile yet, not redirecting');
+            } else if (response.status === 401) {
+              // User not authenticated - this shouldn't happen if we have a session
+              console.log('RoleBasedAuthProvider: User not authenticated, clearing session');
+              await supabase.auth.signOut();
+            } else {
+              console.log('RoleBasedAuthProvider: Error fetching user profile:', response.status);
+            }
+          } catch (error) {
+            // Only log if it's not a network error or expected error
+            if (error instanceof TypeError && error.message.includes('fetch')) {
+              // Network error, don't spam console
+              return;
+            }
+            console.log('RoleBasedAuthProvider: Error checking user profile:', error);
           }
         } else if (!session?.user && !isPublicRoute) {
           console.log('RoleBasedAuthProvider: Redirecting to root')
