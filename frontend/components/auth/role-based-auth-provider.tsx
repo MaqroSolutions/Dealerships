@@ -86,8 +86,23 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
         
         setLoading(false)
         
+        // Define public routes that don't require authentication
+        const publicRoutes = [
+          "/login", 
+          "/signup", 
+          "/", 
+          "/confirm-email",
+          "/setup-complete"
+        ];
+        const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/");
+        
         // Handle role-based routing
         if (session?.user && userInfo) {
+          // Don't redirect if on setup-complete or confirm-email pages
+          if (pathname === "/setup-complete" || pathname === "/confirm-email") {
+            return;
+          }
+          
           const redirectPath = RouteProtection.getRedirectPath(userInfo)
           
           // Only redirect if user is on a page that doesn't match their role
@@ -101,18 +116,21 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
             console.log(`RoleBasedAuthProvider: Redirecting ${userInfo.role} to ${redirectPath}`)
             router.push(redirectPath)
           }
-        } else if (!session?.user && 
-                  pathname !== "/login" && 
-                  pathname !== "/signup" && 
-                  pathname !== "/" &&
-                  !pathname.includes("/auth/") && 
-                  pathname !== "/forgot-password") {
+        } else if (session?.user && !userInfo) {
+          // User is authenticated but has no profile - needs to complete setup
+          if (pathname !== "/setup-complete") {
+            console.log('RoleBasedAuthProvider: No profile found, redirecting to setup-complete')
+            router.push("/setup-complete")
+          }
+        } else if (!session?.user && !isPublicRoute) {
           console.log('RoleBasedAuthProvider: Redirecting to root')
           router.push("/")
         }
       } catch (error) {
         console.error('RoleBasedAuthProvider: Error getting session:', error)
         setLoading(false)
+        
+        // If there's an error, redirect to root
         if (pathname !== "/") {
           router.push("/")
         }
@@ -130,6 +148,15 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
         setUser(session?.user || null)
         
         if (event === "SIGNED_IN" && session?.user) {
+          // Check for pending signup data first
+          const pendingSignup = localStorage.getItem('pendingSignup')
+          if (pendingSignup) {
+            // User just signed up, redirect to setup-complete
+            router.push("/setup-complete")
+            setLoading(false)
+            return
+          }
+          
           // Get user info with role
           const userInfo = await RoleBasedAuthAPI.getCurrentUser()
           setUserInfo(userInfo)
@@ -141,6 +168,9 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
             if (pathname === "/login" || pathname === "/signup") {
               router.push(redirectPath)
             }
+          } else {
+            // No profile found, redirect to setup-complete
+            router.push("/setup-complete")
           }
         } else if (event === "SIGNED_OUT") {
           setUserInfo(null)

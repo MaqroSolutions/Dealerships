@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart3, MessageSquare, Settings, LayoutTemplateIcon as Template, Home, Upload, Car, Users, Building2, TrendingUp } from 'lucide-react'
+import { BarChart3, MessageSquare, Settings, LayoutTemplateIcon as Template, Home, Upload, Car, Users, Building2, TrendingUp, CreditCard } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -27,11 +27,6 @@ const adminItems = [
     icon: Users,
   },
   {
-    title: "All Leads",
-    url: "/admin/leads",
-    icon: MessageSquare,
-  },
-  {
     title: "Inventory",
     url: "/admin/inventory",
     icon: Car,
@@ -40,6 +35,11 @@ const adminItems = [
     title: "Analytics",
     url: "/admin/analytics",
     icon: TrendingUp,
+  },
+  {
+    title: "Billing",
+    url: "/admin/billing",
+    icon: CreditCard,
   },
   {
     title: "Settings",

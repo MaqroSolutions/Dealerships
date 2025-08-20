@@ -50,19 +50,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user || null);
         setLoading(false);
         
-        // If no user and not on login page, signup page, or auth callback, redirect to root
-        if (!session?.user && 
-            pathname !== "/login" && 
-            pathname !== "/signup" && 
-            pathname !== "/" &&
-            !pathname.includes("/auth/") && 
-            pathname !== "/forgot-password") {
+        // Define public routes that don't require authentication
+        const publicRoutes = [
+          "/login", 
+          "/signup", 
+          "/", 
+          "/confirm-email",
+          "/setup-complete"
+        ];
+        const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/");
+        
+        // If no user and not on public route, redirect to root
+        if (!session?.user && !isPublicRoute) {
           console.log('AuthProvider: Redirecting to root');
           router.push("/");
         }
         
         // If user is authenticated, check role-based routing
         if (session?.user) {
+          // Don't redirect if on setup-complete or confirm-email pages
+          if (pathname === "/setup-complete" || pathname === "/confirm-email") {
+            return;
+          }
+          
           // Import and use the role-based routing logic
           import('@/hooks/use-user-role').then(async ({ useUserRole }) => {
             try {
@@ -91,9 +101,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     router.push("/app/leads");
                   }
                 }
+              } else {
+                // No profile found, user needs to complete setup
+                if (pathname !== "/setup-complete") {
+                  console.log('AuthProvider: No profile found, redirecting to setup-complete');
+                  router.push("/setup-complete");
+                }
               }
             } catch (error) {
               console.error('AuthProvider: Error checking user role:', error);
+              // If there's an error checking profile, redirect to setup-complete
+              if (pathname !== "/setup-complete") {
+                router.push("/setup-complete");
+              }
             }
           });
         }
@@ -122,7 +142,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           router.push("/");
         } else if (event === "SIGNED_IN" && 
                   (pathname === "/login" || pathname === "/signup")) {
-          router.push("/");
+          // Check if user has profile, if not redirect to setup-complete
+          if (session?.user) {
+            // Check for pending signup data
+            const pendingSignup = localStorage.getItem('pendingSignup');
+            if (pendingSignup) {
+              router.push("/setup-complete");
+            } else {
+              router.push("/");
+            }
+          }
         }
       });
 

@@ -114,15 +114,15 @@ function AdminDashboardContent() {
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href="/admin/leads">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  View Leads
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
                 <Link href="/admin/analytics">
                   <TrendingUp className="w-4 h-4 mr-2" />
                   Analytics
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/admin/billing">
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Billing
                 </Link>
               </Button>
             </div>

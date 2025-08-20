@@ -1,5 +1,5 @@
-import { SignupFlow } from "@/components/auth/signup-flow"
+import { DualSignupFlow } from "@/components/auth/dual-signup-flow"
 
 export default function SignupPage() {
-  return <SignupFlow />
+  return <DualSignupFlow />
 } 

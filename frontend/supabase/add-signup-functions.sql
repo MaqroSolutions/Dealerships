@@ -1,74 +1,7 @@
--- Fix RLS policies for auth callback
+-- Add signup functions for dual signup system
 -- Run this in your Supabase SQL Editor
 
--- Enable RLS on dealerships if not already enabled
-ALTER TABLE dealerships ENABLE ROW LEVEL SECURITY;
-
--- Drop existing dealership policies
-DROP POLICY IF EXISTS "Users can view their own dealership" ON dealerships;
-
--- Create comprehensive dealership policies
-CREATE POLICY "Users can view their own dealership"
-  ON dealerships
-  FOR SELECT
-  USING (
-    id = (SELECT dealership_id FROM public.user_profiles WHERE user_id = auth.uid())
-    OR 
-    -- Allow viewing if user is creating their first dealership (no profile yet)
-    NOT EXISTS (SELECT 1 FROM public.user_profiles WHERE user_id = auth.uid())
-  );
-
--- Allow users to create dealerships (for initial signup)
-CREATE POLICY "Users can create dealerships"
-  ON dealerships
-  FOR INSERT
-  WITH CHECK (true); -- Allow all inserts for now, we'll validate in application logic
-
--- Allow users to update their own dealership
-CREATE POLICY "Users can update their own dealership"
-  ON dealerships
-  FOR UPDATE
-  USING (id = (SELECT dealership_id FROM public.user_profiles WHERE user_id = auth.uid()));
-
--- Enable RLS on user_profiles if not already enabled
-ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
-
--- Drop existing user_profiles policies
-DROP POLICY IF EXISTS "Users can view profiles in their dealership" ON user_profiles;
-DROP POLICY IF EXISTS "Users can insert their own profile" ON user_profiles;
-DROP POLICY IF EXISTS "Users can update their own profile" ON user_profiles;
-DROP POLICY IF EXISTS "Users can delete their own profile" ON user_profiles;
-
--- Create comprehensive user_profiles policies
-CREATE POLICY "Users can view profiles in their dealership"
-  ON user_profiles
-  FOR SELECT
-  USING (
-    dealership_id = (SELECT dealership_id FROM public.user_profiles WHERE user_id = auth.uid())
-    OR 
-    -- Allow viewing if user is creating their first profile (no profile yet)
-    NOT EXISTS (SELECT 1 FROM public.user_profiles WHERE user_id = auth.uid())
-  );
-
--- Allow users to create their own profile (for initial signup)
-CREATE POLICY "Users can insert their own profile"
-  ON user_profiles
-  FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
--- Allow users to update their own profile
-CREATE POLICY "Users can update their own profile"
-  ON user_profiles
-  FOR UPDATE
-  USING (auth.uid() = user_id);
-
--- Allow users to delete their own profile
-CREATE POLICY "Users can delete their own profile"
-  ON user_profiles
-  FOR DELETE
-  USING (auth.uid() = user_id);
-
--- Create a function to handle initial setup that bypasses RLS
+-- Create or replace the handle_initial_setup function for dealership signups
 CREATE OR REPLACE FUNCTION handle_initial_setup(
   p_user_id UUID,
   p_dealership_name TEXT,
@@ -113,7 +46,7 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create a function to handle sales signup that bypasses RLS
+-- Create or replace the handle_sales_signup function for sales signups
 CREATE OR REPLACE FUNCTION handle_sales_signup(
   p_user_id UUID,
   p_invite_token TEXT,
