@@ -174,6 +174,20 @@ export function TeamManagement() {
     )
   }
 
+  const handleRemoveMember = async (userId: string) => {
+    try {
+      const result = await RoleBasedAuthAPI.removeUserFromDealership(userId)
+      if (result.success) {
+        toast.success('User removed from dealership')
+        loadTeamData()
+      } else {
+        toast.error(result.error || 'Failed to remove user')
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to remove user')
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -218,20 +232,14 @@ export function TeamManagement() {
                 <Label htmlFor="role" className="text-gray-200">Role</Label>
                 <Select
                   value={state.inviteForm.role_name}
-                  onValueChange={(value: UserRole) => 
-                    setState(prev => ({ 
-                      ...prev, 
-                      inviteForm: { ...prev.inviteForm, role_name: value }
-                    }))
-                  }
+                  onValueChange={() => {}}
+                  disabled
                 >
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700">
                     <SelectItem value="salesperson">Salesperson</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="owner">Owner</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -256,6 +264,7 @@ export function TeamManagement() {
       <TeamMembersSection 
         teamMembers={state.teamMembers} 
         getRoleBadgeColor={getRoleBadgeColor} 
+        onRemoveMember={handleRemoveMember}
       />
 
       {/* Pending Invites */}
@@ -281,10 +290,12 @@ export function TeamManagement() {
 // Sub-components for better separation of concerns
 function TeamMembersSection({ 
   teamMembers, 
-  getRoleBadgeColor 
+  getRoleBadgeColor,
+  onRemoveMember
 }: { 
   teamMembers: TeamMember[]
   getRoleBadgeColor: (role: string) => string
+  onRemoveMember: (userId: string) => void
 }) {
   return (
     <Card className="bg-gray-900/70 border-gray-800">
@@ -300,7 +311,8 @@ function TeamMembersSection({
             <TeamMemberCard 
               key={member.id} 
               member={member} 
-              getRoleBadgeColor={getRoleBadgeColor} 
+              getRoleBadgeColor={getRoleBadgeColor}
+              onRemoveMember={onRemoveMember}
             />
           ))}
           {teamMembers.length === 0 && <EmptyTeamState />}
@@ -312,10 +324,12 @@ function TeamMembersSection({
 
 function TeamMemberCard({ 
   member, 
-  getRoleBadgeColor 
+  getRoleBadgeColor,
+  onRemoveMember
 }: { 
   member: TeamMember
   getRoleBadgeColor: (role: string) => string
+  onRemoveMember: (userId: string) => void
 }) {
   return (
     <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
@@ -327,13 +341,22 @@ function TeamMemberCard({
         </div>
         <div>
           <p className="text-sm font-medium text-gray-200">{member.full_name}</p>
-          <p className="text-xs text-gray-400">{member.email}</p>
+          <p className="text-xs text-gray-400">{member.phone || ''}</p>
         </div>
       </div>
       <div className="flex items-center space-x-2">
         <Badge className={getRoleBadgeColor(member.role)}>
           {member.role}
         </Badge>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+          onClick={() => onRemoveMember(member.user_id)}
+          aria-label="Remove user"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
       </div>
     </div>
   )
@@ -404,7 +427,7 @@ function PendingInviteCard({
         <div>
           <p className="text-sm font-medium text-gray-200">{invite.email}</p>
           <p className="text-xs text-gray-400">
-            Invited {new Date(invite.created_at).toLocaleDateString()}
+            Expires {new Date(invite.expires_at).toLocaleDateString()}
           </p>
         </div>
       </div>
@@ -469,7 +492,7 @@ function RecentInvitesSection({
                 <div>
                   <p className="text-sm font-medium text-gray-200">{invite.email}</p>
                   <p className="text-xs text-gray-400">
-                    {new Date(invite.created_at).toLocaleDateString()}
+                    Expires {new Date(invite.expires_at).toLocaleDateString()}
                   </p>
                 </div>
               </div>

@@ -2,6 +2,7 @@
 Role compatibility utilities for handling both old and new role systems
 """
 from typing import Optional
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from ..db.models import UserProfile, UserRole, Role
@@ -19,13 +20,17 @@ async def get_user_role_name(
         Role name: 'owner', 'manager', 'salesperson', or None if not found
     """
     try:
+        # Normalize IDs to UUID to avoid type mismatch in queries
+        user_uuid = uuid.UUID(str(user_id))
+        dealer_uuid = uuid.UUID(str(dealership_id))
+
         # Try new role system first
         result = await session.execute(
             select(Role.name)
             .join(UserRole, Role.id == UserRole.role_id)
             .where(
-                UserRole.user_id == user_id,
-                UserRole.dealership_id == dealership_id
+                UserRole.user_id == user_uuid,
+                UserRole.dealership_id == dealer_uuid
             )
         )
         role_name = result.scalar_one_or_none()
@@ -37,8 +42,8 @@ async def get_user_role_name(
         result = await session.execute(
             select(UserProfile.role)
             .where(
-                UserProfile.user_id == user_id,
-                UserProfile.dealership_id == dealership_id
+                UserProfile.user_id == user_uuid,
+                UserProfile.dealership_id == dealer_uuid
             )
         )
         old_role = result.scalar_one_or_none()

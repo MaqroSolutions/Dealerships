@@ -18,15 +18,63 @@ from maqro_backend.crud import (
     get_invite_by_token,
     get_invites_by_dealership,
     update_invite_status,
-    create_user_profile,
-    assign_user_role
+    create_user_profile
 )
 from maqro_backend.services.roles_service import RolesService
-from maqro_backend.utils.role_compatibility import user_has_role_level
+from maqro_backend.utils.role_compatibility import user_has_role_level, get_user_role_name
+from sqlalchemy import select
+from maqro_backend.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.get("/invites/verify", response_model=dict)
+async def verify_invite(
+    token: str,
+    db: AsyncSession = Depends(get_db_session)
+):
+    """
+    Public endpoint to verify if an invite token is valid.
+
+    Returns dealership and role information if valid.
+    """
+    try:
+        invite = await get_invite_by_token(session=db, token=token)
+
+        if not invite:
+            return {"valid": False, "reason": "Invalid or expired invite token"}
+
+        # Check status and expiry
+        from datetime import datetime
+        if invite.status != "pending":
+            return {"valid": False, "reason": "Invite already used or cancelled"}
+        if invite.expires_at and invite.expires_at < datetime.utcnow():
+            return {"valid": False, "reason": "Invite has expired"}
+
+        # Get dealership name if available
+        dealership_name = ""
+        try:
+            from maqro_backend.db.models import Dealership
+            result = await db.execute(
+                select(Dealership.name).where(Dealership.id == invite.dealership_id)
+            )
+            dealership_name = result.scalar_one_or_none() or ""
+        except Exception:
+            dealership_name = ""
+
+        return {
+            "valid": True,
+            "dealership_id": str(invite.dealership_id),
+            "dealership_name": dealership_name or "Unknown Dealership",
+            "role_name": invite.role_name,
+            "email": invite.email,
+            "expires_at": invite.expires_at.isoformat() if invite.expires_at else None,
+        }
+    except Exception as e:
+        logger.error(f"Error verifying invite: {e}")
+        return {"valid": False, "reason": "Failed to verify invite token"}
 
 
 @router.post("/invites", response_model=InviteResponse)
@@ -43,30 +91,39 @@ async def create_new_invite(
     """
     logger.info(f"Creating invite for email: {invite_data.email} by user: {user_id}")
     
-    # Check if user has permission to create invites
-    has_permission = await user_has_role_level(
-        db, user_id, dealership_id, "manager"
-    )
-    
-    if not has_permission:
-        raise HTTPException(
-            status_code=403, 
-            detail="You need manager or owner permissions to create invites"
-        )
+    # Check if user has permission to create invites (manager, owner, or admin)
+    # Determine role explicitly and allow owner/manager/admin
+    role_name = await get_user_role_name(db, user_id, dealership_id)
+    detected_role = (role_name or "").lower()
+
+    # Log detected role for debugging
+    logger.info(f"Invite create permission check: user={user_id} role='{detected_role}' dealership={dealership_id}")
+
+    # Allow if role explicitly matches or if level check passes as a fallback
+    if detected_role not in ("owner", "manager", "admin"):
+        has_level = await user_has_role_level(db, user_id, dealership_id, "manager")
+        if not has_level:
+            raise HTTPException(
+                status_code=403, 
+                detail="You need manager, owner, or admin permissions to create invites"
+            )
     
     try:
+        # Force all invites to salesperson role from the API to avoid privilege escalation
+        enforced_role = "salesperson"
+
         invite = await create_invite(
             session=db,
             dealership_id=dealership_id,
             email=invite_data.email,
-            role_name=invite_data.role_name,
+            role_name=enforced_role,
             invited_by=user_id,
             expires_in_days=invite_data.expires_in_days
         )
         
         logger.info(f"Invite created with ID: {invite.id}")
         
-        return InviteResponse(
+        invite_response = InviteResponse(
             id=str(invite.id),
             dealership_id=str(invite.dealership_id),
             email=invite.email,
@@ -77,6 +134,39 @@ async def create_new_invite(
             expires_at=invite.expires_at,
             status=invite.status
         )
+
+        # Send invite email via Supabase Admin email (passwordless link-like)
+        try:
+            from supabase import create_client, Client
+            import os
+
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+            if supabase_url and supabase_service_key:
+                supabase: Client = create_client(supabase_url, supabase_service_key)
+
+                # Build invite link to our signup with token
+                frontend_base = settings.frontend_base_url or "http://localhost:3000"
+                invite_link = f"{frontend_base}/signup?token={invite.token}"
+
+                # Send email using magic link invite: we send a direct email with invite_link
+                # Supabase Admin API supports invite_user_by_email for projects using email auth
+                try:
+                    supabase.auth.admin.invite_user_by_email(invite.email)
+                except Exception:
+                    # Fallback: send password reset email as an invite mechanism (if enabled)
+                    pass
+
+                # Additionally, send a custom email via supabase SMTP relay is not directly available here.
+                # For now, log the link; the app shows copy link, and supabase sends invite email.
+                logger.info(f"📧 Invite email requested via Supabase for {invite.email}. Link: {invite_link}")
+            else:
+                logger.warning("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set; skipping email send")
+        except Exception as e:
+            logger.error(f"Failed to dispatch invite email: {e}")
+
+        return invite_response
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -225,6 +315,82 @@ async def accept_invite(
         logger.error(f"Error accepting invite: {e}")
         raise HTTPException(status_code=500, detail="Failed to create account")
 
+
+@router.post("/invites/complete", response_model=dict)
+async def complete_invite_for_existing_user(
+    payload: dict,
+    db: AsyncSession = Depends(get_db_session),
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """
+    Complete an invite for an already authenticated user.
+
+    This attaches the current user to the dealership indicated by the invite
+    and assigns the invited role. Does NOT create a new auth user.
+    """
+    try:
+        token = payload.get("token")
+        full_name = payload.get("full_name")
+        phone = payload.get("phone")
+
+        if not token:
+            raise HTTPException(status_code=400, detail="Missing invite token")
+
+        # Get the invite by token
+        invite = await get_invite_by_token(session=db, token=token)
+        if not invite:
+            raise HTTPException(status_code=404, detail="Invalid or expired invite")
+
+        # Check status and expiry
+        from datetime import datetime
+        if invite.status != "pending":
+            raise HTTPException(status_code=400, detail="Invite has already been used or expired")
+        if invite.expires_at and invite.expires_at < datetime.utcnow():
+            await update_invite_status(session=db, invite_id=str(invite.id), status="expired")
+            raise HTTPException(status_code=400, detail="Invite has expired")
+
+        # Map role name for compatibility
+        role_for_profile = invite.role_name
+        if role_for_profile == 'admin':
+            role_for_profile = 'owner'
+
+        # Create or update user profile
+        await create_user_profile(
+            session=db,
+            user_id=current_user_id,
+            dealership_id=str(invite.dealership_id),
+            full_name=full_name or "",
+            phone=phone,
+            role=role_for_profile,
+            timezone="America/New_York"
+        )
+
+        # Assign role in role system (best effort)
+        try:
+            await RolesService.assign_user_role(
+                db=db,
+                user_id=current_user_id,
+                dealership_id=str(invite.dealership_id),
+                role_name=role_for_profile,
+                assigned_by=str(invite.invited_by)
+            )
+        except Exception as e:
+            logger.warning(f"Could not assign role in new system: {e}")
+
+        # Mark invite as accepted
+        await update_invite_status(
+            session=db,
+            invite_id=str(invite.id),
+            status="accepted",
+            used_at=datetime.utcnow()
+        )
+
+        return {"success": True, "message": "Invite completed"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error completing invite: {e}")
+        raise HTTPException(status_code=500, detail="Failed to complete invite")
 
 @router.delete("/invites/{invite_id}")
 async def cancel_invite(

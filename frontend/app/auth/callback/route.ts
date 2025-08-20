@@ -110,25 +110,41 @@ export async function GET(request: Request) {
               return NextResponse.redirect(new URL('/login?error=missing_invite', requestUrl.origin));
             }
 
-            const { data: result, error: functionError } = await supabase.rpc('handle_sales_signup', {
-              p_user_id: session.user.id,
-              p_invite_token: userMetadata.invite_token,
-              p_full_name: formData.full_name,
-              p_phone: formData.phone || null
-            });
+            // Call backend to complete invite for existing user
+            try {
+              const accessToken = session.access_token;
+              const rawBase = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+              const apiBase = rawBase.replace(/\/$/, '').endsWith('/api') ? rawBase.replace(/\/$/, '') : `${rawBase.replace(/\/$/, '')}/api`
+              const resp = await fetch(`${apiBase}/invites/complete`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({
+                  token: userMetadata.invite_token,
+                  full_name: formData.full_name,
+                  phone: formData.phone || null
+                })
+              });
 
-            if (functionError || !result?.success) {
-              console.error('❌ Error in sales signup:', functionError || result?.error);
+              if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                console.error('❌ Error in sales signup (backend):', err);
+                return NextResponse.redirect(new URL('/login?error=setup_failed', requestUrl.origin));
+              }
+
+              // Update user metadata to mark signup as completed
+              await supabase.auth.updateUser({
+                data: { signup_completed: true }
+              });
+
+              console.log('✅ Sales signup completed via backend, redirecting to leads dashboard');
+              return NextResponse.redirect(new URL('/app/leads', requestUrl.origin));
+            } catch (e) {
+              console.error('❌ Error completing sales signup via backend:', e);
               return NextResponse.redirect(new URL('/login?error=setup_failed', requestUrl.origin));
             }
-
-            // Update user metadata to mark signup as completed
-            await supabase.auth.updateUser({
-              data: { signup_completed: true }
-            });
-
-            console.log('✅ Sales signup completed, redirecting to leads dashboard');
-            return NextResponse.redirect(new URL('/app/leads', requestUrl.origin));
           }
         }
       } else {

@@ -29,7 +29,15 @@ export async function getAuthenticatedApi() {
     'Authorization': `Bearer ${session.access_token}`,
   };
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+  // Normalize API base URL and ensure it includes the '/api' prefix
+  const rawBase =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'http://localhost:8000';
+
+  const baseUrl = rawBase.replace(/\/$/, '').endsWith('/api')
+    ? rawBase.replace(/\/$/, '')
+    : `${rawBase.replace(/\/$/, '')}/api`;
 
   return {
     get: async <T>(endpoint: string): Promise<T> => {

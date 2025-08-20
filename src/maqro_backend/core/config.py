@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     # Supabase JWT secret for authentication
     supabase_jwt_secret: str
 
+    # Frontend base URL for building redirect links in emails
+    frontend_base_url: Optional[str] = None
+
     # Vonage SMS Configuration (Legacy - keeping for transition)
     vonage_api_key: str | None = None
     vonage_api_secret: str | None = None

@@ -34,6 +34,7 @@ export interface InviteData {
   email: string
   role_name: UserRole
   token: string
+  created_at: string
   expires_at: string
   status: 'pending' | 'accepted' | 'expired' | 'cancelled'
 }
@@ -230,6 +231,19 @@ export class RoleBasedAuthAPI {
     try {
       const api = await getAuthenticatedApi()
       await api.delete(`/invites/${inviteId}`)
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  /**
+   * Remove a user from the current dealership (owner only)
+   */
+  static async removeUserFromDealership(userId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const api = await getAuthenticatedApi()
+      await api.delete(`/roles/users/${userId}`)
       return { success: true }
     } catch (error: any) {
       return { success: false, error: error.message }
