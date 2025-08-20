@@ -58,13 +58,13 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
   }
 
   useEffect(() => {
-    console.log('RoleBasedAuthProvider: Starting auth check...')
+    console.log('RoleBasedAuthProvider: Starting auth check for path:', pathname)
     
-    // Set a timeout to prevent infinite loading
+    // Clear any existing timeout
     const timeout = setTimeout(() => {
       console.log('RoleBasedAuthProvider: Timeout reached, setting loading to false')
       setLoading(false)
-    }, 2000)
+    }, 5000) // Increased timeout
 
     const getSession = async () => {
       try {
@@ -73,18 +73,6 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
         console.log('RoleBasedAuthProvider: Session result:', session ? 'User found' : 'No user')
         
         setUser(session?.user || null)
-        
-        if (session?.user) {
-          // Get user info with role
-          const userInfo = await RoleBasedAuthAPI.getCurrentUser()
-          setUserInfo(userInfo)
-          authState.setUser(userInfo)
-        } else {
-          setUserInfo(null)
-          authState.setUser(null)
-        }
-        
-        setLoading(false)
         
         // Define public routes that don't require authentication
         const publicRoutes = [
@@ -96,55 +84,48 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
           '/test-signup',
           '/test'
         ]
-        const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/");
+        const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/")
         
-        // If user is authenticated, check role-based routing
         if (session?.user) {
-          // Don't redirect if on setup-complete or confirm-email pages
-          if (pathname === "/setup-complete" || pathname === "/confirm-email") {
-            return;
-          }
-          
-          // Check if user has a profile
-          try {
-            const response = await fetch('/api/user-profiles/me');
-            
-            if (response.ok) {
-              const profile = await response.json();
-              const userRole = profile.role;
-              
-              // Role-based routing logic
-              if (userRole === 'owner' || userRole === 'manager') {
-                // Admin users should be in admin routes
-                if (pathname === "/" || pathname.startsWith("/app/")) {
-                  console.log('RoleBasedAuthProvider: Redirecting admin to admin dashboard');
-                  router.push("/admin/dashboard");
-                }
-              } else if (userRole === 'salesperson') {
-                // Salesperson users should be in app routes
-                if (pathname === "/" || pathname.startsWith("/admin/")) {
-                  console.log('RoleBasedAuthProvider: Redirecting salesperson to leads dashboard');
-                  router.push("/app/leads");
-                }
-              }
-            } else if (response.status === 404) {
-              // User doesn't have a profile yet - this is normal during signup
-              // Don't redirect, let the auth callback handle it
-              console.log('RoleBasedAuthProvider: User has no profile yet, not redirecting');
-            } else if (response.status === 401) {
-              // User not authenticated - this shouldn't happen if we have a session
-              console.log('RoleBasedAuthProvider: User not authenticated, clearing session');
-              await supabase.auth.signOut();
-            } else {
-              console.log('RoleBasedAuthProvider: Error fetching user profile:', response.status);
+          // Get user info with role - but only if we don't already have it
+          if (!userInfo) {
+            try {
+              const userInfoResult = await RoleBasedAuthAPI.getCurrentUser()
+              setUserInfo(userInfoResult)
+              authState.setUser(userInfoResult)
+            } catch (error) {
+              console.log('RoleBasedAuthProvider: Error getting user info:', error)
+              setUserInfo(null)
+              authState.setUser(null)
             }
-          } catch (error) {
-            // Only log if it's not a network error or expected error
-            if (error instanceof TypeError && error.message.includes('fetch')) {
-              // Network error, don't spam console
+          }
+        } else {
+          setUserInfo(null)
+          authState.setUser(null)
+        }
+        
+        clearTimeout(timeout)
+        setLoading(false)
+        
+        // Handle role-based routing ONLY if we have user info and are not on a public route
+        if (session?.user && userInfo && !isPublicRoute && !loading) {
+          const userRole = userInfo.role;
+          
+          // Role-based routing logic with redirect guards
+          if (userRole === 'owner' || userRole === 'manager') {
+            // Admin users should be in admin routes
+            if (pathname === "/" || (pathname.startsWith("/app/") && !pathname.startsWith("/admin/"))) {
+              console.log('RoleBasedAuthProvider: Redirecting admin to admin dashboard');
+              router.push("/admin/dashboard");
               return;
             }
-            console.log('RoleBasedAuthProvider: Error checking user profile:', error);
+          } else if (userRole === 'salesperson') {
+            // Salesperson users should be in app routes  
+            if (pathname === "/" || (pathname.startsWith("/admin/") && !pathname.startsWith("/app/"))) {
+              console.log('RoleBasedAuthProvider: Redirecting salesperson to leads dashboard');
+              router.push("/app/leads");
+              return;
+            }
           }
         } else if (!session?.user && !isPublicRoute) {
           console.log('RoleBasedAuthProvider: Redirecting to root')
@@ -215,7 +196,7 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
       setLoading(false)
       clearTimeout(timeout)
     }
-  }, [pathname, router])
+  }, [pathname]) // Simplified dependency array
 
   const value = {
     user,

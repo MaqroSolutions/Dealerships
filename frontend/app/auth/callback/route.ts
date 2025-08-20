@@ -1,17 +1,32 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  console.log('🚀 AUTH CALLBACK ROUTE HIT!');
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
+  
+  console.log('🔑 Code received:', code ? 'YES' : 'NO');
 
   if (code) {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-    
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+          setAll: (cookiesToSet) => {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
     try {
       // Exchange the code for a session
       const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -66,12 +81,6 @@ export async function GET(request: Request) {
             dealership_name: userMetadata.dealership_name,
             location: userMetadata.location || '',
             phone: userMetadata.phone || ''
-          };
-
-          const signupData = {
-            flow: signupFlow,
-            formData: formData,
-            invite_token: userMetadata.invite_token
           };
 
           // Handle the post-confirmation setup
@@ -130,9 +139,9 @@ export async function GET(request: Request) {
       console.error('❌ Error in auth callback:', error);
       return NextResponse.redirect(new URL('/login?error=callback_error', requestUrl.origin));
     }
+  } else {
+    // No code provided
+    console.error('❌ No code provided in auth callback');
+    return NextResponse.redirect(new URL('/login?error=no_code', requestUrl.origin));
   }
-
-  // No code provided
-  console.error('❌ No code provided in auth callback');
-  return NextResponse.redirect(new URL('/login?error=no_code', requestUrl.origin));
 } 

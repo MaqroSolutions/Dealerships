@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 // These environment variables need to be set in your .env.local file
 // NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
@@ -11,7 +11,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_A
   console.warn('Missing Supabase environment variables. Check your .env.local file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 // Type definitions for your Supabase tables
 export type Lead = {
