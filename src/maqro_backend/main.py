@@ -28,17 +28,9 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS configuration - SECURE: Only allow specific trusted domains
 origins = [
-    # Development
-    "http://localhost:3000",  # Local development frontend
-    "http://127.0.0.1:3000",  # Alternative localhost
-    
-    # Flutter Web Development (add common Flutter web ports)
-    "http://localhost:8080",  # Common Flutter web port
-    "http://localhost:5000",  # Alternative Flutter web port
-    "http://localhost:53083",  # Current Flutter web port
-    "http://127.0.0.1:8080",  # Alternative localhost
-    "http://127.0.0.1:5000",  # Alternative localhost
-    "http://127.0.0.1:53083",  # Current Flutter web port
+    # Development - Allow all localhost origins for Flutter development
+    "http://localhost:*",  # All localhost ports for Flutter development
+    "http://127.0.0.1:*",  # All 127.0.0.1 ports for Flutter development
     
     # Production Frontend
     "https://dealerships-two.vercel.app",  # Current Vercel deployment
