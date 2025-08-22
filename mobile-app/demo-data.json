@@ -1,0 +1,163 @@
+{
+  "leads": [
+    {
+      "id": "lead-1",
+      "name": "John Smith",
+      "phone": "+1234567890",
+      "email": "john@example.com",
+      "car_interest": "Toyota Camry",
+      "source": "Website",
+      "status": "New",
+      "created_at": "2024-01-15T10:00:00Z",
+      "last_contact": "2024-01-15T10:00:00Z",
+      "conversation_count": 3
+    },
+    {
+      "id": "lead-2",
+      "name": "Sarah Johnson",
+      "phone": "+1987654321",
+      "email": "sarah@example.com",
+      "car_interest": "Honda Civic",
+      "source": "Phone",
+      "status": "Contacted",
+      "created_at": "2024-01-14T14:30:00Z",
+      "last_contact": "2024-01-15T09:15:00Z",
+      "conversation_count": 5
+    },
+    {
+      "id": "lead-3",
+      "name": "Mike Wilson",
+      "phone": "+1555123456",
+      "email": "mike@example.com",
+      "car_interest": "Ford F-150",
+      "source": "Walk-in",
+      "status": "Qualified",
+      "created_at": "2024-01-13T11:20:00Z",
+      "last_contact": "2024-01-15T08:45:00Z",
+      "conversation_count": 8
+    },
+    {
+      "id": "lead-4",
+      "name": "Emily Davis",
+      "phone": "+1444987654",
+      "email": "emily@example.com",
+      "car_interest": "BMW X3",
+      "source": "Referral",
+      "status": "Proposal",
+      "created_at": "2024-01-12T16:15:00Z",
+      "last_contact": "2024-01-15T10:30:00Z",
+      "conversation_count": 12
+    }
+  ],
+  "conversations": {
+    "lead-1": [
+      {
+        "id": "msg-1-1",
+        "message": "Hi, I'm interested in the Toyota Camry you have in stock",
+        "sender": "customer",
+        "created_at": "2024-01-15T10:00:00Z"
+      },
+      {
+        "id": "msg-1-2",
+        "message": "Great! I'd be happy to help you with the Toyota Camry. What specific features are you looking for?",
+        "sender": "agent",
+        "created_at": "2024-01-15T10:05:00Z"
+      },
+      {
+        "id": "msg-1-3",
+        "message": "I'm looking for something with good fuel economy and safety features",
+        "sender": "customer",
+        "created_at": "2024-01-15T10:10:00Z"
+      }
+    ],
+    "lead-2": [
+      {
+        "id": "msg-2-1",
+        "message": "I saw the Honda Civic on your website. Is it still available?",
+        "sender": "customer",
+        "created_at": "2024-01-14T14:30:00Z"
+      },
+      {
+        "id": "msg-2-2",
+        "message": "Yes, we have several Honda Civics in stock! What color and trim level are you interested in?",
+        "sender": "agent",
+        "created_at": "2024-01-14T14:35:00Z"
+      },
+      {
+        "id": "msg-2-3",
+        "message": "I prefer the blue color and would like the Sport trim",
+        "sender": "customer",
+        "created_at": "2024-01-14T14:40:00Z"
+      },
+      {
+        "id": "msg-2-4",
+        "message": "Perfect! We have a blue Sport trim available. Would you like to schedule a test drive?",
+        "sender": "agent",
+        "created_at": "2024-01-15T09:15:00Z"
+      },
+      {
+        "id": "msg-2-5",
+        "message": "Yes, that would be great! Can we do it tomorrow afternoon?",
+        "sender": "customer",
+        "created_at": "2024-01-15T09:20:00Z"
+      }
+    ]
+  },
+  "pending_approvals": [
+    {
+      "id": "approval-1",
+      "lead_id": "lead-1",
+      "lead_name": "John Smith",
+      "customer_phone": "+1234567890",
+      "customer_message": "What's the best price you can offer?",
+      "generated_response": "Hi John! I'd be happy to discuss pricing options for the Toyota Camry. We have several financing options available and can work with your budget. Would you like to schedule a test drive to see the vehicle in person? I can also show you our current specials and financing rates.",
+      "created_at": "2024-01-15T11:00:00Z",
+      "status": "pending"
+    },
+    {
+      "id": "approval-2",
+      "lead_id": "lead-3",
+      "lead_name": "Mike Wilson",
+      "customer_phone": "+1555123456",
+      "customer_message": "Do you have any F-150s with the 4x4 option?",
+      "generated_response": "Hi Mike! Yes, we have several Ford F-150s with 4x4 capability in stock. The 4x4 models come with enhanced off-road features and are perfect for both work and recreation. Would you like me to send you the current inventory list with pricing?",
+      "created_at": "2024-01-15T11:30:00Z",
+      "status": "pending"
+    }
+  ],
+  "inventory": [
+    {
+      "id": "inv-1",
+      "year": 2023,
+      "make": "Toyota",
+      "model": "Camry",
+      "trim": "SE",
+      "color": "White",
+      "mileage": 15000,
+      "price": 28500,
+      "status": "Available"
+    },
+    {
+      "id": "inv-2",
+      "year": 2023,
+      "make": "Honda",
+      "model": "Civic",
+      "trim": "Sport",
+      "color": "Blue",
+      "mileage": 8000,
+      "price": 26500,
+      "status": "Available"
+    },
+    {
+      "id": "inv-3",
+      "year": 2022,
+      "make": "Ford",
+      "model": "F-150",
+      "trim": "XLT",
+      "color": "Black",
+      "mileage": 25000,
+      "price": 42000,
+      "status": "Available"
+    }
+  ]
+}

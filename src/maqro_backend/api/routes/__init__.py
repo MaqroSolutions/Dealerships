@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .import health, leads, conversation, ai, inventory, dealerships, user_profiles, vonage, whatsapp, settings, roles, websocket
+from .import health, leads, conversation, ai, inventory, dealerships, user_profiles, vonage, whatsapp, settings, roles, mobile
 
 api_router = APIRouter()
 
@@ -15,4 +15,4 @@ api_router.include_router(settings.router, tags=["settings"])
 api_router.include_router(roles.router, tags=["roles"])
 api_router.include_router(vonage.router, prefix="/vonage", tags=["vonage"])
 api_router.include_router(whatsapp.router, prefix="/whatsapp", tags=["whatsapp"])
-api_router.include_router(websocket.router, prefix="/ws", tags=["websocket"]) 
+api_router.include_router(mobile.router, prefix="/mobile", tags=["mobile"]) 
