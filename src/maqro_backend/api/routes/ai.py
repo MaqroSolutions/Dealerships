@@ -51,7 +51,7 @@ async def generate_conversation_ai_response(
         raise HTTPException(status_code=404, detail="Lead not found")
     
     # Verify the lead belongs to the authenticated user
-    if str(lead.user_id) != user_id:
+    if str(lead.assigned_user_id) != user_id:
         raise HTTPException(status_code=403, detail="Access denied")
 
     try:

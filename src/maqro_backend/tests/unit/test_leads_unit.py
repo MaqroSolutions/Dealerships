@@ -93,7 +93,7 @@ async def test_get_lead_by_id_success():
     app.dependency_overrides[get_db_session] = lambda: None # Mock the db session
 
     mock_lead = MagicMock()
-    mock_lead.user_id = str(current_user)
+    mock_lead.assigned_user_id = str(current_user)
     mock_lead.id = "lead-uuid-1"
     mock_lead.name = "My Lead"
     mock_lead.email="my@lead.com"; mock_lead.phone="222"; mock_lead.car_interest="Car B"; 
@@ -146,7 +146,7 @@ async def test_get_lead_by_id_access_denied():
     app.dependency_overrides[get_db_session] = lambda: None # Mock the db session
 
     mock_lead = MagicMock()
-    mock_lead.user_id = "a-different-user-id"
+    mock_lead.assigned_user_id = "a-different-user-id"
 
     with patch('maqro_backend.api.routes.leads.get_lead_by_id', new_callable=AsyncMock) as mock_get_from_db:
         mock_get_from_db.return_value = mock_lead

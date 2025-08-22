@@ -32,7 +32,7 @@ class LeadResponse(LeadBase):
     message: str | None = None
     deal_value: str | None = None
     appointment_datetime: datetime | None = None
-    user_id: str | None = Field(None, description="Assigned salesperson UUID as string")
+    assigned_user_id: str | None = Field(None, description="Assigned salesperson UUID as string")
     dealership_id: str = Field(..., description="Dealership UUID as string")
     created_at: datetime
     model_config = {
@@ -53,4 +53,4 @@ class LeadUpdate(BaseModel):
     deal_value: str | None = None
     max_price: str | None = None
     appointment_datetime: datetime | None = None
-    user_id: str | None = None  # For assigning/reassigning salesperson
+    assigned_user_id: str | None = None  # For assigning/reassigning salesperson

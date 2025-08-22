@@ -742,7 +742,7 @@ Focus on: {edit_instructions}"""
                 return rag_response
             
             # If lead has an assigned salesperson, send for approval
-            if lead.user_id:
+            if lead.assigned_user_id:
                 return await self._send_for_approval(
                     session=session,
                     lead=lead,
@@ -891,11 +891,11 @@ Focus on: {edit_instructions}"""
             # Get the assigned user's phone number
             assigned_user = await get_user_profile_by_user_id(
                 session=session,
-                user_id=str(lead.user_id)
+                assigned_user_id=str(lead.assigned_user_id)
             )
             
             if not assigned_user or not assigned_user.phone:
-                logger.warning(f"Assigned user {lead.user_id} not found or has no phone number")
+                logger.warning(f"Assigned user {lead.assigned_user_id} not found or has no phone number")
                 return {
                     "success": False,
                     "error": "Assigned user not found",
@@ -906,7 +906,7 @@ Focus on: {edit_instructions}"""
             pending_approval = await create_pending_approval(
                 session=session,
                 lead_id=str(lead.id),
-                user_id=str(lead.user_id),
+                assigned_user_id=str(lead.assigned_user_id),
                 customer_message=customer_message,
                 generated_response=generated_response,
                 customer_phone=customer_phone,
@@ -940,7 +940,7 @@ Focus on: {edit_instructions}"""
                 )
             
             if send_result["success"]:
-                logger.info(f"Created pending approval {pending_approval.id} and sent to user {lead.user_id}")
+                logger.info(f"Created pending approval {pending_approval.id} and sent to user {lead.assigned_user_id}")
                 
                 return {
                     "success": True,

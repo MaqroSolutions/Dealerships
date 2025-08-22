@@ -103,7 +103,7 @@ class Lead(Base):
     deal_value = Column(String)  # Using String to match DECIMAL(10,2)
     max_price = Column(Text)  # Maximum price range for the lead (flexible text format)
     appointment_datetime = Column(DateTime(timezone=True))
-    user_id = Column(UUID(as_uuid=True))  # Assigned salesperson (nullable)
+    assigned_user_id = Column(UUID(as_uuid=True))  # Assigned salesperson (nullable)
     dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), nullable=False)
 
     # Relationships

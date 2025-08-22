@@ -98,7 +98,7 @@ async def add_message(
         raise HTTPException(status_code=404, detail="Lead not found")
     
     # 2. Verify the lead belongs to the authenticated user
-    if str(lead.user_id) != user_id:
+    if str(lead.assigned_user_id) != user_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
     # 3. Create new conversation record
@@ -132,7 +132,7 @@ async def get_conversations(
         raise HTTPException(status_code=404, detail="Lead not found")
     
     # Verify the lead belongs to the authenticated user
-    if str(lead.user_id) != user_id:
+    if str(lead.assigned_user_id) != user_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Get all conversations for this lead
@@ -168,7 +168,7 @@ async def get_conversations_with_lead_info(
         raise HTTPException(status_code=404, detail="Lead not found")
     
     # Verify the lead belongs to the authenticated user
-    if str(lead.user_id) != user_id:
+    if str(lead.assigned_user_id) != user_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Get all conversations for this lead
@@ -185,7 +185,7 @@ async def get_conversations_with_lead_info(
             status=lead.status,
             last_contact_at=lead.last_contact_at,
             message=lead.message,
-            user_id=str(lead.user_id),
+            assigned_user_id=str(lead.assigned_user_id),
             created_at=lead.created_at
         ),
         "conversations": [
@@ -224,7 +224,7 @@ async def generate_rag_response(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     
-    if str(lead.user_id) != user_id:
+    if str(lead.assigned_user_id) != user_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
     # 2. Get conversation history

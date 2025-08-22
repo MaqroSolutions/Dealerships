@@ -119,7 +119,7 @@ async def get_leads_by_salesperson(
         salesperson_uuid = uuid.UUID(salesperson_id)
         result = await session.execute(
             select(Lead)
-            .where(Lead.user_id == salesperson_uuid)
+            .where(Lead.assigned_user_id == salesperson_uuid)
             .order_by(Lead.created_at.desc())
         )
         return result.scalars().all()
@@ -152,7 +152,7 @@ async def get_leads_with_conversations_summary_by_salesperson(
                 func.count(Conversation.id).label('conversation_count')
             )
             .outerjoin(Conversation, Conversation.lead_id == Lead.id)
-            .where(Lead.user_id == salesperson_uuid)
+            .where(Lead.assigned_user_id == salesperson_uuid)
             .group_by(
                 Lead.id,
                 Lead.name,

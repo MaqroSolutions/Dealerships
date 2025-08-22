@@ -41,7 +41,7 @@ async def get_my_leads(
             deal_value=lead.deal_value,
             max_price=lead.max_price,
             appointment_datetime=lead.appointment_datetime,
-            user_id=str(lead.user_id) if lead.user_id else None,
+            assigned_user_id=str(lead.assigned_user_id) if lead.assigned_user_id else None,
             dealership_id=str(lead.dealership_id),
             created_at=lead.created_at
         ) for lead in leads
@@ -70,7 +70,7 @@ async def get_my_lead_by_id(
     user_id: str = Depends(get_current_user_id),
 ):
     lead = await get_lead_by_id(session=db, lead_id=lead_id)
-    if not lead or str(lead.user_id) != user_id:
+    if not lead or str(lead.assigned_user_id) != user_id:
         raise HTTPException(status_code=404, detail="Lead not found or access denied")
     return LeadResponse(
         id=str(lead.id),
@@ -85,7 +85,7 @@ async def get_my_lead_by_id(
         deal_value=lead.deal_value,
         max_price=lead.max_price,
         appointment_datetime=lead.appointment_datetime,
-        user_id=str(lead.user_id) if lead.user_id else None,
+        assigned_user_id=str(lead.assigned_user_id) if lead.assigned_user_id else None,
         dealership_id=str(lead.dealership_id),
         created_at=lead.created_at
     )
@@ -114,7 +114,7 @@ async def get_dealership_leads(
             deal_value=lead.deal_value,
             max_price=lead.max_price,
             appointment_datetime=lead.appointment_datetime,
-            user_id=str(lead.user_id) if lead.user_id else None,
+            assigned_user_id=str(lead.assigned_user_id) if lead.assigned_user_id else None,
             dealership_id=str(lead.dealership_id),
             created_at=lead.created_at
         ) for lead in leads
@@ -185,7 +185,7 @@ async def get_all_leads(
             deal_value=lead.deal_value,
             max_price=lead.max_price,
             appointment_datetime=lead.appointment_datetime,
-            user_id=str(lead.user_id) if lead.user_id else None,
+            assigned_user_id=str(lead.assigned_user_id) if lead.assigned_user_id else None,
             dealership_id=str(lead.dealership_id),
             created_at=lead.created_at
         ) for lead in leads
@@ -225,7 +225,7 @@ async def get_lead(
         deal_value=lead.deal_value,
         max_price=lead.max_price,
         appointment_datetime=lead.appointment_datetime,
-        user_id=str(lead.user_id) if lead.user_id else None,
+        assigned_user_id=str(lead.assigned_user_id) if lead.assigned_user_id else None,
         dealership_id=str(lead.dealership_id),
         created_at=lead.created_at
     )
@@ -268,7 +268,7 @@ async def update_lead(
         deal_value=lead.deal_value,
         max_price=lead.max_price,
         appointment_datetime=lead.appointment_datetime,
-        user_id=str(lead.user_id) if lead.user_id else None,
+        assigned_user_id=str(lead.assigned_user_id) if lead.assigned_user_id else None,
         dealership_id=str(lead.dealership_id),
         created_at=lead.created_at
     )
