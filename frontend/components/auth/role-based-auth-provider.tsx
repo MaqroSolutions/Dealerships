@@ -87,16 +87,54 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
         const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/")
         
         if (session?.user) {
-          // Get user info with role - but only if we don't already have it
-          if (!userInfo) {
-            try {
-              const userInfoResult = await RoleBasedAuthAPI.getCurrentUser()
+          // Always get fresh user info to ensure we have the latest role
+          try {
+            console.log('RoleBasedAuthProvider: Getting user info for authenticated user...', session.user.id)
+            const userInfoResult = await RoleBasedAuthAPI.getCurrentUser()
+            console.log('RoleBasedAuthProvider: User info result:', userInfoResult)
+            
+            if (userInfoResult) {
               setUserInfo(userInfoResult)
               authState.setUser(userInfoResult)
-            } catch (error) {
-              console.log('RoleBasedAuthProvider: Error getting user info:', error)
+              
+              // Now handle routing with the fresh user info
+              const userRole = userInfoResult.role;
+              console.log('RoleBasedAuthProvider: User role detected:', userRole, 'on path:', pathname, 'isPublicRoute:', isPublicRoute);
+              
+              // Role-based routing logic - always check for redirects
+              if (userRole === 'owner' || userRole === 'manager') {
+                // Admin users should go to admin dashboard
+                if (pathname === "/" || pathname.startsWith("/app/")) {
+                  console.log('RoleBasedAuthProvider: Redirecting admin user to admin dashboard');
+                  router.push("/admin/dashboard");
+                  return;
+                }
+              } else if (userRole === 'salesperson') {
+                // Salesperson users should go to leads page  
+                if (pathname === "/" || pathname.startsWith("/admin/")) {
+                  console.log('RoleBasedAuthProvider: Redirecting salesperson to leads dashboard');
+                  router.push("/leads");
+                  return;
+                }
+              }
+            } else {
+              console.log('RoleBasedAuthProvider: No user profile found, user may need to complete setup')
               setUserInfo(null)
               authState.setUser(null)
+              // User doesn't have a profile, redirect to setup
+              if (pathname !== "/setup-complete" && !isPublicRoute) {
+                setTimeout(() => router.push("/setup-complete"), 100);
+                return;
+              }
+            }
+          } catch (error) {
+            console.error('RoleBasedAuthProvider: Error getting user info:', error)
+            setUserInfo(null)
+            authState.setUser(null)
+            // If there's an error getting profile, redirect to setup
+            if (pathname !== "/setup-complete" && !isPublicRoute) {
+              setTimeout(() => router.push("/setup-complete"), 100);
+              return;
             }
           }
         } else {
@@ -107,28 +145,9 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
         clearTimeout(timeout)
         setLoading(false)
         
-        // Handle role-based routing ONLY if we have user info and are not on a public route
-        if (session?.user && userInfo && !isPublicRoute && !loading) {
-          const userRole = userInfo.role;
-          
-          // Role-based routing logic with redirect guards
-          if (userRole === 'owner' || userRole === 'manager') {
-            // Admin users should be in admin routes
-            if (pathname === "/" || (pathname.startsWith("/app/") && !pathname.startsWith("/admin/"))) {
-              console.log('RoleBasedAuthProvider: Redirecting admin to admin dashboard');
-              router.push("/admin/dashboard");
-              return;
-            }
-          } else if (userRole === 'salesperson') {
-            // Salesperson users should be in app routes  
-            if (pathname === "/" || (pathname.startsWith("/admin/") && !pathname.startsWith("/app/"))) {
-              console.log('RoleBasedAuthProvider: Redirecting salesperson to leads dashboard');
-              router.push("/app/leads");
-              return;
-            }
-          }
-        } else if (!session?.user && !isPublicRoute) {
-          console.log('RoleBasedAuthProvider: Redirecting to root')
+        // Handle unauthenticated users on protected routes
+        if (!session?.user && !isPublicRoute) {
+          console.log('RoleBasedAuthProvider: Redirecting unauthenticated user to root')
           router.push("/")
         }
       } catch (error) {
@@ -196,7 +215,7 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
       setLoading(false)
       clearTimeout(timeout)
     }
-  }, [pathname]) // Simplified dependency array
+  }, [pathname, router]) // Include router in dependencies
 
   const value = {
     user,

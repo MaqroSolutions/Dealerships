@@ -8,7 +8,7 @@ import { AlertsSection } from "@/components/alerts-section"
 import { Hero } from "@/components/hero"
 import { FeatureList } from "@/components/feature-list"
 import { Footer } from "@/components/footer"
-import { useAuth } from "@/components/auth/auth-provider"
+import { useRoleBasedAuth } from "@/components/auth/role-based-auth-provider"
 
 function DashboardContent() {
   const searchParams = useSearchParams()
@@ -41,8 +41,17 @@ function LandingContent() {
 }
 
 export default function HomePage() {
-  const { user } = useAuth()
+  const { user, loading } = useRoleBasedAuth()
 
-  // Show dashboard for authenticated users, landing page for unauthenticated users
-  return user ? <DashboardContent /> : <LandingContent />
+  // Always show loading for authenticated users on root page while they get redirected
+  if (user || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    )
+  }
+
+  // Only show landing page for unauthenticated users
+  return <LandingContent />
 }

@@ -91,23 +91,41 @@ export class RoleBasedAuthAPI {
   static async getCurrentUser(): Promise<UserAuthInfo | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return null
+      if (!user) {
+        console.log('RoleBasedAuthAPI: No authenticated user found')
+        return null
+      }
 
+      console.log('RoleBasedAuthAPI: Making API call to /api/user-profiles/me')
       // Call the Next.js API route instead of backend API
-      const response = await fetch('/api/user-profiles/me')
+      const response = await fetch('/api/user-profiles/me', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      })
+      
+      console.log('RoleBasedAuthAPI: API response status:', response.status)
       
       if (!response.ok) {
+        const errorText = await response.text()
+        console.log('RoleBasedAuthAPI: API error response:', errorText)
+        
         if (response.status === 404) {
           // User doesn't have a profile yet - this is normal during signup
+          console.log('RoleBasedAuthAPI: User profile not found (404)')
           return null
         }
-        throw new Error(`Failed to get user profile: ${response.status}`)
+        throw new Error(`Failed to get user profile: ${response.status} - ${errorText}`)
       }
       
       const profile = await response.json()
+      console.log('RoleBasedAuthAPI: Profile data received:', profile)
+      
       const role = normalizeRole(profile.role || 'salesperson')
       
-      return {
+      const userInfo = {
         id: user.id,
         email: user.email || '',
         role,
@@ -118,8 +136,11 @@ export class RoleBasedAuthAPI {
         isManager: role === 'manager',
         isSalesperson: role === 'salesperson',
       }
+      
+      console.log('RoleBasedAuthAPI: Processed user info:', userInfo)
+      return userInfo
     } catch (error) {
-      console.error('Error getting current user:', error)
+      console.error('RoleBasedAuthAPI: Error getting current user:', error)
       return null
     }
   }
@@ -262,7 +283,7 @@ export class RouteProtection {
     if (user.isAdmin) {
       return '/admin/dashboard'
     } else {
-      return '/app/leads'
+      return '/leads'
     }
   }
 

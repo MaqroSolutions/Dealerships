@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { useAuth } from "@/components/auth/auth-provider"
+import { useRoleBasedAuth } from "@/components/auth/role-based-auth-provider"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +29,7 @@ export function Header() {
   const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState("")
   const pageName = pageNames[pathname] || "Dashboard"
-  const { user, signOut, loading } = useAuth()
+  const { user, signOut, loading } = useRoleBasedAuth()
 
   // Initialize search term from URL params
   useEffect(() => {

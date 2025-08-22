@@ -51,22 +51,22 @@ const adminItems = [
 const salespersonItems = [
   {
     title: "My Leads",
-    url: "/app/leads",
+    url: "/leads",
     icon: MessageSquare,
   },
   {
     title: "Conversations",
-    url: "/app/conversations",
+    url: "/conversations",
     icon: MessageSquare,
   },
   {
     title: "Inventory",
-    url: "/app/inventory",
+    url: "/inventory",
     icon: Car,
   },
   {
     title: "Settings",
-    url: "/app/settings",
+    url: "/settings",
     icon: Settings,
   },
 ]
