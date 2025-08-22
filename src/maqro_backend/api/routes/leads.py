@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from datetime import datetime
 from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id
 from maqro_backend.schemas.lead import LeadCreate, LeadResponse
 from maqro_backend.crud import (
@@ -136,7 +137,8 @@ async def create_lead(
     1. Frontend sends: name, email, phone, car, source, initial message
     2. We create a Lead record in database with dealership_id for RLS
     3. We save their first message as a Conversation record (if provided)
-    4. Return the lead UUID so frontend can reference it
+    4. Send notification to assigned salesperson via mobile app
+    5. Return the lead UUID so frontend can reference it
     
     Headers required:
     - Authorization: Bearer <JWT token>
@@ -150,6 +152,37 @@ async def create_lead(
         user_id=user_id,  # Assigned salesperson
         dealership_id=dealership_id
     )
+    
+    # Send notification to assigned salesperson via mobile app
+    try:
+        from ...services.notification_service import notification_service
+        from ...services.websocket_service import WebSocketService
+        
+        # Send push notification
+        notification_result = await notification_service.send_lead_notification(
+            user_id=user_id,
+            lead_name=lead_data.name,
+            lead_source=lead_data.source,
+            lead_id=result['lead_id']
+        )
+        
+        # Send real-time WebSocket update
+        await WebSocketService.send_lead_update_to_user(
+            user_id,
+            {
+                "lead_id": result['lead_id'],
+                "lead_name": lead_data.name,
+                "lead_source": lead_data.source,
+                "status": lead_data.status,
+                "timestamp": result.get('created_at', datetime.utcnow().isoformat())
+            }
+        )
+        
+        logger.info(f"Lead notification sent to salesperson {user_id}: {notification_result}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send lead notification to salesperson: {e}")
+        # Don't fail the request if notification fails
     
     logger.info(f"Lead created with ID: {result['lead_id']}")
     

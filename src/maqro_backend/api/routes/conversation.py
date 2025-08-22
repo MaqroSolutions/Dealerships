@@ -85,7 +85,8 @@ async def add_message(
     1. Frontend sends: lead_id (UUID), new message
     2. We verify the lead exists and belongs to the user
     3. We save the message as a new Conversation record
-    4. Return confirmation
+    4. Send notification to assigned salesperson via mobile app
+    5. Return confirmation
     
     Headers required:
     - X-User-Id: UUID of the authenticated user (from Supabase)
@@ -103,6 +104,40 @@ async def add_message(
     
     # 3. Create new conversation record
     conversation = await create_message(session=db, message_in=message_data)
+
+    # 4. Send notification to assigned salesperson via mobile app
+    if lead.user_id:  # Only if lead is assigned to a salesperson
+        try:
+            from ...services.notification_service import notification_service
+            from ...services.websocket_service import WebSocketService
+            
+            # Send push notification
+            notification_result = await notification_service.send_conversation_notification(
+                user_id=str(lead.user_id),
+                lead_name=lead.name,
+                message_preview=message_data.message,
+                lead_id=str(lead.id),
+                conversation_id=str(conversation.id)
+            )
+            
+            # Send real-time WebSocket update
+            await WebSocketService.send_conversation_update_to_user(
+                str(lead.user_id),
+                {
+                    "lead_id": str(lead.id),
+                    "lead_name": lead.name,
+                    "conversation_id": str(conversation.id),
+                    "message": message_data.message,
+                    "sender": message_data.sender,
+                    "timestamp": conversation.created_at.isoformat()
+                }
+            )
+            
+            logger.info(f"Notification sent to salesperson {lead.user_id}: {notification_result}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send notification to salesperson: {e}")
+            # Don't fail the request if notification fails
 
     logger.info(f"Message saved for lead {lead.name}")
     
