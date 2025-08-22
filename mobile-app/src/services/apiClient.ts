@@ -43,7 +43,7 @@ class ApiClient {
   // Authentication
   async login(email: string, password: string) {
     try {
-      const response = await this.axiosInstance.post('/api/auth/login', {
+      const response = await this.axiosInstance.post('/api/mobile/login', {
         email,
         password,
       });
@@ -55,7 +55,7 @@ class ApiClient {
 
   async getCurrentUser() {
     try {
-      const response = await this.axiosInstance.get('/api/auth/me');
+      const response = await this.axiosInstance.get('/api/mobile/me');
       return response.data;
     } catch (error) {
       throw error;
@@ -64,7 +64,7 @@ class ApiClient {
 
   async registerPushToken(token: string) {
     try {
-      const response = await this.axiosInstance.post('/api/auth/push-token', {
+      const response = await this.axiosInstance.post('/api/mobile/push-token', {
         push_token: token,
       });
       return response.data;

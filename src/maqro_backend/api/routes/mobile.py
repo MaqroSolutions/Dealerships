@@ -10,9 +10,8 @@ import logging
 from datetime import datetime
 import pytz
 
-from ...api.deps import get_db_session, get_current_user_id
-from ...crud import get_user_profile_by_user_id, update_user_push_token
-from ...schemas.user_profile import UserProfileUpdate
+from ...api.deps import get_db_session
+from ...crud import get_user_profile_by_user_id, update_user_profile
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +19,10 @@ logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
+
+async def get_mock_user_id() -> str:
+    """Mock user ID for mobile app testing - replace with real auth later"""
+    return "d245e4bb-91ae-4ec4-ad0f-18307b38daa6"
 
 @router.post("/login")
 @limiter.limit("10/minute")  # Limit login attempts
@@ -77,13 +80,13 @@ async def mobile_login(
 
 @router.get("/me")
 async def get_current_user(
-    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session)
 ):
     """
     Get current user profile for mobile app
     """
     try:
+        user_id = await get_mock_user_id()
         user_profile = await get_user_profile_by_user_id(db, user_id)
         if not user_profile:
             raise HTTPException(status_code=404, detail="User not found")
@@ -105,9 +108,9 @@ async def get_current_user(
 @router.post("/push-token")
 async def register_push_token(
     token_data: Dict[str, str],
-    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session)
 ):
+    user_id = await get_mock_user_id()
     """
     Register push notification token for mobile app
     """
@@ -116,13 +119,13 @@ async def register_push_token(
         if not push_token:
             raise HTTPException(status_code=400, detail="Push token required")
         
-        # Update user profile with push token
-        update_data = UserProfileUpdate(push_token=push_token)
-        await update_user_push_token(db, user_id, update_data)
+        # For now, we'll just log the token since the UserProfile model doesn't have a push_token field
+        # TODO: Add push_token field to UserProfile model or store in a separate table
+        logger.info(f"Push token received for user {user_id}: {push_token[:20]}...")
         
         return {
             "success": True,
-            "message": "Push token registered successfully"
+            "message": "Push token received (storing functionality coming soon)"
         }
         
     except HTTPException:
@@ -133,9 +136,9 @@ async def register_push_token(
 
 @router.get("/conversations")
 async def get_conversations(
-    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session)
 ):
+    user_id = await get_mock_user_id()
     """
     Get all conversations/leads for the current user
     """
@@ -183,9 +186,9 @@ async def get_conversations(
 @router.get("/conversations/{lead_id}/history")
 async def get_conversation_history(
     lead_id: str,
-    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session)
 ):
+    user_id = await get_mock_user_id()
     """
     Get conversation history for a specific lead
     """
@@ -226,9 +229,9 @@ async def get_conversation_history(
 
 @router.get("/conversations/pending-approvals")
 async def get_pending_approvals(
-    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session)
 ):
+    user_id = await get_mock_user_id()
     """
     Get pending approvals for the current user
     """
@@ -263,9 +266,9 @@ async def get_pending_approvals(
 async def approve_response(
     approval_id: str,
     approval_data: Dict[str, str],
-    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session)
 ):
+    user_id = await get_mock_user_id()
     """
     Approve, reject, edit, or force send a response
     """
@@ -315,9 +318,9 @@ async def approve_response(
 
 @router.get("/leads")
 async def get_leads(
-    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session)
 ):
+    user_id = await get_mock_user_id()
     """
     Get all leads for the current user
     """
@@ -353,9 +356,9 @@ async def get_leads(
 @router.get("/leads/{lead_id}")
 async def get_lead(
     lead_id: str,
-    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session)
 ):
+    user_id = await get_mock_user_id()
     """
     Get a specific lead by ID
     """
