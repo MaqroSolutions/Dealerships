@@ -185,7 +185,7 @@ async def get_my_profile_with_role(
 async def get_dealership_user_profiles(
     db: AsyncSession = Depends(get_db_session),
     dealership_id: str = Depends(get_user_dealership_id),
-    manager_user_id: str = Depends(require_dealership_manager)  # Added permission check
+    user_id: str = Depends(get_current_user_id)  # Simplified permission check
 ):
     """
     Get all user profiles for the current dealership
@@ -193,6 +193,11 @@ async def get_dealership_user_profiles(
     Requires manager or owner role.
     Returns all user profiles in the dealership.
     """
+    # Simple permission check: get current user's profile and check role
+    current_user_profile = await get_user_profile_by_user_id(session=db, user_id=user_id)
+    if not current_user_profile or current_user_profile.role not in ['owner', 'manager']:
+        raise HTTPException(status_code=403, detail="Insufficient permissions. Owner or manager role required.")
+    
     profiles = await get_user_profiles_by_dealership(session=db, dealership_id=dealership_id)
     
     return [
@@ -202,6 +207,7 @@ async def get_dealership_user_profiles(
             dealership_id=str(profile.dealership_id) if profile.dealership_id else None,
             full_name=profile.full_name,
             phone=profile.phone,
+            role=profile.role,
             timezone=profile.timezone,
             created_at=profile.created_at,
             updated_at=profile.updated_at

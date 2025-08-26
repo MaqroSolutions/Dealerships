@@ -31,5 +31,5 @@ export async function updateMyProfile(
 
 export async function getDealershipProfile(): Promise<UserProfile[]> {
   const api = await getAuthenticatedApi();
-  return api.get<UserProfile[]>('/user_profiles/dealership');
+  return api.get<UserProfile[]>('/user-profiles/dealership');
 }

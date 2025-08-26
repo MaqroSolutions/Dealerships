@@ -217,8 +217,8 @@ class Invite(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), nullable=False)
     email = Column(Text, nullable=False)
-    token = Column(Text, nullable=False, unique=True)
-    role_name = Column(Text, nullable=False)  # 'owner', 'manager', 'salesperson', 'admin'
+    token_hash = Column(Text, nullable=False, unique=True)
+    role = Column(Text, nullable=False)  # 'owner', 'manager', 'salesperson'
     invited_by = Column(UUID(as_uuid=True), nullable=False)  # References auth.users(id)
     expires_at = Column(DateTime(timezone=True), server_default=text("now() + interval '7 days'"))
     used_at = Column(DateTime(timezone=True))

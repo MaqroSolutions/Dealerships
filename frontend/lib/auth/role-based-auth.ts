@@ -223,11 +223,21 @@ export class RoleBasedAuthAPI {
     role_name: UserRole
     expires_in_days?: number
   }): Promise<{ success: boolean; invite?: InviteData; error?: string }> {
+    console.log('🔵 RoleBasedAuthAPI.createInvite called with:', data)
     try {
+      console.log('🔵 Getting authenticated API...')
       const api = await getAuthenticatedApi()
+      console.log('🔵 Making POST request to /invites...')
       const invite = await api.post('/invites', data)
+      console.log('🔵 Invite creation successful:', invite)
       return { success: true, invite }
     } catch (error: any) {
+      console.error('🔴 Invite creation failed:', error)
+      console.error('🔴 Error details:', {
+        message: error.message,
+        status: error.status,
+        response: error.response
+      })
       return { success: false, error: error.message }
     }
   }

@@ -1119,8 +1119,8 @@ async def create_invite(
         invite = Invite(
             dealership_id=dealership_uuid,
             email=email.lower(),
-            token=token,
-            role_name=role_name,
+            token_hash=token,
+            role=role_name,
             invited_by=invited_by_uuid,
             expires_at=expires_at,
             status="pending"
@@ -1145,7 +1145,7 @@ async def get_invite_by_token(
         from .db.models import Invite
         
         result = await session.execute(
-            select(Invite).where(Invite.token == token)
+            select(Invite).where(Invite.token_hash == token)
         )
         return result.scalar_one_or_none()
     except Exception:

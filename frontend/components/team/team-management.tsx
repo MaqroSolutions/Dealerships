@@ -74,20 +74,24 @@ export function TeamManagement() {
     try {
       setState(prev => ({ ...prev, loading: true }))
       
+      console.log('Loading team data...')
       const [members, invitesData] = await Promise.all([
         getDealershipProfile(),
         RoleBasedAuthAPI.getDealershipInvites()
       ])
       
+      console.log('Team members loaded:', members)
+      console.log('Invites loaded:', invitesData)
+      
       setState(prev => ({
         ...prev,
-        teamMembers: members,
-        invites: invitesData,
+        teamMembers: members || [],
+        invites: invitesData || [],
         loading: false
       }))
     } catch (error) {
       console.error('Error loading team data:', error)
-      toast.error('Failed to load team data')
+      toast.error(`Failed to load team data: ${error instanceof Error ? error.message : 'Unknown error'}`)
       setState(prev => ({ ...prev, loading: false }))
     }
   }
@@ -95,8 +99,25 @@ export function TeamManagement() {
   const handleCreateInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('🚀 handleCreateInvite called!')
+    console.log('📧 Form data:', state.inviteForm)
+    console.log('📧 Email value:', state.inviteForm.email)
+    console.log('👤 Role value:', state.inviteForm.role_name)
+    
+    // Basic validation
+    if (!state.inviteForm.email || !state.inviteForm.role_name) {
+      console.error('❌ Form validation failed:', { 
+        email: state.inviteForm.email, 
+        role: state.inviteForm.role_name 
+      })
+      toast.error('Please fill in all required fields')
+      return
+    }
+    
     try {
+      console.log('Creating invite with data:', state.inviteForm)
       const result = await RoleBasedAuthAPI.createInvite(state.inviteForm)
+      console.log('Invite creation result:', result)
       
       if (result.success) {
         toast.success('Invite sent successfully!')
@@ -107,9 +128,11 @@ export function TeamManagement() {
         }))
         loadTeamData() // Refresh the data
       } else {
+        console.error('Invite creation failed:', result.error)
         toast.error(result.error || 'Failed to send invite')
       }
     } catch (error: any) {
+      console.error('Invite creation error:', error)
       toast.error(error.message || 'Failed to send invite')
     }
   }
@@ -232,14 +255,17 @@ export function TeamManagement() {
                 <Label htmlFor="role" className="text-gray-200">Role</Label>
                 <Select
                   value={state.inviteForm.role_name}
-                  onValueChange={() => {}}
-                  disabled
+                  onValueChange={(value: UserRole) => setState(prev => ({ 
+                    ...prev, 
+                    inviteForm: { ...prev.inviteForm, role_name: value }
+                  }))}
                 >
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700">
                     <SelectItem value="salesperson">Salesperson</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -336,7 +362,7 @@ function TeamMemberCard({
       <div className="flex items-center space-x-4">
         <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
           <span className="text-white font-semibold">
-            {member.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            {member.full_name ? member.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
           </span>
         </div>
         <div>

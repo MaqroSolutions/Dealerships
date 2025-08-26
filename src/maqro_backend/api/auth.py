@@ -16,6 +16,20 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
+def _decode_jwt_payload(token: str) -> dict:
+    """Private method to decode JWT payload"""
+    try:
+        return jwt.decode(
+            token,
+            settings.supabase_jwt_secret,
+            algorithms=["HS256"],
+            audience="authenticated"
+        )
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
 class JWTBearer(HTTPBearer):
     """
     FastAPI dependency for validating Supabase JWT tokens.
@@ -76,96 +90,21 @@ class JWTBearer(HTTPBearer):
             
         logger.info("✅ JWT token validation successful")
         return credentials.credentials
+    
 
     def verify_jwt(self, token: str) -> bool:
-        """
-        Verify JWT token signature and expiration.
-        
-        Args:
-            token: JWT token string
-            
-        Returns:
-            bool: True if token is valid, False otherwise
-        """
         try:
-            logger.info(f"🔍 Decoding JWT token (first 20 chars): {token[:20]}...")
-            
-            # Check if JWT secret is configured
-            if not settings.supabase_jwt_secret:
-                logger.error("❌ SUPABASE_JWT_SECRET not configured in environment")
-                return False
-                
-            logger.info("🔑 JWT secret found, proceeding with validation")
-            
-            payload = jwt.decode(
-                token,
-                settings.supabase_jwt_secret,
-                algorithms=["HS256"],
-                audience="authenticated"
-            )
-            
-            logger.info(f"✅ JWT decoded successfully. User ID: {payload.get('sub', 'N/A')}")
-            logger.info(f"📧 User email: {payload.get('email', 'N/A')}")
-            logger.info(f"⏰ Token expires: {payload.get('exp', 'N/A')}")
-            
+            _decode_jwt_payload(token)
             return True
-        except jwt.ExpiredSignatureError:
-            logger.error("❌ JWT token has expired")
-            return False
-        except jwt.InvalidTokenError as e:
-            logger.error(f"❌ Invalid JWT token: {str(e)}")
-            return False
-        except Exception as e:
-            logger.error(f"❌ Unexpected error validating JWT: {str(e)}")
+        except HTTPException:
             return False
 
 
 def decode_jwt_token(token: str) -> dict:
-    """
-    Decode JWT token and return payload.
-    
-    Args:
-        token: JWT token string
-        
-    Returns:
-        dict: Token payload containing user information
-        
-    Raises:
-        HTTPException: If token is invalid
-    """
-    try:
-        payload = jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            audience="authenticated"
-        )
-        return payload
-    except jwt.PyJWTError as e:
-        logger.error(f"JWT validation error: {str(e)}")
-        raise HTTPException(
-            status_code=401, 
-            detail="Invalid or expired token"
-        )
-
+    return _decode_jwt_payload(token)
 
 async def get_current_user_id(token: str = Depends(JWTBearer())) -> str:
-    """
-    Extract user ID from validated JWT token.
-    
-    This function replaces the insecure header-based user ID extraction
-    with proper JWT validation.
-    
-    Args:
-        token: Validated JWT token from JWTBearer dependency
-        
-    Returns:
-        str: User ID (UUID) from token's 'sub' field
-        
-    Raises:
-        HTTPException: If user ID is missing from token
-    """
-    logger.info("👤 Extracting user ID from validated JWT token")
+    logger.info("Extracting user ID from validated JWT token")
     
     payload = decode_jwt_token(token)
     user_id = payload.get("sub")
@@ -183,21 +122,9 @@ async def get_current_user_id(token: str = Depends(JWTBearer())) -> str:
 
 async def get_optional_user_id(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
-) -> Optional[str]:
-    """
-    Extract user ID from JWT token, returns None if no token provided.
-    
-    This is useful for endpoints that can work with or without authentication.
-    
-    Args:
-        credentials: Optional HTTP credentials
-        
-    Returns:
-        Optional[str]: User ID if valid token provided, None otherwise
-    """
+) -> None | str:
     if not credentials or credentials.scheme != "Bearer":
         return None
-        
     try:
         payload = decode_jwt_token(credentials.credentials)
         return payload.get("sub")
@@ -205,21 +132,9 @@ async def get_optional_user_id(
         return None
 
 
-async def get_user_email(token: str = Depends(JWTBearer())) -> Optional[str]:
-    """
-    Extract user email from validated JWT token.
-    
-    Args:
-        token: Validated JWT token from JWTBearer dependency
-        
-    Returns:
-        Optional[str]: User email from token, if available
-    """
+async def get_user_email(token: str = Depends(JWTBearer())) -> None | str:
     payload = decode_jwt_token(token)
     return payload.get("email")
-
-
-
 
 
 # Legacy compatibility - for gradual migration

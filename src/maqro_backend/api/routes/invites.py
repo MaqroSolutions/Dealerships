@@ -21,7 +21,7 @@ from maqro_backend.crud import (
     create_user_profile
 )
 from maqro_backend.services.roles_service import RolesService
-from maqro_backend.utils.role_compatibility import user_has_role_level, get_user_role_name
+from maqro_backend.crud import get_user_profile_by_user_id
 from sqlalchemy import select
 from maqro_backend.core.config import settings
 
@@ -68,7 +68,7 @@ async def verify_invite(
             "valid": True,
             "dealership_id": str(invite.dealership_id),
             "dealership_name": dealership_name or "Unknown Dealership",
-            "role_name": invite.role_name,
+            "role_name": invite.role,
             "email": invite.email,
             "expires_at": invite.expires_at.isoformat() if invite.expires_at else None,
         }
@@ -91,22 +91,13 @@ async def create_new_invite(
     """
     logger.info(f"Creating invite for email: {invite_data.email} by user: {user_id}")
     
-    # Check if user has permission to create invites (manager, owner, or admin)
-    # Determine role explicitly and allow owner/manager/admin
-    role_name = await get_user_role_name(db, user_id, dealership_id)
-    detected_role = (role_name or "").lower()
-
-    # Log detected role for debugging
-    logger.info(f"Invite create permission check: user={user_id} role='{detected_role}' dealership={dealership_id}")
-
-    # Allow if role explicitly matches or if level check passes as a fallback
-    if detected_role not in ("owner", "manager", "admin"):
-        has_level = await user_has_role_level(db, user_id, dealership_id, "manager")
-        if not has_level:
-            raise HTTPException(
-                status_code=403, 
-                detail="You need manager, owner, or admin permissions to create invites"
-            )
+    # Check if user has permission to create invites (manager or owner)
+    current_user_profile = await get_user_profile_by_user_id(session=db, user_id=user_id)
+    if not current_user_profile or current_user_profile.role not in ['owner', 'manager']:
+        raise HTTPException(
+            status_code=403, 
+            detail="You need manager or owner permissions to create invites"
+        )
     
     try:
         # Force all invites to salesperson role from the API to avoid privilege escalation
@@ -127,8 +118,8 @@ async def create_new_invite(
             id=str(invite.id),
             dealership_id=str(invite.dealership_id),
             email=invite.email,
-            token=invite.token,
-            role_name=invite.role_name,
+            token=invite.token_hash,
+            role_name=invite.role,
             invited_by=str(invite.invited_by),
             created_at=invite.created_at,
             expires_at=invite.expires_at,
@@ -148,7 +139,7 @@ async def create_new_invite(
 
                 # Build invite link to our signup with token
                 frontend_base = settings.frontend_base_url or "http://localhost:3000"
-                invite_link = f"{frontend_base}/signup?token={invite.token}"
+                invite_link = f"{frontend_base}/signup?token={invite.token_hash}"
 
                 # Send email using magic link invite: we send a direct email with invite_link
                 # Supabase Admin API supports invite_user_by_email for projects using email auth
@@ -187,11 +178,8 @@ async def get_dealership_invites(
     Requires manager or owner role.
     """
     # Check if user has permission to view invites
-    has_permission = await user_has_role_level(
-        db, user_id, dealership_id, "manager"
-    )
-    
-    if not has_permission:
+    current_user_profile = await get_user_profile_by_user_id(session=db, user_id=user_id)
+    if not current_user_profile or current_user_profile.role not in ['owner', 'manager']:
         raise HTTPException(
             status_code=403, 
             detail="You need manager or owner permissions to view invites"
@@ -203,7 +191,7 @@ async def get_dealership_invites(
         InviteListResponse(
             id=str(invite.id),
             email=invite.email,
-            role_name=invite.role_name,
+            role_name=invite.role,
             invited_by=str(invite.invited_by),
             created_at=invite.created_at,
             expires_at=invite.expires_at,
@@ -266,7 +254,7 @@ async def accept_invite(
         new_user_id = auth_response.user.id
         
         # Map role name for compatibility
-        role_for_profile = invite.role_name
+        role_for_profile = invite.role
         if role_for_profile == 'admin':
             role_for_profile = 'owner'  # Map admin to owner for consistency
         
@@ -350,7 +338,7 @@ async def complete_invite_for_existing_user(
             raise HTTPException(status_code=400, detail="Invite has expired")
 
         # Map role name for compatibility
-        role_for_profile = invite.role_name
+        role_for_profile = invite.role
         if role_for_profile == 'admin':
             role_for_profile = 'owner'
 
@@ -405,11 +393,15 @@ async def cancel_invite(
     Requires manager or owner role.
     """
     # Check if user has permission to cancel invites
-    has_permission = await user_has_role_level(
-        db, user_id, dealership_id, "manager"
-    )
+    logger.info(f"🔍 Checking delete permissions for user: {user_id}")
+    current_user_profile = await get_user_profile_by_user_id(session=db, user_id=user_id)
+    logger.info(f"🔍 User profile found: {current_user_profile is not None}")
+    if current_user_profile:
+        logger.info(f"🔍 User role: {current_user_profile.role}")
+        logger.info(f"🔍 Role in allowed list: {current_user_profile.role in ['owner', 'manager']}")
     
-    if not has_permission:
+    if not current_user_profile or current_user_profile.role not in ['owner', 'manager']:
+        logger.error(f"❌ Permission denied for user {user_id} with role {current_user_profile.role if current_user_profile else 'None'}")
         raise HTTPException(
             status_code=403, 
             detail="You need manager or owner permissions to cancel invites"
