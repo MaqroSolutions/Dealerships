@@ -47,10 +47,10 @@ async def verify_invite(
             return {"valid": False, "reason": "Invalid or expired invite token"}
 
         # Check status and expiry
-        from datetime import datetime
+        from datetime import datetime, timezone
         if invite.status != "pending":
             return {"valid": False, "reason": "Invite already used or cancelled"}
-        if invite.expires_at and invite.expires_at < datetime.utcnow():
+        if invite.expires_at and invite.expires_at < datetime.now(timezone.utc):
             return {"valid": False, "reason": "Invite has expired"}
 
         # Get dealership name if available
@@ -101,13 +101,20 @@ async def create_new_invite(
     
     try:
         # Force all invites to salesperson role from the API to avoid privilege escalation
-        enforced_role = "salesperson"
+        requested_role = invite_data.role_name
+        allowed_roles = ['salesperson', 'manager']
 
+        if requested_role not in allowed_roles:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid role: {requested_role}. Allowed roles are: {', '.join(allowed_roles)}"
+            )
+        
         invite = await create_invite(
             session=db,
             dealership_id=dealership_id,
             email=invite_data.email,
-            role_name=enforced_role,
+            role_name=requested_role,
             invited_by=user_id,
             expires_in_days=invite_data.expires_in_days
         )
@@ -126,36 +133,7 @@ async def create_new_invite(
             status=invite.status
         )
 
-        # Send invite email via Supabase Admin email (passwordless link-like)
-        try:
-            from supabase import create_client, Client
-            import os
-
-            supabase_url = os.getenv("SUPABASE_URL")
-            supabase_service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-            if supabase_url and supabase_service_key:
-                supabase: Client = create_client(supabase_url, supabase_service_key)
-
-                # Build invite link to our signup with token
-                frontend_base = settings.frontend_base_url or "http://localhost:3000"
-                invite_link = f"{frontend_base}/signup?token={invite.token_hash}"
-
-                # Send email using magic link invite: we send a direct email with invite_link
-                # Supabase Admin API supports invite_user_by_email for projects using email auth
-                try:
-                    supabase.auth.admin.invite_user_by_email(invite.email)
-                except Exception:
-                    # Fallback: send password reset email as an invite mechanism (if enabled)
-                    pass
-
-                # Additionally, send a custom email via supabase SMTP relay is not directly available here.
-                # For now, log the link; the app shows copy link, and supabase sends invite email.
-                logger.info(f"📧 Invite email requested via Supabase for {invite.email}. Link: {invite_link}")
-            else:
-                logger.warning("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set; skipping email send")
-        except Exception as e:
-            logger.error(f"Failed to dispatch invite email: {e}")
+        logger.info(f"📧 Invite created successfully for {invite.email}. Token: {invite.token_hash}")
 
         return invite_response
         
@@ -164,6 +142,89 @@ async def create_new_invite(
     except Exception as e:
         logger.error(f"Error creating invite: {e}")
         raise HTTPException(status_code=500, detail="Failed to create invite")
+
+
+@router.post("/send-invite-email")
+async def send_invite_email(
+    payload: dict,
+    db: AsyncSession = Depends(get_db_session),
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Send invite email via Supabase using Secret API Key
+    
+    Requires manager or owner role.
+    """
+    email = payload.get("email")
+    token = payload.get("token")
+    
+    if not email or not token:
+        raise HTTPException(status_code=400, detail="Email and token are required")
+    
+    logger.info(f"Sending invite email to: {email}")
+    
+    # Check if user has permission to send invites (manager or owner)
+    current_user_profile = await get_user_profile_by_user_id(session=db, user_id=user_id)
+    if not current_user_profile or current_user_profile.role not in ['owner', 'manager']:
+        raise HTTPException(
+            status_code=403, 
+            detail="You need manager or owner permissions to send invite emails"
+        )
+    
+    try:
+        from supabase import create_client, Client
+        import os
+        
+        supabase_url = os.getenv("SUPABASE_URL")
+        # Use the new Secret API Key instead of service role
+        supabase_secret_key = os.getenv("SUPABASE_SECRET_AUTH_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        
+        # Debug logging
+        logger.info(f"SUPABASE_URL: {'✅ Found' if supabase_url else '❌ Missing'}")
+        logger.info(f"SUPABASE_SECRET_AUTH_KEY: {'✅ Found' if os.getenv('SUPABASE_SECRET_AUTH_KEY') else '❌ Missing'}")
+        logger.info(f"SUPABASE_SERVICE_ROLE_KEY: {'✅ Found' if os.getenv('SUPABASE_SERVICE_ROLE_KEY') else '❌ Missing'}")
+        
+        if not supabase_url or not supabase_secret_key:
+            logger.error(f"Missing Supabase configuration - URL: {supabase_url is not None}, Key: {supabase_secret_key is not None}")
+            raise HTTPException(status_code=500, detail="Email service configuration missing")
+        
+        supabase: Client = create_client(supabase_url, supabase_secret_key)
+        
+        # Build invite link to our signup with token
+        frontend_base = settings.frontend_base_url or "http://localhost:3000"
+        invite_link = f"{frontend_base}/signup?token={token}"
+        
+        # Send email using Supabase admin API
+        try:
+            response = supabase.auth.admin.invite_user_by_email(
+                email,
+                options={
+                    "redirect_to": invite_link
+                }
+            )
+            logger.info(f"📧 Invite email sent successfully to {email}")
+            
+            return {
+                "success": True,
+                "message": f"Invite email sent to {email}",
+                "invite_link": invite_link
+            }
+            
+        except Exception as supabase_error:
+            logger.error(f"Supabase email error: {supabase_error}")
+            # Return success but indicate email failed - frontend can handle fallback
+            return {
+                "success": False,
+                "error": "Failed to send email via Supabase",
+                "invite_link": invite_link
+            }
+            
+    except Exception as e:
+        logger.error(f"Error sending invite email: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 @router.get("/invites", response_model=List[InviteListResponse])
@@ -195,113 +256,11 @@ async def get_dealership_invites(
             invited_by=str(invite.invited_by),
             created_at=invite.created_at,
             expires_at=invite.expires_at,
-            status=invite.status
+            status=invite.status,
+            token=invite.token_hash
         ) for invite in invites
     ]
 
-
-@router.post("/invites/accept", response_model=dict)
-async def accept_invite(
-    accept_data: InviteAccept,
-    db: AsyncSession = Depends(get_db_session)
-):
-    """
-    Accept an invite and create a new user account
-    
-    This endpoint is public and doesn't require authentication.
-    """
-    logger.info(f"Processing invite acceptance for token: {accept_data.token[:10]}...")
-    
-    # Get the invite by token
-    invite = await get_invite_by_token(session=db, token=accept_data.token)
-    
-    if not invite:
-        raise HTTPException(status_code=404, detail="Invalid or expired invite")
-    
-    if invite.status != "pending":
-        raise HTTPException(status_code=400, detail="Invite has already been used or expired")
-    
-    # Check if invite has expired
-    from datetime import datetime
-    if invite.expires_at < datetime.utcnow():
-        # Mark as expired
-        await update_invite_status(session=db, invite_id=str(invite.id), status="expired")
-        raise HTTPException(status_code=400, detail="Invite has expired")
-    
-    try:
-        # Create user account using Supabase Auth
-        from supabase import create_client, Client
-        import os
-        
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        
-        if not supabase_url or not supabase_service_key:
-            raise HTTPException(status_code=500, detail="Supabase configuration missing")
-        
-        supabase: Client = create_client(supabase_url, supabase_service_key)
-        
-        # Create the user account
-        auth_response = supabase.auth.admin.create_user({
-            "email": invite.email,
-            "password": accept_data.password,
-            "email_confirm": True
-        })
-        
-        if auth_response.user is None:
-            raise HTTPException(status_code=500, detail="Failed to create user account")
-        
-        new_user_id = auth_response.user.id
-        
-        # Map role name for compatibility
-        role_for_profile = invite.role
-        if role_for_profile == 'admin':
-            role_for_profile = 'owner'  # Map admin to owner for consistency
-        
-        # Create user profile
-        await create_user_profile(
-            session=db,
-            user_id=new_user_id,
-            dealership_id=str(invite.dealership_id),
-            full_name=accept_data.full_name,
-            phone=accept_data.phone,
-            role=role_for_profile,
-            timezone="America/New_York"
-        )
-        
-        # Try to assign user role in new system if it exists
-        try:
-            await RolesService.assign_user_role(
-                db=db,
-                user_id=new_user_id,
-                dealership_id=str(invite.dealership_id),
-                role_name=role_for_profile,
-                assigned_by=str(invite.invited_by)
-            )
-        except Exception as e:
-            # If new role system doesn't exist or fails, that's okay
-            # The user profile with role will work for the old system
-            logger.warning(f"Could not assign role in new system: {e}")
-        
-        # Mark invite as accepted
-        await update_invite_status(
-            session=db, 
-            invite_id=str(invite.id), 
-            status="accepted",
-            used_at=datetime.utcnow()
-        )
-        
-        logger.info(f"Invite accepted successfully for user: {new_user_id}")
-        
-        return {
-            "success": True,
-            "message": "Account created successfully! You can now sign in.",
-            "user_id": new_user_id
-        }
-        
-    except Exception as e:
-        logger.error(f"Error accepting invite: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create account")
 
 
 @router.post("/invites/complete", response_model=dict)
@@ -330,10 +289,10 @@ async def complete_invite_for_existing_user(
             raise HTTPException(status_code=404, detail="Invalid or expired invite")
 
         # Check status and expiry
-        from datetime import datetime
+        from datetime import datetime, timezone
         if invite.status != "pending":
             raise HTTPException(status_code=400, detail="Invite has already been used or expired")
-        if invite.expires_at and invite.expires_at < datetime.utcnow():
+        if invite.expires_at and invite.expires_at < datetime.now(timezone.utc):
             await update_invite_status(session=db, invite_id=str(invite.id), status="expired")
             raise HTTPException(status_code=400, detail="Invite has expired")
 
@@ -370,7 +329,7 @@ async def complete_invite_for_existing_user(
             session=db,
             invite_id=str(invite.id),
             status="accepted",
-            used_at=datetime.utcnow()
+            used_at=datetime.now(timezone.utc)
         )
 
         return {"success": True, "message": "Invite completed"}

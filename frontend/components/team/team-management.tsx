@@ -38,6 +38,7 @@ import { toast } from "sonner"
 import { RoleBasedAuthAPI, InviteData, UserRole } from "@/lib/auth/role-based-auth"
 import { getDealershipProfile } from "@/lib/user-profile-api"
 import type { UserProfile } from "@/lib/supabase"
+import { getAuthenticatedApi } from "@/lib/api-client"
 
 interface TeamMember extends UserProfile {
   role: string
@@ -65,6 +66,9 @@ export function TeamManagement() {
       role_name: 'salesperson'
     }
   })
+
+  // Debug initial state
+  console.log('🔍 TeamManagement initial state:', state)
 
   useEffect(() => {
     loadTeamData()
@@ -100,27 +104,41 @@ export function TeamManagement() {
     e.preventDefault()
     
     console.log('🚀 handleCreateInvite called!')
+    console.log('📧 Current state:', state)
     console.log('📧 Form data:', state.inviteForm)
-    console.log('📧 Email value:', state.inviteForm.email)
-    console.log('👤 Role value:', state.inviteForm.role_name)
+    console.log('📧 Email value:', state.inviteForm?.email)
+    console.log('👤 Role value:', state.inviteForm?.role_name)
     
-    // Basic validation
-    if (!state.inviteForm.email || !state.inviteForm.role_name) {
-      console.error('❌ Form validation failed:', { 
-        email: state.inviteForm.email, 
-        role: state.inviteForm.role_name 
-      })
-      toast.error('Please fill in all required fields')
+    // Robust validation with better error messages
+    if (!state.inviteForm?.email?.trim()) {
+      console.error('❌ Email validation failed:', state.inviteForm?.email)
+      toast.error('Please enter an email address')
       return
     }
+    
+    if (!state.inviteForm?.role_name) {
+      console.error('❌ Role validation failed:', state.inviteForm?.role_name)
+      toast.error('Please select a role')
+      return
+    }
+    
+    console.log('✅ Form validation passed, proceeding with invite creation')
     
     try {
       console.log('Creating invite with data:', state.inviteForm)
       const result = await RoleBasedAuthAPI.createInvite(state.inviteForm)
       console.log('Invite creation result:', result)
       
-      if (result.success) {
-        toast.success('Invite sent successfully!')
+      if (result.success && result.invite) {
+        // Try to send email via frontend
+        try {
+          await sendInviteEmail(result.invite.email, result.invite.token)
+          toast.success('Invite sent successfully via email!')
+        } catch (emailError) {
+          console.warn('Email sending failed, but invite was created:', emailError)
+          toast.warning('Invite created successfully! Email sending failed - use the copy link button to share the invite.')
+        }
+        
         setState(prev => ({
           ...prev,
           inviteDialogOpen: false,
@@ -129,11 +147,11 @@ export function TeamManagement() {
         loadTeamData() // Refresh the data
       } else {
         console.error('Invite creation failed:', result.error)
-        toast.error(result.error || 'Failed to send invite')
+        toast.error(result.error || 'Failed to create invite')
       }
     } catch (error: any) {
       console.error('Invite creation error:', error)
-      toast.error(error.message || 'Failed to send invite')
+      toast.error(error.message || 'Failed to create invite')
     }
   }
 
@@ -149,6 +167,28 @@ export function TeamManagement() {
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to cancel invite')
+    }
+  }
+
+  const sendInviteEmail = async (email: string, token: string) => {
+    try {
+      // Send invite email via backend API
+      const api = await getAuthenticatedApi()
+      const result = await api.post<{
+        success: boolean
+        message?: string
+        error?: string
+        invite_link?: string
+      }>('/send-invite-email', { email, token })
+      
+      if (result.success) {
+        return { success: true }
+      } else {
+        throw new Error(result.error || 'Failed to send email')
+      }
+    } catch (error: any) {
+      console.error('Failed to send invite email:', error)
+      throw error
     }
   }
 

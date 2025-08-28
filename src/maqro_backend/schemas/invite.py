@@ -46,6 +46,7 @@ class InviteListResponse(BaseModel):
     created_at: datetime
     expires_at: datetime
     status: str
+    token: str  # Added token for copy-link functionality
 
     class Config:
         from_attributes = True

@@ -39,6 +39,11 @@ export function DualSignupFlow() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [emailForConfirmation, setEmailForConfirmation] = useState<string>('')
+  const [inviteDetails, setInviteDetails] = useState<{
+    email: string
+    dealership_name: string
+    role_name: string
+  } | null>(null)
   
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -53,10 +58,37 @@ export function DualSignupFlow() {
     phone: "",
   })
 
-  // Auto-select sales flow if invite token is present
+
+  // Simple invite flow - always go to sales signup if invite token present
   useEffect(() => {
     if (inviteToken && currentFlow === 'role-selection') {
       setCurrentFlow('sales-signup')
+      
+      // Fetch invite details
+      const fetchInviteDetails = async () => {
+        try {
+          const verifyResponse = await fetch(`/api/invites/verify?token=${inviteToken}`)
+          const verifyResult = await verifyResponse.json()
+          
+          if (verifyResult.valid) {
+            setInviteDetails({
+              email: verifyResult.email,
+              dealership_name: verifyResult.dealership_name,
+              role_name: verifyResult.role_name
+            })
+            
+            // Pre-fill the email field
+            setFormData(prev => ({
+              ...prev,
+              email: verifyResult.email
+            }))
+          }
+        } catch (error) {
+          console.error('Failed to fetch invite details:', error)
+        }
+      }
+      
+      fetchInviteDetails()
     }
   }, [inviteToken, currentFlow])
 
@@ -161,6 +193,7 @@ export function DualSignupFlow() {
       setIsLoading(false)
     }
   }
+
 
   const handlePostConfirmation = async (flow: 'dealership' | 'sales', formData: any, inviteToken?: string) => {
     try {
@@ -456,7 +489,15 @@ export function DualSignupFlow() {
             <Users className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-100">Join your dealership</h1>
-          <p className="text-gray-400 mt-2">Complete your account setup to join your team</p>
+          {inviteDetails ? (
+            <div className="mt-3">
+              <p className="text-gray-400">You've been invited to join</p>
+              <p className="text-green-400 font-semibold">{inviteDetails.dealership_name}</p>
+              <p className="text-gray-500 text-sm">as a {inviteDetails.role_name}</p>
+            </div>
+          ) : (
+            <p className="text-gray-400 mt-2">Complete your account setup to join your team</p>
+          )}
         </div>
 
         <Card className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl">
@@ -506,7 +547,9 @@ export function DualSignupFlow() {
               
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-200">Email</Label>
+                <Label htmlFor="email" className="text-gray-200">
+                  Email {inviteDetails && <span className="text-gray-500 text-sm font-normal">(from invite)</span>}
+                </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
@@ -516,9 +559,14 @@ export function DualSignupFlow() {
                     placeholder="Enter your email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="pl-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className={`pl-10 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 ${
+                      inviteDetails 
+                        ? 'bg-gray-700/50 cursor-not-allowed opacity-75' 
+                        : 'bg-gray-800/70'
+                    }`}
                     required
-                    disabled={!!inviteToken}
+                    disabled={!!inviteDetails}
+                    readOnly={!!inviteDetails}
                   />
                 </div>
               </div>
@@ -638,6 +686,7 @@ export function DualSignupFlow() {
       </div>
     </div>
   )
+
 
   // Render based on current flow
   switch (currentFlow) {
