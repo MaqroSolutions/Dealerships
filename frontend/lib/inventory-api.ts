@@ -22,11 +22,28 @@ export type InventoryRow = {
   features?: string;
 };
 
+export type CreateInventoryData = {
+  make: string;
+  model: string;
+  year: number;
+  price: string; // Backend expects string for price
+  mileage?: number;
+  description?: string;
+  features?: string;
+  condition?: string;
+  status?: 'active' | 'sold' | 'pending';
+};
+
 export const inventoryApi = {
   async getInventory(): Promise<Inventory[]> {
     const api = await getAuthenticatedApi();
     const result = await api.get<Inventory[]>('/inventory');
     return result;
+  },
+
+  async createInventory(data: CreateInventoryData): Promise<Inventory> {
+    const api = await getAuthenticatedApi();
+    return api.post<Inventory>('/inventory', data);
   },
 
   async uploadInventory(file: File): Promise<InventoryUploadResult> {
@@ -79,7 +96,7 @@ export const inventoryApi = {
     await api.delete<void>(`/inventory/${id}`);
   },
 
-  async updateInventory(id: string, updates: Partial<Inventory>): Promise<Inventory> {
+  async updateInventory(id: string, updates: Partial<CreateInventoryData>): Promise<Inventory> {
     const api = await getAuthenticatedApi();
     return api.put<Inventory>(`/inventory/${id}`, updates);
   },
