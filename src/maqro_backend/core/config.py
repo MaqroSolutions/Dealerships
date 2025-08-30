@@ -1,4 +1,5 @@
 import os 
+from pathlib import Path
 from typing import Optional
 from pydantic_settings import BaseSettings
 
@@ -14,15 +15,15 @@ class Settings(BaseSettings):
     frontend_base_url: Optional[str] = None
 
     # Vonage SMS Configuration (Legacy - keeping for transition)
-    vonage_api_key: str | None = None
-    vonage_api_secret: str | None = None
-    vonage_phone_number: str | None = None
+    vonage_api_key: Optional[str] = None
+    vonage_api_secret: Optional[str] = None
+    vonage_phone_number: Optional[str] = None
 
     # WhatsApp Business API Configuration
-    whatsapp_access_token: str | None = None
-    whatsapp_phone_number_id: str | None = None
-    whatsapp_webhook_verify_token: str | None = None
-    whatsapp_app_secret: str | None = None
+    whatsapp_access_token: Optional[str] = None
+    whatsapp_phone_number_id: Optional[str] = None
+    whatsapp_webhook_verify_token: Optional[str] = None
+    whatsapp_app_secret: Optional[str] = None
     whatsapp_api_version: str = "v21.0"
 
     rag_config_path: str = "config.yaml"
@@ -31,7 +32,7 @@ class Settings(BaseSettings):
     title: str = "Maqro Dearlership API"
     version: str = "0.1.0"
     model_config = {
-        "env_file": ".env",
+        "env_file": str(Path(__file__).parent.parent.parent.parent / ".env"),  # Look for .env in project root
         "extra": "ignore"
     }
 

@@ -25,6 +25,7 @@ class VehicleData:
         self.mileage = data.get('mileage', 0)
         self.color = data.get('color', '')
         self.condition = data.get('condition', '')
+        self.stock_number = data.get('stock_number', '')
         self.fuel_type = data.get('fuel_type', '')
         self.transmission = data.get('transmission', '')
         self.doors = data.get('doors', 0)
@@ -48,6 +49,7 @@ class VehicleData:
             'mileage': self.mileage,
             'color': self.color,
             'condition': self.condition,
+            'stock_number': self.stock_number,
             'fuel_type': self.fuel_type,
             'transmission': self.transmission,
             'doors': self.doors,
@@ -59,6 +61,10 @@ class VehicleData:
     def format_for_embedding(self) -> str:
         """Format vehicle data with semantic enrichment for better embedding generation."""
         parts = [f"{self.year} {self.make} {self.model}"]
+        
+        # Add stock number if available
+        if self.stock_number:
+            parts.append(f"Stock#: {self.stock_number}")
         
         # Add semantic vehicle type enrichment based on model
         semantic_terms = self._get_semantic_terms()

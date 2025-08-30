@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .import health, leads, conversation, ai, inventory, dealerships, user_profiles, vonage, whatsapp, settings, roles, invites
+from . import health, leads, conversation, ai, inventory, dealerships, user_profiles, vonage, whatsapp, settings, roles, invites
 
 api_router = APIRouter()
 

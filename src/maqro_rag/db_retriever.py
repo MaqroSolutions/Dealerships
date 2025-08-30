@@ -3,6 +3,7 @@ Database-aware RAG retriever using pgvector for vehicle search.
 """
 
 from typing import List, Dict, Any, Optional
+import re
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -118,6 +119,12 @@ class DatabaseRAGRetriever:
             
             logger.info(f"Searching vehicles for: '{query}' in dealership {dealership_id}")
             
+            # Check for exact stock number match first
+            stock_number_match = await self._search_by_stock_number(session, query, dealership_id)
+            if stock_number_match:
+                logger.info(f"Found exact stock number match: {stock_number_match['vehicle']['stock_number']}")
+                return [stock_number_match]
+            
             # Generate query embedding
             query_embedding = self.embedding_provider.embed_text(query)
             
@@ -141,6 +148,80 @@ class DatabaseRAGRetriever:
             except:
                 pass  # Ignore rollback errors
             return []
+    
+    async def _search_by_stock_number(
+        self,
+        session: AsyncSession,
+        query: str,
+        dealership_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Search for exact stock number match."""
+        from sqlalchemy import text
+        
+        try:
+            # Clean and normalize the query for stock number matching
+            stock_number = query.strip().upper()
+            
+            # Check if query looks like a stock number (alphanumeric with possible hyphens)
+            if not re.match(r'^[A-Z0-9\-]+$', stock_number):
+                return None
+            
+            # Search for exact stock number match
+            sql_query = """
+                SELECT 
+                    i.id,
+                    i.make,
+                    i.model,
+                    i.year,
+                    i.price,
+                    i.mileage,
+                    i.description,
+                    i.features,
+                    i.condition,
+                    i.stock_number,
+                    i.status,
+                    ve.formatted_text
+                FROM inventory i
+                JOIN vehicle_embeddings ve ON i.id = ve.inventory_id
+                WHERE i.dealership_id = :dealership_id 
+                AND i.stock_number = :stock_number
+                AND i.status = 'active'
+                LIMIT 1
+            """
+            
+            result = await session.execute(
+                text(sql_query),
+                {"dealership_id": dealership_id, "stock_number": stock_number}
+            )
+            
+            row = result.fetchone()
+            if row:
+                vehicle_data = {
+                    'id': str(row.id),
+                    'make': row.make,
+                    'model': row.model,
+                    'year': row.year,
+                    'price': self._parse_price(str(row.price)) if row.price else 0,
+                    'mileage': row.mileage,
+                    'description': row.description or '',
+                    'features': row.features or '',
+                    'condition': row.condition or '',
+                    'stock_number': row.stock_number or '',
+                    'status': row.status or 'active'
+                }
+                
+                return {
+                    'vehicle': vehicle_data,
+                    'similarity_score': 1.0,  # Perfect match
+                    'formatted_text': row.formatted_text,
+                    'distance': 0.0
+                }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error searching by stock number: {e}")
+            return None
     
     async def search_vehicles_hybrid(
         self,

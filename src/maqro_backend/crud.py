@@ -328,6 +328,7 @@ async def create_inventory_item(*, session: AsyncSession, inventory_data: dict, 
             description=inventory_data.get('description'),
             features=inventory_data.get('features'),
             condition=inventory_data.get('condition'),
+            stock_number=inventory_data.get('stock_number'),
             dealership_id=dealership_uuid,
             status=inventory_data.get('status', 'active')
         )
@@ -396,6 +397,7 @@ async def bulk_create_inventory_items(
                 description=item.get('description'),
                 features=item.get('features'),
                 condition=item.get('condition'),
+                stock_number=item.get('stock_number'),
                 dealership_id=dealership_uuid,
                 status=item.get('status', 'active')
             ) for item in inventory_data

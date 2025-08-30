@@ -20,6 +20,7 @@ export type InventoryRow = {
   mileage?: number;
   description?: string;
   features?: string;
+  stock_number?: string;
 };
 
 export type CreateInventoryData = {
@@ -31,6 +32,7 @@ export type CreateInventoryData = {
   description?: string;
   features?: string;
   condition?: string;
+  stock_number?: string;
   status?: 'active' | 'sold' | 'pending';
 };
 

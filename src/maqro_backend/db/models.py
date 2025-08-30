@@ -141,6 +141,7 @@ class Inventory(Base):
     description = Column(Text)
     features = Column(Text)
     condition = Column(Text)  # Physical condition of the vehicle (excellent, good, fair, poor, etc.)
+    stock_number = Column(Text)  # Stock number for vehicle identification
     dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), nullable=False)
     status = Column(Text, default="active")  # 'active', 'sold', 'pending'
 

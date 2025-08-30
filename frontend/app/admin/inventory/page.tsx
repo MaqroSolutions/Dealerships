@@ -48,6 +48,7 @@ export default function AdminInventoryPage() {
     description: '',
     features: '',
     condition: '',
+    stock_number: '',
     status: 'active'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,6 +85,7 @@ export default function AdminInventoryPage() {
       description: '',
       features: '',
       condition: '',
+      stock_number: '',
       status: 'active'
     });
   };
@@ -141,6 +143,7 @@ export default function AdminInventoryPage() {
         description: formData.description,
         features: formData.features,
         condition: formData.condition,
+        stock_number: formData.stock_number,
         status: formData.status
       };
       
@@ -254,6 +257,7 @@ export default function AdminInventoryPage() {
       description: item.description || '',
       features: item.features || '',
       condition: item.condition || '',
+      stock_number: item.stock_number || '',
       status: item.status
     });
     setIsEditModalOpen(true);
@@ -325,7 +329,8 @@ export default function AdminInventoryPage() {
     const matchesSearch = !searchTerm || 
       item.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.year.toString().includes(searchTerm);
+      item.year.toString().includes(searchTerm) ||
+      (item.stock_number && item.stock_number.toLowerCase().includes(searchTerm.toLowerCase()));
     
     if (!matchesSearch) return false;
     
@@ -585,6 +590,17 @@ export default function AdminInventoryPage() {
                     </div>
                   </div>
                   <div>
+                    <Label htmlFor="stock_number" className="text-gray-300">Stock Number</Label>
+                    <Input
+                      id="stock_number"
+                      value={formData.stock_number || ''}
+                      onChange={(e) => setFormData({...formData, stock_number: e.target.value.toUpperCase()})}
+                      className="bg-gray-800 border-gray-700 text-gray-100"
+                      placeholder="STK-1234"
+                      maxLength={32}
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="status" className="text-gray-300">Status</Label>
                     <Select value={formData.status} onValueChange={(value: 'active' | 'sold' | 'pending') => setFormData({...formData, status: value})}>
                       <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
@@ -706,7 +722,7 @@ export default function AdminInventoryPage() {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
               <Input
-                placeholder="Search by make, model, or year..."
+                placeholder="Search by make, model, year, or stock number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-gray-800 border-gray-700 text-gray-100 placeholder:text-gray-500"
@@ -881,6 +897,7 @@ export default function AdminInventoryPage() {
                       />
                     </TableHead>
                     <TableHead className="text-gray-300 font-medium">Vehicle</TableHead>
+                    <TableHead className="text-gray-300 font-medium">Stock #</TableHead>
                     <TableHead className="text-gray-300 font-medium">Year</TableHead>
                     <TableHead className="text-gray-300 font-medium">Price</TableHead>
                     <TableHead className="text-gray-300 font-medium">Mileage</TableHead>
@@ -912,6 +929,9 @@ export default function AdminInventoryPage() {
                             </p>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell className="text-gray-300">
+                        {item.stock_number || '-'}
                       </TableCell>
                       <TableCell className="text-gray-300">{item.year}</TableCell>
                       <TableCell className="text-gray-300">${item.price.toLocaleString()}</TableCell>
@@ -1027,6 +1047,17 @@ export default function AdminInventoryPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-stock_number" className="text-gray-300">Stock Number</Label>
+              <Input
+                id="edit-stock_number"
+                value={formData.stock_number || ''}
+                onChange={(e) => setFormData({...formData, stock_number: e.target.value.toUpperCase()})}
+                className="bg-gray-800 border-gray-700 text-gray-100"
+                placeholder="STK-1234"
+                maxLength={32}
+              />
             </div>
             <div>
               <Label htmlFor="edit-status" className="text-gray-300">Status</Label>

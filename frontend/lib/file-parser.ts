@@ -114,6 +114,7 @@ export const fileParser = {
       const mileage = this.getOptionalNumericValue(row, ['mileage', 'Mileage', 'MILEAGE']);
       const description = this.getColumnValue(row, ['description', 'Description', 'DESC']);
       const features = this.getColumnValue(row, ['features', 'Features', 'FEATURES']);
+      const stock_number = this.getColumnValue(row, ['stock_number', 'stock', 'stk', 'Stock#', 'Stock Number', 'STOCK_NUMBER']);
 
       return {
         make: make.toString(),
@@ -122,7 +123,8 @@ export const fileParser = {
         price, // Now supports both number and string
         mileage,
         description: description.toString(),
-        features: features.toString()
+        features: features.toString(),
+        stock_number: stock_number.toString()
       };
     });
   },

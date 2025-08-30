@@ -8,12 +8,9 @@ from typing import List, Optional
 import numpy as np
 from loguru import logger
 
-# Load environment variables
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+# Environment variables should be loaded by the main application
+# Don't load .env here to avoid conflicts
+pass
 
 try:
     import openai
