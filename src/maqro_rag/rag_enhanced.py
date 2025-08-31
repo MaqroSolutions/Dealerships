@@ -256,7 +256,8 @@ class EnhancedRAGService:
         query: str,
         vehicles: List[Dict[str, Any]],
         conversations: List[Dict],
-        lead_name: str = None
+        lead_name: str = None,
+        dealership_name: str = None
     ) -> Dict[str, Any]:
         """Generate enhanced AI response with quality scoring."""
         try:
@@ -268,7 +269,7 @@ class EnhancedRAGService:
             context.conversation_history = conversations
             
             # Generate response text using PromptBuilder
-            response_text = self._generate_response_text(query, vehicles, context, lead_name)
+            response_text = self._generate_response_text(query, vehicles, context, lead_name, dealership_name)
             
             # Calculate response quality metrics
             quality_metrics = self._calculate_response_quality(response_text, vehicles, context)
@@ -295,14 +296,15 @@ class EnhancedRAGService:
         query: str,
         vehicles: List[Dict[str, Any]],
         context: ConversationContext,
-        lead_name: str
+        lead_name: str,
+        dealership_name: str = None
     ) -> str:
         """Generate response text using PromptBuilder with conversation context."""
         # Get conversation history from context if available
         conversation_history = getattr(context, 'conversation_history', None)
         
-        # Customize agent config based on context
-        agent_config = self._get_agent_config_from_context(context, lead_name)
+        # Customize agent config based on context and dealership name
+        agent_config = self._get_agent_config_from_context(context, lead_name, dealership_name)
         
         if vehicles:
             # Use PromptBuilder for grounded response with conversation history
@@ -373,7 +375,7 @@ class EnhancedRAGService:
         logger.debug("No JSON control object found, returning original response")
         return raw_response.strip()
     
-    def _get_agent_config_from_context(self, context: ConversationContext, lead_name: str) -> AgentConfig:
+    def _get_agent_config_from_context(self, context: ConversationContext, lead_name: str, dealership_name: str = None) -> AgentConfig:
         """Get customized agent config based on conversation context."""
         # Adapt tone based on context
         tone = "friendly"
@@ -393,7 +395,7 @@ class EnhancedRAGService:
         
         return AgentConfig(
             tone=tone,
-            dealership_name="our dealership",
+            dealership_name=dealership_name or "our dealership",
             persona_blurb=persona_blurb,
             signature=f"- Your {persona_blurb}" if lead_name else None
         )

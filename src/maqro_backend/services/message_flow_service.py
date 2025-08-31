@@ -866,12 +866,19 @@ Focus on: {edit_instructions}"""
                 top_k=3
             )
             
-            # Generate enhanced AI response
+            # Get actual dealership name
+            dealership_query = text("SELECT name FROM dealerships WHERE id = :dealership_id")
+            dealership_result = await session.execute(dealership_query, {"dealership_id": dealership_id})
+            dealership = dealership_result.fetchone()
+            dealership_name = dealership.name if dealership else "our dealership"
+            
+            # Generate enhanced AI response with actual dealership name
             enhanced_response = enhanced_rag_service.generate_enhanced_response(
                 message_text,
                 vehicles,
                 all_conversations,
-                lead.name
+                lead.name,
+                dealership_name
             )
             
             return {
