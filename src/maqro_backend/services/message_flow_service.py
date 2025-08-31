@@ -739,6 +739,7 @@ Focus on: {edit_instructions}"""
                 session=session,
                 lead=lead,
                 message_text=message_text,
+                dealership_id=dealership_id,
                 enhanced_rag_service=enhanced_rag_service
             )
             
@@ -830,6 +831,7 @@ Focus on: {edit_instructions}"""
         session: AsyncSession,
         lead: Any,
         message_text: str,
+        dealership_id: str,
         enhanced_rag_service: EnhancedRAGService
     ) -> Dict[str, Any]:
         """Generate RAG response for customer message"""
