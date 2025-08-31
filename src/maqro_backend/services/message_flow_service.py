@@ -746,26 +746,30 @@ Focus on: {edit_instructions}"""
             if not rag_response["success"]:
                 return rag_response
             
-            # If lead has an assigned salesperson, send for approval
+            # Always send automatic response to customer
+            direct_response_result = await self._send_direct_response(
+                session=session,
+                lead=lead,
+                response_text=rag_response["response_text"],
+                customer_phone=from_phone,
+                message_source=message_source
+            )
+            
+            # If lead has an assigned salesperson, also notify them (but don't wait for approval)
             if lead.assigned_user_id:
-                return await self._send_for_approval(
-                    session=session,
-                    lead=lead,
-                    customer_message=message_text,
-                    generated_response=rag_response["response_text"],
-                    customer_phone=from_phone,
-                    dealership_id=dealership_id,
-                    message_source=message_source
-                )
-            else:
-                # No assigned salesperson - send response directly to customer
-                return await self._send_direct_response(
-                    session=session,
-                    lead=lead,
-                    response_text=rag_response["response_text"],
-                    customer_phone=from_phone,
-                    message_source=message_source
-                )
+                try:
+                    await self._notify_assigned_salesperson(
+                        session=session,
+                        lead=lead,
+                        customer_message=message_text,
+                        generated_response=rag_response["response_text"],
+                        customer_phone=from_phone,
+                        message_source=message_source
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to notify assigned salesperson: {e}")
+            
+            return direct_response_result
                 
         except Exception as e:
             logger.error(f"Error handling customer message: {e}")
@@ -884,6 +888,57 @@ Focus on: {edit_instructions}"""
                 "message": "Sorry, there was an error generating a response. Please try again."
             }
     
+    async def _notify_assigned_salesperson(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        customer_message: str,
+        generated_response: str,
+        customer_phone: str,
+        message_source: str
+    ) -> None:
+        """Notify assigned salesperson about customer interaction (no approval required)"""
+        try:
+            # Get the assigned user's phone number
+            assigned_user = await get_user_profile_by_user_id(
+                session=session,
+                user_id=str(lead.assigned_user_id)
+            )
+            
+            if not assigned_user or not assigned_user.phone:
+                logger.warning(f"Assigned user {lead.assigned_user_id} not found or has no phone number")
+                return
+            
+            # Send notification message to salesperson
+            notification_message = (
+                f"📱 Customer interaction from {lead.name} ({customer_phone}):\n\n"
+                f"Customer: {customer_message}\n\n"
+                f"🤖 AI Response Sent: {generated_response}\n\n"
+                f"💡 The customer received an automatic response. You can follow up if needed."
+            )
+            
+            # Send notification to salesperson
+            if message_source == "whatsapp":
+                from ..services.whatsapp_service import whatsapp_service
+                send_result = await whatsapp_service.send_message(
+                    assigned_user.phone,
+                    notification_message
+                )
+            else:
+                from ..services.sms_service import sms_service
+                send_result = await sms_service.send_sms(
+                    assigned_user.phone,
+                    notification_message
+                )
+            
+            if send_result["success"]:
+                logger.info(f"Notified assigned salesperson {lead.assigned_user_id} about customer interaction")
+            else:
+                logger.warning(f"Failed to notify salesperson: {send_result['error']}")
+                
+        except Exception as e:
+            logger.error(f"Error notifying assigned salesperson: {e}")
+
     async def _send_for_approval(
         self,
         session: AsyncSession,
