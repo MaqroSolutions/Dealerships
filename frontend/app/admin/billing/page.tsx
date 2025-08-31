@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { StripeCheckout } from "@/components/stripe-checkout"
 import { 
   CreditCard, 
   Download, 
@@ -277,63 +278,17 @@ function BillingContent() {
         </CardContent>
       </Card>
 
-      {/* Plan Comparison */}
-      <Card className="bg-gray-900/70 border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-gray-100">Available Plans</CardTitle>
-          <CardDescription className="text-gray-400">
-            Compare plans and upgrade if needed
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-4 border border-gray-700 rounded-lg">
-              <h4 className="text-lg font-semibold text-gray-100 mb-2">Starter</h4>
-              <p className="text-2xl font-bold text-gray-200 mb-4">$99<span className="text-sm text-gray-400">/month</span></p>
-              <ul className="space-y-2 mb-4">
-                <li className="text-sm text-gray-300">• Up to 3 team members</li>
-                <li className="text-sm text-gray-300">• 500 leads/month</li>
-                <li className="text-sm text-gray-300">• Basic analytics</li>
-                <li className="text-sm text-gray-300">• Email support</li>
-              </ul>
-              <Button variant="outline" className="w-full border-gray-700 text-gray-300">
-                Current Plan
-              </Button>
-            </div>
-            
-            <div className="p-4 border border-blue-500 rounded-lg bg-blue-500/10">
-              <h4 className="text-lg font-semibold text-gray-100 mb-2">Professional</h4>
-              <p className="text-2xl font-bold text-blue-400 mb-4">$299<span className="text-sm text-gray-400">/month</span></p>
-              <ul className="space-y-2 mb-4">
-                <li className="text-sm text-gray-300">• Up to 10 team members</li>
-                <li className="text-sm text-gray-300">• Unlimited leads</li>
-                <li className="text-sm text-gray-300">• Advanced analytics</li>
-                <li className="text-sm text-gray-300">• CRM integration</li>
-                <li className="text-sm text-gray-300">• Priority support</li>
-              </ul>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                Current Plan
-              </Button>
-            </div>
-            
-            <div className="p-4 border border-gray-700 rounded-lg">
-              <h4 className="text-lg font-semibold text-gray-100 mb-2">Enterprise</h4>
-              <p className="text-2xl font-bold text-gray-200 mb-4">$599<span className="text-sm text-gray-400">/month</span></p>
-              <ul className="space-y-2 mb-4">
-                <li className="text-sm text-gray-300">• Unlimited team members</li>
-                <li className="text-sm text-gray-300">• Unlimited leads</li>
-                <li className="text-sm text-gray-300">• Custom analytics</li>
-                <li className="text-sm text-gray-300">• API access</li>
-                <li className="text-sm text-gray-300">• Dedicated support</li>
-                <li className="text-sm text-gray-300">• Custom integrations</li>
-              </ul>
-              <Button variant="outline" className="w-full border-gray-700 text-gray-300">
-                Upgrade
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Stripe Integration */}
+      <StripeCheckout
+        onSuccess={() => {
+          console.log('Payment successful!');
+          // You can add additional success handling here
+        }}
+        onError={(error) => {
+          console.error('Payment error:', error);
+          // You can add additional error handling here
+        }}
+      />
     </div>
   )
 }
