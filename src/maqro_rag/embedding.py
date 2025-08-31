@@ -40,7 +40,7 @@ class EmbeddingProvider(ABC):
 
 
 class OpenAIEmbeddingProvider(EmbeddingProvider):
-    """OpenAI embedding provider using text-embedding-ada-002."""
+    """OpenAI embedding provider using text-embedding-3-small."""
     
     def __init__(self, config: Config):
         """Initialize OpenAI embedding provider."""

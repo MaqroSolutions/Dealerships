@@ -14,7 +14,7 @@ class DatabaseVectorStore:
     
     def __init__(self):
         """Initialize database vector store."""
-        self.embedding_dimension = 1536  # OpenAI ada-002 embedding size
+        self.embedding_dimension = 1536  # OpenAI text-embedding-3-small embedding size
         logger.info("Initialized DatabaseVectorStore")
     
     async def store_embedding(

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from loguru import logger
 
 from .config import Config
-from .retrieval import VehicleRetriever
+from .db_retriever import DatabaseRAGRetriever
 from .prompt_builder import PromptBuilder, AgentConfig
 
 
@@ -108,7 +108,7 @@ class ResponseTemplate:
 class EnhancedRAGService:
     """Enhanced RAG service for intelligent vehicle search and response generation."""
     
-    def __init__(self, retriever: VehicleRetriever, analyze_conversation_context_func: Callable):
+    def __init__(self, retriever: DatabaseRAGRetriever, analyze_conversation_context_func: Callable):
         """Initialize enhanced RAG service."""
         self.retriever = retriever
         self.analyze_conversation_context = analyze_conversation_context_func

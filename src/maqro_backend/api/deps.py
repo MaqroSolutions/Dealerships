@@ -3,9 +3,9 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from maqro_rag import VehicleRetriever, EnhancedRAGService
+from maqro_rag import EnhancedRAGService
 from ..db.session import get_db
-from ..core.lifespan import get_retriever, get_enhanced_rag_service
+from ..core.lifespan import get_enhanced_rag_service
 from ..db.models import UserProfile
 from ..services.roles_service import RolesService
 from ..services.settings_service import SettingsService
@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 # Re-export for easy importing
 get_db_session = get_db
-get_rag_retriever = get_retriever   
 get_enhanced_rag_services = get_enhanced_rag_service
 
 

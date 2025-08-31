@@ -6,7 +6,7 @@ A modular, production-ready Retrieval-Augmented Generation (RAG) system for auto
 
 - **Multi-format ingestion**: CSV and JSON inventory files
 - **Flexible embedding providers**: OpenAI and Cohere support
-- **Scalable vector storage**: FAISS (local), Pinecone/Weaviate (cloud) ready
+- **Scalable vector storage**: pgvector (database), Pinecone/Weaviate (cloud) ready
 - **Semantic search**: Find vehicles based on natural language queries
 - **Modular design**: Easy to extend and customize
 - **Production-ready**: Comprehensive error handling and logging
@@ -38,12 +38,12 @@ The system uses `config.yaml` for settings:
 ```yaml
 embedding:
   provider: "openai"  # "openai" or "cohere"
-  model: "text-embedding-ada-002"
+  model: "text-embedding-3-small"
   batch_size: 100
   max_retries: 3
 
 vector_store:
-  type: "faiss"  # "faiss", "pinecone", "weaviate"
+  type: "pgvector"  # "pgvector", "pinecone", "weaviate"
   dimension: 1536
 
 retrieval:
@@ -56,20 +56,20 @@ retrieval:
 ### 1. Basic Usage
 
 ```python
-from maqro_rag import Config, VehicleRetriever
+from maqro_rag import Config, DatabaseRAGRetriever
 
 # Load configuration
 config = Config.from_yaml("config.yaml")
 
-# Initialize retriever
-retriever = VehicleRetriever(config)
+# Initialize database retriever
+retriever = DatabaseRAGRetriever(config)
 
-# Build index from inventory
-retriever.build_index("sample_inventory.csv", "vehicle_index")
-
-# Search for vehicles
-results = retriever.search_vehicles("Looking for a reliable sedan with good gas mileage")
-print(retriever.format_search_results(results))
+# Search for vehicles (requires database connection)
+results = await retriever.search_vehicles(
+    session=db_session,
+    query="Looking for a reliable sedan with good gas mileage",
+    dealership_id="your_dealership_id"
+)
 ```
 
 ### 2. Demo Script
@@ -140,12 +140,12 @@ results = retriever.search_vehicles("Electric vehicle with modern features")
 2. **EmbeddingProvider** (`embedding.py`): Abstract interface for embedding APIs
 3. **VectorStore** (`vector_store.py`): Abstract interface for vector databases
 4. **InventoryProcessor** (`inventory.py`): Data ingestion and formatting
-5. **VehicleRetriever** (`retrieval.py`): Main RAG pipeline orchestrator
+5. **DatabaseRAGRetriever** (`db_retriever.py`): Database-based RAG pipeline orchestrator
 
 ### Data Flow
 
 ```
-Inventory CSV/JSON → InventoryProcessor → Formatted Texts → EmbeddingProvider → VectorStore → Search Results
+Inventory CSV/JSON → InventoryProcessor → Formatted Texts → EmbeddingProvider → Database (pgvector) → Search Results
 ```
 
 ### Extending the System
@@ -178,7 +178,7 @@ class CustomVectorStore(VectorStore):
 
 ## 🔄 Migration Paths
 
-### FAISS → Pinecone
+### pgvector → Pinecone
 
 1. Update `config.yaml`:
 ```yaml
@@ -194,7 +194,7 @@ vector_store:
 export PINECONE_API_KEY=your_pinecone_api_key
 ```
 
-### FAISS → Weaviate
+### pgvector → Weaviate
 
 1. Update `config.yaml`:
 ```yaml
@@ -207,7 +207,7 @@ vector_store:
 
 ## 📈 Performance
 
-- **FAISS**: Fast local search, suitable for development and small-medium inventories
+- **pgvector**: Database-integrated search, suitable for production with real-time inventory updates
 - **Pinecone**: Scalable cloud solution for production with thousands of vehicles
 - **Weaviate**: Self-hosted option with advanced querying capabilities
 

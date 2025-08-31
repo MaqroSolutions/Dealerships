@@ -4,7 +4,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 import pytz
-from maqro_rag import VehicleRetriever, EnhancedRAGService
+from maqro_rag import EnhancedRAGService
 from maqro_backend.api.deps import get_db_session, get_enhanced_rag_services, get_current_user_id
 from maqro_backend.schemas.ai import AIResponseRequest, GeneralAIRequest
 from maqro_backend.crud import (

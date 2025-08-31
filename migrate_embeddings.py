@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""
+Migration script to rebuild embeddings with text-embedding-3-small model.
+This script will:
+1. Clear existing embeddings from the database
+2. Rebuild embeddings using the new model
+3. Provide progress updates
+"""
+
+import asyncio
+import sys
+import os
+from pathlib import Path
+from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text, select
+from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+from maqro_rag import Config, DatabaseRAGRetriever
+from maqro_backend.db.session import get_db
+from maqro_backend.crud import get_inventory_by_dealership
+
+
+async def clear_existing_embeddings(session: AsyncSession, dealership_id: str) -> int:
+    """Clear existing embeddings for a dealership."""
+    try:
+        result = await session.execute(
+            text("DELETE FROM vehicle_embeddings WHERE dealership_id = :dealership_id"),
+            {"dealership_id": dealership_id}
+        )
+        await session.commit()
+        deleted_count = result.rowcount
+        logger.info(f"Cleared {deleted_count} existing embeddings for dealership {dealership_id}")
+        return deleted_count
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Error clearing embeddings: {e}")
+        raise
+
+
+async def rebuild_embeddings_for_dealership(
+    session: AsyncSession,
+    dealership_id: str,
+    retriever: DatabaseRAGRetriever
+) -> dict:
+    """Rebuild embeddings for all inventory in a dealership."""
+    try:
+        logger.info(f"Starting embedding rebuild for dealership {dealership_id}")
+        
+        # Get all inventory for the dealership
+        inventory_items = await get_inventory_by_dealership(session=session, dealership_id=dealership_id)
+        
+        if not inventory_items:
+            logger.warning(f"No inventory found for dealership {dealership_id}")
+            return {"total": 0, "built": 0, "error": None}
+        
+        logger.info(f"Found {len(inventory_items)} inventory items to process")
+        
+        # Clear existing embeddings
+        await clear_existing_embeddings(session, dealership_id)
+        
+        # Build new embeddings
+        built_count = await retriever.build_embeddings_for_dealership(
+            session=session,
+            dealership_id=dealership_id,
+            force_rebuild=True
+        )
+        
+        logger.info(f"Successfully built {built_count} new embeddings")
+        
+        return {
+            "total": len(inventory_items),
+            "built": built_count,
+            "error": None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error rebuilding embeddings: {e}")
+        return {
+            "total": 0,
+            "built": 0,
+            "error": str(e)
+        }
+
+
+async def main():
+    """Main migration function."""
+    try:
+        logger.info("🚀 Starting embedding migration to text-embedding-3-small")
+        
+        # Load configuration
+        config = Config.from_yaml("config.yaml")
+        logger.info(f"Using embedding model: {config.embedding.model}")
+        
+        # Initialize database retriever
+        retriever = DatabaseRAGRetriever(config)
+        logger.info("Database RAG retriever initialized")
+        
+        # For now, use default dealership ID (you can modify this for multiple dealerships)
+        default_dealership_id = "d660c7d6-99e2-4fa8-b99b-d221def53d20"
+        
+        # Get database session
+        async for db_session in get_db():
+            try:
+                # Rebuild embeddings
+                result = await rebuild_embeddings_for_dealership(
+                    session=db_session,
+                    dealership_id=default_dealership_id,
+                    retriever=retriever
+                )
+                
+                if result["error"]:
+                    logger.error(f"Migration failed: {result['error']}")
+                    sys.exit(1)
+                else:
+                    logger.info(f"✅ Migration completed successfully!")
+                    logger.info(f"   - Total inventory items: {result['total']}")
+                    logger.info(f"   - Embeddings built: {result['built']}")
+                    logger.info(f"   - Model: {config.embedding.model}")
+                
+                break  # Exit after first session
+                
+            except Exception as e:
+                logger.error(f"Error during migration: {e}")
+                sys.exit(1)
+        
+    except Exception as e:
+        logger.error(f"Migration failed: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
