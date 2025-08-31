@@ -124,8 +124,10 @@ class EnhancedRAGService:
         
         logger.info("Initialized EnhancedRAGService with PromptBuilder")
     
-    def search_vehicles_with_context(
+    async def search_vehicles_with_context(
         self, 
+        session,
+        dealership_id: str,
         query: str, 
         conversations: List[Dict], 
         top_k: int = 5
@@ -143,7 +145,12 @@ class EnhancedRAGService:
             all_results = []
             for search_query in search_queries:
                 try:
-                    results = self.retriever.search_vehicles(search_query, top_k)
+                    results = await self.retriever.search_vehicles(
+                        session=session,
+                        query=search_query,
+                        dealership_id=dealership_id,
+                        top_k=top_k
+                    )
                     all_results.extend(results)
                 except Exception as e:
                     logger.warning(f"Error searching with query '{search_query}': {e}")

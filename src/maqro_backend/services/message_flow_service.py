@@ -434,9 +434,11 @@ Please generate a response that:
 Generate a response that prioritizes the edit instructions:"""
             
             # Generate new response using RAG with edit-focused prompt
-            vehicles = enhanced_rag_service.search_vehicles_with_context(
-                enhanced_prompt,
-                all_conversations,
+            vehicles = await enhanced_rag_service.search_vehicles_with_context(
+                session=session,
+                dealership_id=dealership_id,
+                query=enhanced_prompt,
+                conversations=all_conversations,
                 top_k=3
             )
             
@@ -470,9 +472,11 @@ The response should be built around these edit requirements, not just include th
 Focus on: {edit_instructions}"""
                 
                 # Regenerate with stronger emphasis
-                vehicles_retry = enhanced_rag_service.search_vehicles_with_context(
-                    stronger_prompt,
-                    all_conversations,
+                vehicles_retry = await enhanced_rag_service.search_vehicles_with_context(
+                    session=session,
+                    dealership_id=dealership_id,
+                    query=stronger_prompt,
+                    conversations=all_conversations,
                     top_k=3
                 )
                 
@@ -848,9 +852,11 @@ Focus on: {edit_instructions}"""
             ]
             
             # Use enhanced RAG system to find relevant vehicles
-            vehicles = enhanced_rag_service.search_vehicles_with_context(
-                message_text,
-                all_conversations,
+            vehicles = await enhanced_rag_service.search_vehicles_with_context(
+                session=session,
+                dealership_id=dealership_id,
+                query=message_text,
+                conversations=all_conversations,
                 top_k=3
             )
             
@@ -891,7 +897,7 @@ Focus on: {edit_instructions}"""
             # Get the assigned user's phone number
             assigned_user = await get_user_profile_by_user_id(
                 session=session,
-                assigned_user_id=str(lead.assigned_user_id)
+                user_id=str(lead.assigned_user_id)
             )
             
             if not assigned_user or not assigned_user.phone:
