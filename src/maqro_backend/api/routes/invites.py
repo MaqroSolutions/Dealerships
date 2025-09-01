@@ -11,7 +11,8 @@ from maqro_backend.schemas.invite import (
     InviteCreate, 
     InviteResponse, 
     InviteAccept,
-    InviteListResponse
+    InviteListResponse,
+    SendInviteEmailRequest
 )
 from maqro_backend.crud import (
     create_invite,
@@ -146,22 +147,16 @@ async def create_new_invite(
 
 @router.post("/send-invite-email")
 async def send_invite_email(
-    payload: dict,
+    request: SendInviteEmailRequest,
     db: AsyncSession = Depends(get_db_session),
     user_id: str = Depends(get_current_user_id)
 ):
     """
-    Send invite email via Supabase using Secret API Key
+    Send invite email via Resend
     
     Requires manager or owner role.
     """
-    email = payload.get("email")
-    token = payload.get("token")
-    
-    if not email or not token:
-        raise HTTPException(status_code=400, detail="Email and token are required")
-    
-    logger.info(f"Sending invite email to: {email}")
+    logger.info(f"Sending invite email to: {request.email}")
     
     # Check if user has permission to send invites (manager or owner)
     current_user_profile = await get_user_profile_by_user_id(session=db, user_id=user_id)
@@ -172,53 +167,45 @@ async def send_invite_email(
         )
     
     try:
-        from supabase import create_client, Client
-        import os
+        # Import ResendEmailService
+        from maqro_backend.services.email_service import ResendEmailService
         
-        supabase_url = os.getenv("SUPABASE_URL")
-        # Use the new Secret API Key instead of service role
-        supabase_secret_key = os.getenv("SUPABASE_SECRET_AUTH_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        # Get invite details to extract dealership and role info
+        invite = await get_invite_by_token(session=db, token=request.token)
+        if not invite:
+            raise HTTPException(status_code=404, detail="Invalid invite token")
         
-        # Debug logging
-        logger.info(f"SUPABASE_URL: {'✅ Found' if supabase_url else '❌ Missing'}")
-        logger.info(f"SUPABASE_SECRET_AUTH_KEY: {'✅ Found' if os.getenv('SUPABASE_SECRET_AUTH_KEY') else '❌ Missing'}")
-        logger.info(f"SUPABASE_SERVICE_ROLE_KEY: {'✅ Found' if os.getenv('SUPABASE_SERVICE_ROLE_KEY') else '❌ Missing'}")
+        # Get dealership name
+        from maqro_backend.db.models import Dealership
+        from sqlalchemy import select
+        dealership_result = await db.execute(
+            select(Dealership.name).where(Dealership.id == invite.dealership_id)
+        )
+        dealership_name = dealership_result.scalar_one_or_none() or "Unknown Dealership"
         
-        if not supabase_url or not supabase_secret_key:
-            logger.error(f"Missing Supabase configuration - URL: {supabase_url is not None}, Key: {supabase_secret_key is not None}")
-            raise HTTPException(status_code=500, detail="Email service configuration missing")
-        
-        supabase: Client = create_client(supabase_url, supabase_secret_key)
-        
-        # Build invite link to our signup with token
+        # Build invite link
         frontend_base = settings.frontend_base_url or "http://localhost:3000"
-        invite_link = f"{frontend_base}/signup?token={token}"
+        invite_link = f"{frontend_base}/signup?token={request.token}"
         
-        # Send email using Supabase admin API
-        try:
-            response = supabase.auth.admin.invite_user_by_email(
-                email,
-                options={
-                    "redirect_to": invite_link
-                }
-            )
-            logger.info(f"📧 Invite email sent successfully to {email}")
-            
-            return {
-                "success": True,
-                "message": f"Invite email sent to {email}",
-                "invite_link": invite_link
-            }
-            
-        except Exception as supabase_error:
-            logger.error(f"Supabase email error: {supabase_error}")
-            # Return success but indicate email failed - frontend can handle fallback
-            return {
-                "success": False,
-                "error": "Failed to send email via Supabase",
-                "invite_link": invite_link
-            }
-            
+        # Send email via Resend
+        email_service = ResendEmailService()
+        result = await email_service.send_invite_email(
+            email=request.email,
+            invite_link=invite_link,
+            dealership_name=dealership_name,
+            role_name=invite.role,
+            inviter_name=current_user_profile.full_name
+        )
+        
+        if result["success"]:
+            logger.info(f"📧 Invite email sent successfully to {request.email} via Resend")
+        else:
+            logger.error(f"❌ Failed to send invite email: {result.get('error')}")
+        
+        return result
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error sending invite email: {e}")
         return {
@@ -312,18 +299,9 @@ async def complete_invite_for_existing_user(
             timezone="America/New_York"
         )
 
-        # Assign role in role system (best effort)
-        try:
-            await RolesService.assign_user_role(
-                db=db,
-                user_id=current_user_id,
-                dealership_id=str(invite.dealership_id),
-                role_name=role_for_profile,
-                assigned_by=str(invite.invited_by)
-            )
-        except Exception as e:
-            logger.warning(f"Could not assign role in new system: {e}")
-
+        # Role is already assigned via user_profile creation above
+        # No need for separate role system - using schema constraints
+        
         # Mark invite as accepted
         await update_invite_status(
             session=db,

@@ -37,6 +37,12 @@ class InviteAccept(BaseModel):
     phone: Optional[str] = None
 
 
+class SendInviteEmailRequest(BaseModel):
+    """Schema for sending invite email"""
+    email: EmailStr
+    token: str
+
+
 class InviteListResponse(BaseModel):
     """Schema for listing invites"""
     id: str
