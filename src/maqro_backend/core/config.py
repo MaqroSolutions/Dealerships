@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     whatsapp_app_secret: Optional[str] = None
     whatsapp_api_version: str = "v21.0"
 
+    # Resend Email Configuration
+    resend_api_key: str
+
     rag_config_path: str = "config.yaml"
     rag_index_name: str = "vehicle_index"
 
