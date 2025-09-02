@@ -8,6 +8,8 @@ import { AlertsSection } from "@/components/alerts-section"
 import { Hero } from "@/components/hero"
 import { FeatureList } from "@/components/feature-list"
 import { Footer } from "@/components/footer"
+import { LandingNav } from "@/components/landing-nav"
+import { PricingSection } from "@/components/pricing-section"
 import { useRoleBasedAuth } from "@/components/auth/role-based-auth-provider"
 
 function DashboardContent() {
@@ -32,11 +34,12 @@ function DashboardContent() {
 
 function LandingContent() {
   return (
-    <>
+    <LandingNav>
       <Hero />
       <FeatureList />
+      <PricingSection />
       <Footer />
-    </>
+    </LandingNav>
   )
 }
 
