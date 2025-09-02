@@ -22,7 +22,7 @@ const tiers = [
   {
     name: "Pro",
     price: "$800",
-    cadence: "/rooftop/month",
+    cadence: "/dealership/month",
     cta: { label: "Upgrade to Pro", href: "/signup" },
     highlight: true,
     description: "Everything in Pilot",
