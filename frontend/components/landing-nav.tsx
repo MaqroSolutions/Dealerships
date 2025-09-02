@@ -13,14 +13,14 @@ export function LandingNav({ children }: { children?: React.ReactNode }) {
       <nav className="fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mt-3">
-            <div className="h-14 px-3 sm:px-4 flex items-center justify-between rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-[2px]">
+            <div className="h-14 px-3 sm:px-4 flex items-center justify-between rounded-xl bg-gray-900/70 border border-gray-800 backdrop-blur-sm shadow-xl">
               {/* Logo */}
               <div className="flex items-center">
                 <Link href="/" className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold text-sm">M</span>
                   </div>
-                  <span className="text-white font-semibold text-lg">Maqro</span>
+                  <span className="text-white font-semibold text-lg font-['Geist']">Maqro</span>
                 </Link>
               </div>
 

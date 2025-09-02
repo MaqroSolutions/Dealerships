@@ -1,58 +1,63 @@
-import { Zap, Target, BarChart3, ShieldCheck, Sparkles } from "lucide-react"
+import { Zap, Target, BarChart3, ShieldCheck, Sparkles, Building2, Clock, Lock, Zap as ZapIcon } from "lucide-react"
 
 const features = [
   {
-    icon: Zap,
-    title: "Respond instantly with AI",
-    description: "Automated responses that feel personal and human"
+    icon: Building2,
+    title: "CRM-Friendly by Design",
+    description: "Seamlessly sits on top of your CRM so your team doesn't change workflows. Your CRM stays the system of record."
   },
   {
-    icon: Target,
-    title: "Prioritize high-value leads",
-    description: "AI identifies your best opportunities automatically"
+    icon: Clock,
+    title: "AI Speed-to-Lead",
+    description: "Responds to new leads in under two minutes with human-like, inventory-aware messages that keep customers engaged."
   },
   {
-    icon: BarChart3,
-    title: "Track team performance in real time",
-    description: "Monitor conversions and optimize your sales process"
+    icon: Lock,
+    title: "Security & Compliance",
+    description: "Your data stays yours — never used to train external models. Fully encrypted and built for dealer compliance."
   },
   {
-    icon: ShieldCheck,
-    title: "Compliant by design",
-    description: "Audit trails, opt-outs, and permissioning that scale with you"
+    icon: ZapIcon,
+    title: "Enterprise Reliability",
+    description: "From single rooftops to dealer groups, Maqro scales with you. Always on, always accurate, and built for trust."
   }
 ]
 
 export function FeatureList() {
   return (
-    <div className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-transparent relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
+    <div className="py-16 md:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-transparent relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]">
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-64 w-[80%] rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute -bottom-24 right-1/2 -translate-x-1/2 h-64 w-[80%] rounded-full bg-purple-500/10 blur-3xl" />
+      </div>
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-20">
+          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6 tracking-[-0.02em] leading-tight font-['Geist']">
             Why Dealerships Choose Maqro
           </h2>
-          <p className="text-lg sm:text-xl text-gray-300/90 max-w-2xl mx-auto">
+          <p className="text-xl sm:text-2xl text-gray-300/90 max-w-3xl mx-auto leading-relaxed font-['Geist'] font-light">
             Stop losing leads to slow responses. Start closing deals faster.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 items-stretch">
           {features.map((feature, index) => (
             <div
               key={index}
-              className="group p-8 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all duration-300 hover:bg-white/[0.05] transform-gpu hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.35)]"
+              className="group p-8 sm:p-10 rounded-2xl border border-white/10 bg-white/[0.02] shadow-[0_6px_24px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:border-white/20 flex flex-col items-center text-center h-full relative overflow-hidden"
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <feature.icon className="w-6 h-6 text-white" />
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative z-10 w-full">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center mb-6 mx-auto border border-white/10">
+                  <feature.icon className="w-8 h-8 text-blue-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-4 tracking-tight font-['Geist']">
+                  {feature.title}
+                </h3>
+                <p className="text-base text-gray-300/90 leading-relaxed font-['Geist'] font-medium">
+                  {feature.description}
+                </p>
               </div>
-              
-              <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 tracking-tight">
-                {feature.title}
-              </h3>
-              <p className="text-sm sm:text-base text-gray-300/90 leading-relaxed">
-                {feature.description}
-              </p>
             </div>
           ))}
         </div>
