@@ -24,6 +24,12 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     Handle Stripe webhook events for subscription tracking
     """
     try:
+        # Test database connection
+        try:
+            await db.execute("SELECT 1")
+        except Exception as db_error:
+            logger.error(f"Database connection failed: {db_error}")
+            raise HTTPException(status_code=500, detail="Database connection failed")
         # Get the raw body and signature
         body = await request.body()
         signature = request.headers.get("stripe-signature")
@@ -32,7 +38,12 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Missing stripe-signature header")
         
         if not webhook_secret:
+            logger.error("STRIPE_WEBHOOK_SECRET environment variable not set")
             raise HTTPException(status_code=500, detail="Stripe webhook secret not configured")
+        
+        if not stripe.api_key:
+            logger.error("STRIPE_SECRET_KEY environment variable not set")
+            raise HTTPException(status_code=500, detail="Stripe secret key not configured")
         
         # Verify webhook signature
         try:
