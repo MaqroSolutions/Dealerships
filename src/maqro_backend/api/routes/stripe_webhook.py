@@ -47,19 +47,27 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Invalid signature")
         
         logger.info(f"Received Stripe webhook: {event['type']}")
+        logger.info(f"Event ID: {event.get('id')}")
+        logger.info(f"Event data: {event.get('data', {}).get('object', {})}")
         
         # Handle the event
         if event['type'] == 'checkout.session.completed':
+            logger.info("Processing checkout.session.completed event")
             await handle_checkout_session_completed(event['data']['object'], db)
         elif event['type'] == 'customer.subscription.created':
+            logger.info("Processing customer.subscription.created event")
             await handle_subscription_created(event['data']['object'], db)
         elif event['type'] == 'customer.subscription.updated':
+            logger.info("Processing customer.subscription.updated event")
             await handle_subscription_updated(event['data']['object'], db)
         elif event['type'] == 'customer.subscription.deleted':
+            logger.info("Processing customer.subscription.deleted event")
             await handle_subscription_deleted(event['data']['object'], db)
         elif event['type'] == 'invoice.payment_succeeded':
+            logger.info("Processing invoice.payment_succeeded event")
             await handle_payment_succeeded(event['data']['object'], db)
         elif event['type'] == 'invoice.payment_failed':
+            logger.info("Processing invoice.payment_failed event")
             await handle_payment_failed(event['data']['object'], db)
         else:
             logger.info(f"Unhandled event type: {event['type']}")
@@ -73,24 +81,34 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 async def handle_checkout_session_completed(session: Dict[str, Any], db: AsyncSession):
     """Handle successful checkout session"""
     logger.info(f"Processing checkout session completed: {session['id']}")
+    logger.info(f"Session metadata: {session.get('metadata', {})}")
     
     metadata = session.get('metadata', {})
     dealership_id = metadata.get('dealership_id')
     product_id = metadata.get('product_id')
     
+    logger.info(f"Dealership ID: {dealership_id}, Product ID: {product_id}")
+    
     if not dealership_id or not product_id:
         logger.error("Missing dealership_id or product_id in session metadata")
+        logger.error(f"Available metadata keys: {list(metadata.keys())}")
         return
     
     # Get the subscription plan
-    plan = await db.execute(
-        "SELECT * FROM subscription_plans WHERE stripe_product_id = :product_id",
-        {"product_id": product_id}
-    )
-    plan = plan.fetchone()
-    
-    if not plan:
-        logger.error(f"Subscription plan not found for product: {product_id}")
+    try:
+        plan = await db.execute(
+            "SELECT * FROM subscription_plans WHERE stripe_product_id = :product_id",
+            {"product_id": product_id}
+        )
+        plan = plan.fetchone()
+        
+        if not plan:
+            logger.error(f"Subscription plan not found for product: {product_id}")
+            return
+        
+        logger.info(f"Found subscription plan: {plan}")
+    except Exception as e:
+        logger.error(f"Error querying subscription plan: {e}")
         return
     
     # Create subscription record
