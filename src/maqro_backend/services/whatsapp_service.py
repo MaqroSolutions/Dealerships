@@ -4,11 +4,10 @@ WhatsApp Business API Service for sending and handling WhatsApp messages
 import httpx
 import hmac
 import hashlib
-from typing import Dict, Any, Optional
+from typing import Any
 from ..core.config import settings
 from ..utils.phone_utils import normalize_phone_number
 import logging
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ class WhatsAppService:
             self.app_secret
         ])
     
-    async def send_message(self, to: str, message: str) -> Dict[str, Any]:
+    async def send_message(self, to: str, message: str) -> dict[str, Any]:
         """
         Send message via WhatsApp Business API
         
@@ -140,7 +139,7 @@ class WhatsAppService:
             logger.error(f"Error verifying webhook signature: {e}")
             return False
     
-    def verify_webhook_token(self, mode: str, token: str, challenge: str) -> Optional[str]:
+    def verify_webhook_token(self, mode: str, token: str, challenge: str) -> None | str:
         """
         Verify webhook during setup process
         
@@ -172,7 +171,7 @@ class WhatsAppService:
         normalized = normalize_phone_number(phone)
         return normalized if normalized else ""
     
-    def parse_webhook_message(self, webhook_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def parse_webhook_message(self, webhook_data: dict[str, Any]) -> None | dict[str, Any]:
         """
         Parse incoming WhatsApp webhook message
         

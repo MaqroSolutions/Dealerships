@@ -2,12 +2,10 @@
 Scalable background task system for embedding generation and other async operations.
 """
 import asyncio
-import json
-from typing import Dict, Any, Optional
+from typing import Any
 from datetime import datetime, timedelta
 from loguru import logger
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+
 
 from ..db.session import get_db
 from ..crud import ensure_embeddings_for_dealership
@@ -17,7 +15,7 @@ class BackgroundTaskManager:
     """Manages background tasks with retry logic and monitoring."""
     
     def __init__(self):
-        self.tasks: Dict[str, Dict[str, Any]] = {}
+        self.tasks: dict[str, dict[str, Any]] = {}
         self.max_retries = 3
         self.retry_delay = 5  # seconds
     
@@ -83,7 +81,7 @@ class BackgroundTaskManager:
                 task["failed_at"] = datetime.now()
                 logger.error(f"Embedding task {task_id} failed after {self.max_retries} attempts: {e}")
     
-    async def get_task_status(self, task_id: str) -> Optional[Dict[str, Any]]:
+    async def get_task_status(self, task_id: str) -> None | dict[str, Any]:
         """Get the status of a background task."""
         return self.tasks.get(task_id)
     
@@ -114,7 +112,7 @@ async def queue_embedding_task(inventory_id: str, dealership_id: str) -> str:
     return await task_manager.queue_embedding_task(inventory_id, dealership_id)
 
 
-async def get_task_status(task_id: str) -> Optional[Dict[str, Any]]:
+async def get_task_status(task_id: str) -> None | dict[str, Any]:
     """Get task status."""
     return await task_manager.get_task_status(task_id)
 

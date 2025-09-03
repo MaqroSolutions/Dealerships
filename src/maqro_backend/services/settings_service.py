@@ -2,7 +2,7 @@
 Settings service for managing hierarchical settings (user → dealership → default)
 """
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from sqlalchemy.orm import joinedload
@@ -14,9 +14,6 @@ from ..db.models import (
     UserProfile
 )
 from ..schemas.settings import (
-    SettingDefinitionResponse,
-    DealershipSettingResponse,
-    UserSettingResponse,
     EffectiveSettingResponse
 )
 
@@ -27,7 +24,7 @@ class SettingsService:
     """Service for managing settings across the hierarchy"""
 
     @staticmethod
-    async def get_setting_definition(db: AsyncSession, key: str) -> Optional[SettingDefinition]:
+    async def get_setting_definition(db: AsyncSession, key: str) -> None | SettingDefinition:
         """Get a setting definition by key"""
         result = await db.execute(
             select(SettingDefinition).where(SettingDefinition.key == key)
@@ -35,7 +32,7 @@ class SettingsService:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_all_setting_definitions(db: AsyncSession) -> List[SettingDefinition]:
+    async def get_all_setting_definitions(db: AsyncSession) -> list[SettingDefinition]:
         """Get all setting definitions"""
         result = await db.execute(select(SettingDefinition))
         return result.scalars().all()
@@ -133,7 +130,7 @@ class SettingsService:
         user_id: str,
         key: str,
         value: Any,
-        updated_by: Optional[str] = None
+        updated_by: None | str = None
     ) -> UserSetting:
         """Update or create a user setting"""
         
@@ -225,7 +222,7 @@ class SettingsService:
     async def get_dealership_settings(
         db: AsyncSession, 
         dealership_id: str
-    ) -> List[DealershipSetting]:
+    ) -> list[DealershipSetting]:
         """Get all settings for a dealership"""
         result = await db.execute(
             select(DealershipSetting).where(
@@ -238,7 +235,7 @@ class SettingsService:
     async def get_user_settings(
         db: AsyncSession, 
         user_id: str
-    ) -> List[UserSetting]:
+    ) -> list[UserSetting]:
         """Get all personal settings for a user"""
         result = await db.execute(
             select(UserSetting).where(

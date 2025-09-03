@@ -1,36 +1,18 @@
 """
 Vonage SMS API routes for sending and receiving SMS messages
 """
-from fastapi import APIRouter, Depends, HTTPException, Form, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, Any
 import logging
-from datetime import datetime
-import pytz
+
 
 from maqro_rag import EnhancedRAGService
-from ...api.deps import get_db_session, get_current_user_id, get_user_dealership_id, get_enhanced_rag_services
+from ...api.deps import get_db_session, get_current_user_id,  get_enhanced_rag_services
 from ...services.sms_service import sms_service
-from ...services.salesperson_sms_service import salesperson_sms_service
 from ...services.message_flow_service import message_flow_service
 from ...services.dealership_phone_mapping import dealership_phone_mapping_service
-from ...crud import (
-    get_lead_by_phone, 
-    create_lead, 
-    create_conversation,
-    get_all_conversation_history,
-    get_user_profile_by_user_id,
-    get_salesperson_by_phone,
-    create_pending_approval,
-    get_pending_approval_by_user,
-    update_approval_status,
-    is_approval_command,
-    parse_approval_command
-)
-from ...schemas.lead import LeadCreate
-from ...services.ai_services import get_last_customer_message
 
 logger = logging.getLogger(__name__)
 

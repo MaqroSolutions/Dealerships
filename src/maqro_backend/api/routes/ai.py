@@ -14,8 +14,6 @@ from maqro_backend.crud import (
 )
 from ...services.ai_services import (
     get_last_customer_message,
-    generate_ai_response_text,
-    generate_contextual_ai_response
 )
 import logging
 

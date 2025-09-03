@@ -3,7 +3,6 @@ Roles and permissions API routes
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 
 from ..deps import (
     get_db_session, 
@@ -12,7 +11,7 @@ from ..deps import (
     require_dealership_owner,
     require_dealership_manager,
     get_user_role_info,
-    get_roles_service
+
 )
 from ...services.roles_service import RolesService
 from ...schemas.roles import (
@@ -21,8 +20,7 @@ from ...schemas.roles import (
     UserRoleCreate,
     UserRoleUpdate,
     UserWithRoleResponse,
-    DealershipUsersResponse,
-    RolePermissionCheck
+
 )
 import logging
 
@@ -31,7 +29,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/roles", response_model=List[RoleResponse])
+@router.get("/roles", response_model=list[RoleResponse])
 async def get_available_roles(
     user_id: str = Depends(get_current_user_id),  # Require authentication
     db: AsyncSession = Depends(get_db_session)
@@ -98,7 +96,7 @@ async def get_my_role_info(
         raise HTTPException(status_code=500, detail="Error getting role information")
 
 
-@router.get("/roles/users", response_model=List[UserWithRoleResponse])
+@router.get("/roles/users", response_model=list[UserWithRoleResponse])
 async def get_dealership_users_with_roles(
     dealership_id: str = Depends(get_user_dealership_id),
     manager_user_id: str = Depends(require_dealership_manager),  # Permission check

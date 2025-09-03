@@ -3,7 +3,6 @@ Dealership API routes
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 
 from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id
 from maqro_backend.schemas.dealership import DealershipCreate, DealershipResponse, DealershipUpdate

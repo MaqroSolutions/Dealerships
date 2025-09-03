@@ -2,7 +2,6 @@
 Roles and permissions service for managing user access control
 """
 import logging
-from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
@@ -10,9 +9,7 @@ from sqlalchemy.orm import joinedload
 from ..db.models import Role, UserRole, UserProfile, Dealership
 from ..schemas.roles import (
     RoleResponse,
-    UserRoleResponse,
     UserWithRoleResponse,
-    DealershipUsersResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -29,13 +26,13 @@ class RolesService:
     }
 
     @staticmethod
-    async def get_all_roles(db: AsyncSession) -> List[Role]:
+    async def get_all_roles(db: AsyncSession) -> list[Role]:
         """Get all available roles"""
         result = await db.execute(select(Role))
         return result.scalars().all()
 
     @staticmethod
-    async def get_role_by_name(db: AsyncSession, name: str) -> Optional[Role]:
+    async def get_role_by_name(db: AsyncSession, name: str) -> None | Role:
         """Get a role by its name"""
         result = await db.execute(
             select(Role).where(Role.name == name)
@@ -47,7 +44,7 @@ class RolesService:
         db: AsyncSession, 
         user_id: str, 
         dealership_id: str
-    ) -> Optional[UserRole]:
+    ) -> None | UserRole:
         """Get a user's role at a specific dealership"""
         result = await db.execute(
             select(UserRole).where(
@@ -62,7 +59,7 @@ class RolesService:
         db: AsyncSession, 
         user_id: str, 
         dealership_id: str
-    ) -> Optional[str]:
+    ) -> None | str:
         """Get a user's role name at a specific dealership"""
         user_role = await RolesService.get_user_role(db, user_id, dealership_id)
         return user_role.role.name if user_role else None
@@ -73,7 +70,7 @@ class RolesService:
         user_id: str,
         dealership_id: str,
         role_name: str,
-        assigned_by: Optional[str] = None
+        assigned_by: None | str = None
     ) -> UserRole:
         """Assign a role to a user at a dealership"""
         
@@ -125,7 +122,7 @@ class RolesService:
     async def get_dealership_users_with_roles(
         db: AsyncSession,
         dealership_id: str
-    ) -> List[UserWithRoleResponse]:
+    ) -> list[UserWithRoleResponse]:
         """Get all users in a dealership with their roles"""
         result = await db.execute(
             select(UserProfile, UserRole, Role).join(
@@ -220,7 +217,7 @@ class RolesService:
     async def get_user_owned_dealerships(
         db: AsyncSession,
         user_id: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Get all dealership IDs where user has owner role (future multi-dealership support)"""
         result = await db.execute(
             select(UserRole.dealership_id).join(
@@ -236,7 +233,7 @@ class RolesService:
     async def get_user_dealership_role_summary(
         db: AsyncSession,
         user_id: str
-    ) -> List[dict]:
+    ) -> list[dict]:
         """Get summary of user's roles across all dealerships"""
         result = await db.execute(
             select(UserRole, Role, Dealership).join(

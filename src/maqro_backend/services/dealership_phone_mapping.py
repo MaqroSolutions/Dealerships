@@ -6,7 +6,6 @@ in multi-dealership environments.
 """
 
 import logging
-from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..db.models import Dealership, Lead
@@ -26,7 +25,7 @@ class DealershipPhoneMappingService:
         self, 
         session: AsyncSession, 
         phone_number: str
-    ) -> Optional[str]:
+    ) -> None | str:
         """
         Determine which dealership a phone number belongs to.
         
@@ -73,7 +72,7 @@ class DealershipPhoneMappingService:
         self, 
         session: AsyncSession, 
         normalized_phone: str
-    ) -> Optional[str]:
+    ) -> None | str:
         """Find dealership by looking up existing leads with this phone number."""
         try:
             result = await session.execute(
@@ -93,7 +92,7 @@ class DealershipPhoneMappingService:
         self, 
         session: AsyncSession, 
         normalized_phone: str
-    ) -> Optional[str]:
+    ) -> None | str:
         """Find dealership by checking integration_config for phone mappings."""
         try:
             # Get all dealerships with integration config

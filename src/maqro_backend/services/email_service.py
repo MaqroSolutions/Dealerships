@@ -2,8 +2,7 @@
 Resend Email Service for sending professional emails with template support
 """
 import resend
-import os
-from typing import Dict, Any, Optional
+from typing import Any
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, Template
 from ..core.config import settings
@@ -27,7 +26,7 @@ class ResendEmailService:
         """Validate that Resend API key is available"""
         return bool(self.api_key)
     
-    def _load_template(self, template_name: str) -> Optional[Template]:
+    def _load_template(self, template_name: str) -> None | Template:
         """Load email template file"""
         try:
             return self.template_env.get_template(template_name)
@@ -41,8 +40,8 @@ class ResendEmailService:
         invite_link: str, 
         dealership_name: str,
         role_name: str,
-        inviter_name: Optional[str] = None
-    ) -> Dict[str, Any]:
+        inviter_name: None | str = None
+    ) -> dict[str, Any]:
         """
         Send dealership invite email via Resend using templates
         

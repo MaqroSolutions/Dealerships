@@ -2,7 +2,7 @@
 Salesperson SMS Service for handling lead creation and inventory updates via SMS
 """
 import logging
-from typing import Dict, Any, Optional
+from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..crud import (
@@ -14,7 +14,6 @@ from ..crud import (
     ensure_embeddings_for_dealership
 )
 from ..schemas.lead import LeadCreate
-from ..schemas.inventory import InventoryCreate
 from .sms_parser import sms_parser
 
 logger = logging.getLogger(__name__)
@@ -33,7 +32,7 @@ class SalespersonSMSService:
         from_number: str,
         message_text: str,
         dealership_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Process SMS message from a salesperson
         
@@ -167,9 +166,9 @@ class SalespersonSMSService:
         self,
         session: AsyncSession,
         salesperson: Any,
-        parsed_data: Dict[str, Any],
+        parsed_data: dict[str, Any],
         dealership_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle lead creation from salesperson SMS"""
         try:
             # Validate required fields
@@ -183,7 +182,7 @@ class SalespersonSMSService:
             
             # Allow leads to be created with partial information
             if not name and not phone:
-                logger.warning(f"Missing both name and phone - cannot create lead")
+                logger.warning("Missing both name and phone - cannot create lead")
                 return {
                     "success": False,
                     "error": "Missing required fields",
@@ -260,9 +259,9 @@ class SalespersonSMSService:
         self,
         session: AsyncSession,
         salesperson: Any,
-        parsed_data: Dict[str, Any],
+        parsed_data: dict[str, Any],
         dealership_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle inventory update from salesperson SMS"""
         try:
             # Validate required fields
@@ -278,7 +277,7 @@ class SalespersonSMSService:
             
             # Allow inventory to be created with partial information
             if not make and not model:
-                logger.warning(f"Missing both make and model - cannot create inventory item")
+                logger.warning("Missing both make and model - cannot create inventory item")
                 return {
                     "success": False,
                     "error": "Missing required fields",
@@ -359,9 +358,9 @@ class SalespersonSMSService:
         self,
         session: AsyncSession,
         salesperson: Any,
-        parsed_data: Dict[str, Any],
+        parsed_data: dict[str, Any],
         dealership_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle lead inquiry from salesperson SMS"""
         try:
             # For now, provide a basic response
@@ -388,9 +387,9 @@ class SalespersonSMSService:
         self,
         session: AsyncSession,
         salesperson: Any,
-        parsed_data: Dict[str, Any],
+        parsed_data: dict[str, Any],
         dealership_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle inventory inquiry from salesperson SMS"""
         try:
             search_criteria = parsed_data.get("search_criteria", {})
@@ -422,9 +421,9 @@ class SalespersonSMSService:
         self,
         session: AsyncSession,
         salesperson: Any,
-        parsed_data: Dict[str, Any],
+        parsed_data: dict[str, Any],
         dealership_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle general questions from salesperson SMS"""
         try:
             question_topic = parsed_data.get("question_topic", "general")
@@ -432,19 +431,19 @@ class SalespersonSMSService:
             
             # Provide appropriate responses based on question type
             if question_topic == "schedule":
-                response = f"📅 Schedule Inquiry\n\n"
+                response = "📅 Schedule Inquiry\n\n"
                 response += f"Hi {salesperson.full_name}, I understand you're asking about your schedule.\n\n"
-                response += f"Note: Schedule functionality is coming soon! For now, please check your calendar app or contact your manager for your current schedule."
+                response += "Note: Schedule functionality is coming soon! For now, please check your calendar app or contact your manager for your current schedule."
             
             elif question_topic == "help":
-                response = f"🆘 Help Request\n\n"
+                response = "🆘 Help Request\n\n"
                 response += f"Hi {salesperson.full_name}, I understand you need help.\n\n"
-                response += f"Note: Help system integration is coming soon! For immediate assistance, please contact your manager or support team."
+                response += "Note: Help system integration is coming soon! For immediate assistance, please contact your manager or support team."
             
             else:
-                response = f"❓ General Question\n\n"
+                response = "❓ General Question\n\n"
                 response += f"Hi {salesperson.full_name}, I received your question about: {question_topic}\n\n"
-                response += f"Note: General question handling is coming soon! For now, please contact your manager or support team for assistance."
+                response += "Note: General question handling is coming soon! For now, please contact your manager or support team for assistance."
             
             return {
                 "success": True,
@@ -465,9 +464,9 @@ class SalespersonSMSService:
         self,
         session: AsyncSession,
         salesperson: Any,
-        parsed_data: Dict[str, Any],
+        parsed_data: dict[str, Any],
         dealership_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle status updates from salesperson SMS"""
         try:
             lead_identifier = parsed_data.get("lead_identifier", "Unknown")
@@ -478,11 +477,11 @@ class SalespersonSMSService:
             # In the future, this could update lead status in the database
             return {
                 "success": True,
-                "message": f"📝 Status Update Received\n\n"
+                "message": "📝 Status Update Received\n\n"
                           f"Lead: {lead_identifier}\n"
                           f"Update type: {update_type}\n"
                           f"Details: {details}\n\n"
-                          f"Note: Status update functionality is coming soon! Your update has been logged and will be processed by the system.",
+                          "Note: Status update functionality is coming soon! Your update has been logged and will be processed by the system.",
                 "lead_identifier": lead_identifier,
                 "update_type": update_type,
                 "details": details
@@ -500,9 +499,9 @@ class SalespersonSMSService:
         self,
         session: AsyncSession,
         salesperson: Any,
-        parsed_data: Dict[str, Any],
+        parsed_data: dict[str, Any],
         dealership_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle test drive scheduling from salesperson SMS"""
         try:
             customer_name = parsed_data.get("customer_name", "Unknown")
@@ -676,7 +675,7 @@ class SalespersonSMSService:
             event_description += f"Salesperson: {salesperson_name}\n"
             if special_requests and special_requests != "None":
                 event_description += f"Special Requests: {special_requests}\n"
-            event_description += f"\nScheduled via Maqro SMS system"
+            event_description += "\nScheduled via Maqro SMS system"
             
             # Build Google Calendar URL
             base_url = "https://calendar.google.com/calendar/render"

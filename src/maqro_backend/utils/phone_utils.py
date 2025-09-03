@@ -8,10 +8,10 @@ This module provides a single standard for phone number normalization:
 - Lookup: Exact match on normalized format
 """
 import re
-from typing import Optional
 
 
-def normalize_phone_number(phone: str) -> Optional[str]:
+
+def normalize_phone_number(phone: str) -> None | str:
     """
     Normalize phone number to a consistent format for storage and comparison.
     

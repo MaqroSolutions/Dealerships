@@ -6,11 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 import logging
 
-from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id, require_dealership_manager
+from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id
 from maqro_backend.schemas.invite import (
     InviteCreate, 
     InviteResponse, 
-    InviteAccept,
     InviteListResponse,
     SendInviteEmailRequest
 )
@@ -21,7 +20,7 @@ from maqro_backend.crud import (
     update_invite_status,
     create_user_profile
 )
-from maqro_backend.services.roles_service import RolesService
+
 from maqro_backend.crud import get_user_profile_by_user_id
 from sqlalchemy import select
 from maqro_backend.core.config import settings

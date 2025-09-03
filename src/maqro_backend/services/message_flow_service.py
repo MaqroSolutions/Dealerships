@@ -8,10 +8,9 @@ This service implements the new flow where:
 4. Salesperson messages are processed for lead creation and inventory updates
 """
 import logging
-from typing import Dict, Any, Optional, Tuple
+from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
-import pytz
+
 
 from ..crud import (
     get_lead_by_phone,
@@ -23,7 +22,6 @@ from ..crud import (
     create_pending_approval,
     get_pending_approval_by_user,
     update_approval_status,
-    expire_pending_approvals_for_user
 )
 from ..schemas.lead import LeadCreate
 from maqro_rag import EnhancedRAGService
@@ -47,7 +45,7 @@ class MessageFlowService:
         dealership_id: str,
         enhanced_rag_service: EnhancedRAGService,
         message_source: str = "sms"  # "sms" or "whatsapp"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Process incoming message and determine the appropriate flow
         
@@ -108,7 +106,7 @@ class MessageFlowService:
         dealership_id: str,
         enhanced_rag_service: EnhancedRAGService,
         message_source: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle message from a salesperson"""
         try:
             # Check if they have a pending approval
@@ -155,7 +153,7 @@ class MessageFlowService:
         message_text: str,
         dealership_id: str,
         message_source: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Process salesperson message for lead creation, inventory updates, or other business functions"""
         try:
             logger.info(f"Processing business message from salesperson {salesperson_profile.user_id}: {message_text}")
@@ -213,7 +211,7 @@ class MessageFlowService:
         message_text: str,
         message_source: str,
         enhanced_rag_service: EnhancedRAGService
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Process salesperson's response to a pending approval"""
         try:
             message_lower = message_text.lower().strip()
@@ -290,7 +288,7 @@ class MessageFlowService:
         session: AsyncSession,
         pending_approval: Any,
         message_source: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Approve and send the generated response to the customer"""
         try:
             # Import the appropriate service based on message source
@@ -354,7 +352,7 @@ class MessageFlowService:
         self,
         session: AsyncSession,
         pending_approval: Any
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Reject the generated response"""
         try:
             # Update approval status
@@ -389,7 +387,7 @@ class MessageFlowService:
         edit_instructions: str,
         enhanced_rag_service: EnhancedRAGService,
         message_source: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Regenerate response based on salesperson's edit instructions"""
         try:
             if not edit_instructions:
@@ -420,18 +418,19 @@ class MessageFlowService:
             # The edit should take priority over the original response content
             enhanced_prompt = f"""Customer inquiry: {pending_approval.customer_message}
 
-IMPORTANT: The salesperson has requested specific edits to the response. 
-These edits MUST be included and take priority over other content.
+            IMPORTANT: The salesperson has requested specific edits to the response. 
+            These edits MUST be included and take priority over other content.
 
-Salesperson edit requirements: {edit_instructions}
+            Salesperson edit requirements: {edit_instructions}
 
-Please generate a response that:
-1. Addresses the customer's inquiry
-2. Incorporates ALL the requested edits as the primary focus
-3. Ensures no conflicting information with the edit requirements
-4. Maintains a professional and helpful tone
+            Please generate a response that:
+            1. Addresses the customer's inquiry
+            2. Incorporates ALL the requested edits as the primary focus
+            3. Ensures no conflicting information with the edit requirements
+            4. Maintains a professional and helpful tone
 
-Generate a response that prioritizes the edit instructions:"""
+            Generate a response that prioritizes the edit instructions:"""
+            
             
             # Generate new response using RAG with edit-focused prompt
             vehicles = await enhanced_rag_service.search_vehicles_with_context(
@@ -626,7 +625,7 @@ Focus on: {edit_instructions}"""
         pending_approval: Any,
         custom_message: str,
         message_source: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Force send a custom message from the salesperson directly to the customer"""
         try:
             if not custom_message:
@@ -702,7 +701,7 @@ Focus on: {edit_instructions}"""
         dealership_id: str,
         enhanced_rag_service: EnhancedRAGService,
         message_source: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle message from a customer"""
         try:
             # Check if this is an existing lead
@@ -837,7 +836,7 @@ Focus on: {edit_instructions}"""
         message_text: str,
         dealership_id: str,
         enhanced_rag_service: EnhancedRAGService
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate RAG response for customer message"""
         try:
             # Get conversation history for AI response
@@ -955,7 +954,7 @@ Focus on: {edit_instructions}"""
         customer_phone: str,
         dealership_id: str,
         message_source: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Send RAG response to salesperson for approval"""
         try:
             # Get the assigned user's phone number
@@ -1047,7 +1046,7 @@ Focus on: {edit_instructions}"""
         response_text: str,
         customer_phone: str,
         message_source: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Send RAG response directly to customer (no assigned salesperson)"""
         try:
             # Save AI response to database

@@ -2,8 +2,10 @@
 Database session management with connection pooling for scalability
 """
 import os
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from loguru import logger
+from collections.abc import AsyncGenerator
 
 # Database configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost/dbname")
@@ -12,10 +14,10 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@loc
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,  # Set to True for SQL debugging
-    pool_size=20,  # Number of connections to maintain
-    max_overflow=30,  # Additional connections when pool is full
+    pool_size=10,  # Number of connections to maintain
+    max_overflow=10,  # Additional connections when pool is full
     pool_pre_ping=True,  # Validate connections before use
-    pool_recycle=3600,  # Recycle connections every hour
+    pool_recycle=300,  # Recycle connections every hour
     pool_timeout=30,  # Timeout for getting connection from pool
 )
 
@@ -24,12 +26,11 @@ AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False,  # Prevent expired object access issues
-    autocommit=False,
-    autoflush=False,
+    autoflush=True,
 )
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session with proper connection management."""
     async with AsyncSessionLocal() as session:
         try:
@@ -38,8 +39,6 @@ async def get_db() -> AsyncSession:
             logger.error(f"Database session error: {e}")
             await session.rollback()
             raise
-        finally:
-            await session.close()
 
 
 async def close_db_connections():
@@ -53,7 +52,7 @@ async def check_db_health() -> bool:
     """Check if database is accessible."""
     try:
         async with AsyncSessionLocal() as session:
-            result = await session.execute("SELECT 1")
+            result = await session.execute(text("SELECT 1"))
             result.fetchone()
         return True
     except Exception as e:

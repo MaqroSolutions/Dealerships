@@ -1,4 +1,3 @@
-import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
@@ -7,8 +6,8 @@ from maqro_rag.db_retriever import DatabaseRAGRetriever
 from maqro_backend.core.config import settings
 from maqro_backend.services.ai_services import analyze_conversation_context
 from maqro_backend.db.session import get_db
-from maqro_backend.crud import ensure_embeddings_for_dealership, get_rag_stats
-# from maqro_backend.db.session import create_tables  # Removed - tables managed by Supabase
+from maqro_backend.crud import ensure_embeddings_for_dealership
+
 
 
 # Global variables to store RAG components

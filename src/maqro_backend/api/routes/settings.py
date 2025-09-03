@@ -3,14 +3,12 @@ Settings API routes for hierarchical settings management
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Any
 
 from ..deps import (
     get_db_session, 
     get_current_user_id, 
     get_user_dealership_id,
     require_dealership_manager,
-    get_settings_service
 )
 from ...services.settings_service import SettingsService
 from ...schemas.settings import (
@@ -28,7 +26,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/settings/definitions", response_model=List[SettingDefinitionResponse])
+@router.get("/settings/definitions", response_model=list[SettingDefinitionResponse])
 async def get_setting_definitions(
     db: AsyncSession = Depends(get_db_session),
     user_id: str = Depends(get_current_user_id)  # Require authentication
@@ -135,7 +133,7 @@ async def update_user_setting(
         raise HTTPException(status_code=500, detail="Error updating user setting")
 
 
-@router.get("/settings/user", response_model=List[UserSettingResponse])
+@router.get("/settings/user", response_model=list[UserSettingResponse])
 async def get_my_user_settings(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session)
@@ -190,7 +188,7 @@ async def delete_user_setting(
 
 # Dealership settings endpoints (require manager+ permissions)
 
-@router.get("/settings/dealership", response_model=List[DealershipSettingResponse])
+@router.get("/settings/dealership", response_model=list[DealershipSettingResponse])
 async def get_dealership_settings(
     dealership_id: str = Depends(get_user_dealership_id),
     manager_user_id: str = Depends(require_dealership_manager),  # Permission check

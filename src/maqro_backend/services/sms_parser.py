@@ -4,8 +4,7 @@ SMS Parser Service for extracting structured data from salesperson messages usin
 import re
 import logging
 import json
-from typing import Dict, Any, Optional, Tuple
-from datetime import datetime
+from typing import Any
 import os
 
 try:
@@ -148,7 +147,7 @@ For test drive scheduling, the JSON should look like:
   "special_requests": "2-hour window"
 }"""
 
-    def parse_message(self, message: str) -> Dict[str, Any]:
+    def parse_message(self, message: str) -> dict[str, Any]:
         """
         Parse SMS message using LLM to determine if it's a lead creation or inventory update
         
@@ -185,7 +184,7 @@ For test drive scheduling, the JSON should look like:
             # Fallback to basic pattern matching if LLM fails
             return self._fallback_parse(message)
     
-    def _parse_with_llm(self, message: str) -> Optional[Dict[str, Any]]:
+    def _parse_with_llm(self, message: str) -> None | dict[str, Any]:
         """Parse message using OpenAI chat completions"""
         if self.client is None:
             logger.warning("OpenAI client not initialized. Cannot parse message with LLM.")
@@ -227,7 +226,7 @@ For test drive scheduling, the JSON should look like:
             logger.error(f"OpenAI API error: {e}")
             return None
     
-    def _assess_confidence(self, parsed_data: Dict[str, Any]) -> str:
+    def _assess_confidence(self, parsed_data: dict[str, Any]) -> str:
         """Assess confidence level based on extracted data quality"""
         if parsed_data["type"] == "lead_creation":
             required_fields = ["name", "phone", "car_interest"]
@@ -293,7 +292,7 @@ For test drive scheduling, the JSON should look like:
         
         return "low"
     
-    def _fallback_parse(self, message: str) -> Dict[str, Any]:
+    def _fallback_parse(self, message: str) -> dict[str, Any]:
         """Fallback parsing using basic pattern matching if LLM fails"""
         message_lower = message.lower()
         
@@ -382,7 +381,7 @@ For test drive scheduling, the JSON should look like:
             "type": "unknown"
         }
     
-    def _extract_name_from_message(self, message: str) -> Optional[str]:
+    def _extract_name_from_message(self, message: str) -> None | str:
         """Extract a potential name from the message"""
         import re
         
@@ -406,7 +405,7 @@ For test drive scheduling, the JSON should look like:
         
         return None
     
-    def _extract_phone_from_message(self, message: str) -> Optional[str]:
+    def _extract_phone_from_message(self, message: str) -> None | str:
         """Extract phone number from the message"""
         import re
         
@@ -428,7 +427,7 @@ For test drive scheduling, the JSON should look like:
         
         return None
     
-    def _extract_email_from_message(self, message: str) -> Optional[str]:
+    def _extract_email_from_message(self, message: str) -> None | str:
         """Extract email address from the message"""
         import re
         
@@ -441,7 +440,7 @@ For test drive scheduling, the JSON should look like:
         
         return None
     
-    def _extract_car_interest_from_message(self, message: str) -> Optional[str]:
+    def _extract_car_interest_from_message(self, message: str) -> None | str:
         """Extract car interest from the message"""
         import re
         
@@ -464,7 +463,7 @@ For test drive scheduling, the JSON should look like:
         
         return None
     
-    def _extract_price_from_message(self, message: str) -> Optional[str]:
+    def _extract_price_from_message(self, message: str) -> None | str:
         """Extract price information from the message"""
         import re
         
@@ -493,7 +492,7 @@ For test drive scheduling, the JSON should look like:
         
         return None
     
-    def _extract_year_from_message(self, message: str) -> Optional[int]:
+    def _extract_year_from_message(self, message: str) -> None | int:
         """Extract year from the message"""
         import re
         
@@ -509,7 +508,7 @@ For test drive scheduling, the JSON should look like:
         
         return None
     
-    def _extract_make_from_message(self, message: str) -> Optional[str]:
+    def _extract_make_from_message(self, message: str) -> None | str:
         """Extract vehicle make from the message"""
         import re
         
@@ -526,7 +525,7 @@ For test drive scheduling, the JSON should look like:
         
         return None
     
-    def _extract_model_from_message(self, message: str) -> Optional[str]:
+    def _extract_model_from_message(self, message: str) -> None | str:
         """Extract vehicle model from the message"""
         import re
         
@@ -543,7 +542,7 @@ For test drive scheduling, the JSON should look like:
         
         return None
     
-    def _extract_mileage_from_message(self, message: str) -> Optional[int]:
+    def _extract_mileage_from_message(self, message: str) -> None | int:
         """Extract mileage from the message"""
         import re
         
@@ -565,7 +564,7 @@ For test drive scheduling, the JSON should look like:
         
         return None
     
-    def _extract_condition_from_message(self, message: str) -> Optional[str]:
+    def _extract_condition_from_message(self, message: str) -> None | str:
         """Extract vehicle condition from the message"""
         import re
         
@@ -601,7 +600,7 @@ For test drive scheduling, the JSON should look like:
             # Return as is if can't parse
             return phone.strip()
     
-    def _parse_price(self, price_str: str) -> Optional[str]:
+    def _parse_price(self, price_str: str) -> None | str:
         """Parse price string and return standardized format"""
         if not price_str:
             return None
@@ -624,7 +623,7 @@ For test drive scheduling, the JSON should look like:
         except ValueError:
             return clean_price
     
-    def _parse_mileage(self, mileage_str: str) -> Optional[int]:
+    def _parse_mileage(self, mileage_str: str) -> None | int:
         """Parse mileage string and return integer"""
         if not mileage_str:
             return None

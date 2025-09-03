@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict, Any
+from typing import List
 from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id
 from maqro_backend.schemas.conversation import MessageCreate, ConversationResponse
 from maqro_backend.schemas.lead import LeadResponse
@@ -15,7 +15,7 @@ from maqro_rag.db_retriever import DatabaseRAGRetriever
 from maqro_rag.prompt_builder import PromptBuilder, AgentConfig
 from maqro_rag.config import Config
 import logging
-import os
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

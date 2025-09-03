@@ -2,7 +2,7 @@
 Vonage SMS Service for sending and handling SMS messages
 """
 import httpx
-from typing import Dict, Any
+from typing import Any
 from ..core.config import settings
 from ..utils.phone_utils import normalize_phone_number
 import logging
@@ -23,7 +23,7 @@ class VonageSMSService:
         """Validate that all required Vonage credentials are available"""
         return all([self.api_key, self.api_secret, self.phone_number])
     
-    async def send_sms(self, to: str, message: str) -> Dict[str, Any]:
+    async def send_sms(self, to: str, message: str) -> dict[str, Any]:
         """
         Send SMS via Vonage API
         
@@ -86,7 +86,7 @@ class VonageSMSService:
             logger.error(f"Unexpected error sending SMS: {e}")
             return {"success": False, "error": "Internal error"}
     
-    def validate_webhook_signature(self, params: Dict[str, str], signature: str) -> bool:
+    def validate_webhook_signature(self, params: dict[str, str], signature: str) -> bool:
         """
         Validate Vonage webhook signature for security
         Note: Implement this based on Vonage webhook security requirements

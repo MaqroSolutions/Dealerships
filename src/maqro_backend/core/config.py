@@ -1,4 +1,3 @@
-import os 
 from pathlib import Path
 from typing import Optional
 from pydantic_settings import BaseSettings
@@ -32,7 +31,7 @@ class Settings(BaseSettings):
     rag_config_path: str = "config.yaml"
     rag_index_name: str = "vehicle_index"
 
-    title: str = "Maqro Dearlership API"
+    title: str = "Maqro Dealership API"
     version: str = "0.1.0"
     model_config = {
         "env_file": str(Path(__file__).parent.parent.parent.parent / ".env"),  # Look for .env in project root

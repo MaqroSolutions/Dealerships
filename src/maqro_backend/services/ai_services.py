@@ -7,9 +7,8 @@ This module contains all AI-related helper functions for:
 - Formatting responses for customers
 """
 
-from typing import Dict, Any, Tuple, Optional, List
+from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 import asyncio
 import re
 import logging
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 
-async def get_all_conversation_history(lead_id: int, db: AsyncSession) -> List[Dict]:
+async def get_all_conversation_history(lead_id: int, db: AsyncSession) -> list[dict]:
     """
     Get complete conversation history for a lead (no limits)
     
@@ -32,7 +31,7 @@ async def get_all_conversation_history(lead_id: int, db: AsyncSession) -> List[D
     conversations = [dict(row._mapping) for row in result.fetchall()]
     return conversations
 
-def get_last_customer_message(conversations: List[Dict]) -> str:
+def get_last_customer_message(conversations: list[dict]) -> str:
     """
     Extract the most recent customer message from conversation history
     
@@ -48,7 +47,7 @@ def get_last_customer_message(conversations: List[Dict]) -> str:
     return None
 
 
-def analyze_conversation_context(conversations: List[Dict]) -> Dict[str, Any]:
+def analyze_conversation_context(conversations: list[dict]) -> dict[str, Any]:
     """
     Analyze conversation context to understand customer intent and preferences
     
@@ -96,7 +95,7 @@ def analyze_conversation_context(conversations: List[Dict]) -> Dict[str, Any]:
     }
 
 
-def _detect_intent(messages: List[str]) -> str:
+def _detect_intent(messages: list[str]) -> str:
     """Detect customer intent from messages"""
     if not messages:
         return 'general_inquiry'
@@ -121,7 +120,7 @@ def _detect_intent(messages: List[str]) -> str:
     return 'general_inquiry'
 
 
-def _extract_preferences(messages: List[str]) -> Dict[str, Any]:
+def _extract_preferences(messages: list[str]) -> dict[str, Any]:
     """Extract customer preferences from messages"""
     preferences = {}
     
@@ -173,7 +172,7 @@ def _extract_preferences(messages: List[str]) -> Dict[str, Any]:
     return preferences
 
 
-def _detect_urgency(messages: List[str]) -> str:
+def _detect_urgency(messages: list[str]) -> str:
     """Detect urgency level from messages"""
     urgency_keywords = {
         'high': ['urgent', 'asap', 'quickly', 'immediately', 'today'],
@@ -189,7 +188,7 @@ def _detect_urgency(messages: List[str]) -> str:
     return 'medium'  # Default
 
 
-def _extract_budget_range(messages: List[str]) -> Optional[Tuple[float, float]]:
+def _extract_budget_range(messages: list[str]) -> None | tuple[float, float]:
     """Extract budget range from messages"""
     for message in messages:
         # Look for price patterns like "$20,000-$30,000" or "20k to 30k"
@@ -212,7 +211,7 @@ def _extract_budget_range(messages: List[str]) -> Optional[Tuple[float, float]]:
     return None
 
 
-def _detect_vehicle_type(messages: List[str]) -> Optional[str]:
+def _detect_vehicle_type(messages: list[str]) -> None | str:
     """Detect preferred vehicle type from messages"""
     vehicle_types = {
         'sedan': ['sedan', 'car', 'passenger'],
@@ -231,7 +230,7 @@ def _detect_vehicle_type(messages: List[str]) -> Optional[str]:
     return None
 
 
-def format_conversation_context(conversations: List[Dict], lead_name: Optional[str] = None) -> str:
+def format_conversation_context(conversations: list[dict], lead_name: None | str = None) -> str:
     """
     Format entire conversation history into a context string for AI processing
     
@@ -255,7 +254,7 @@ def format_conversation_context(conversations: List[Dict], lead_name: Optional[s
     return "\n".join(context_parts)
 
 
-def generate_ai_response_text(query: str, vehicles: List[Dict[str, Any]], customer_name: Optional[str] = None) -> str:
+def generate_ai_response_text(query: str, vehicles: list[dict[str, Any]], customer_name: None | str = None) -> str:
     """
     Generate AI response text from RAG search results
     
@@ -273,7 +272,7 @@ def generate_ai_response_text(query: str, vehicles: List[Dict[str, Any]], custom
     return _generate_match_response(query, vehicles, customer_name)
 
 
-def _generate_no_match_response(query: str, customer_name: Optional[str] = None) -> str:
+def _generate_no_match_response(query: str, customer_name: None | str = None) -> str:
     """Generate response when no vehicles match the query"""
     greeting = f"Hi {customer_name}! " if customer_name else "Hello! "
     
@@ -286,7 +285,7 @@ def _generate_no_match_response(query: str, customer_name: Optional[str] = None)
     )
 
 
-def _generate_match_response(query: str, vehicles: List[Dict[str, Any]], customer_name: Optional[str] = None) -> str:
+def _generate_match_response(query: str, vehicles: list[dict[str, Any]], customer_name: None | str = None) -> str:
     """Generate response when vehicles match the query"""
     greeting = f"Hi {customer_name}! " if customer_name else "Hello! "
     
@@ -324,11 +323,11 @@ def _generate_match_response(query: str, vehicles: List[Dict[str, Any]], custome
 
 
 async def generate_contextual_ai_response(
-    conversations: List[Dict], 
-    vehicles: List[Dict[str, Any]], 
-    lead_name: Optional[str] = None,
-    user_id: Optional[str] = None,
-    db: Optional[AsyncSession] = None
+    conversations: list[dict], 
+    vehicles: list[dict[str, Any]], 
+    lead_name: None | str = None,
+    user_id: None | str = None,
+    db: None | AsyncSession = None
 ) -> str:
     """
     Generate AI response considering full conversation context
@@ -458,7 +457,7 @@ async def generate_contextual_ai_response(
         return _generate_personalized_response(last_message, vehicles, lead_name, context_analysis)
 
 
-def _generate_welcome_response(lead_name: str, context_analysis: Dict[str, Any]) -> str:
+def _generate_welcome_response(lead_name: str, context_analysis: dict[str, Any]) -> str:
     """Generate welcome response for new conversations"""
     greeting = f"Hi {lead_name}! " if lead_name else "Hello! "
     
@@ -475,9 +474,9 @@ def _generate_welcome_response(lead_name: str, context_analysis: Dict[str, Any])
 
 def _generate_personalized_response(
     query: str, 
-    vehicles: List[Dict[str, Any]], 
+    vehicles: list[dict[str, Any]], 
     lead_name: str, 
-    context_analysis: Dict[str, Any]
+    context_analysis: dict[str, Any]
 ) -> str:
     """Generate personalized response based on conversation context"""
     
@@ -487,8 +486,8 @@ def _generate_personalized_response(
     
     # Customize response based on intent
     intent = context_analysis.get('intent', 'general_inquiry')
-    urgency = context_analysis.get('urgency', 'medium')
-    budget_range = context_analysis.get('budget_range')
+    # urgency = context_analysis.get('urgency', 'medium')
+    # budget_range = context_analysis.get('budget_range')
     
     greeting = f"Hi {lead_name}! " if lead_name else "Hello! "
     
@@ -505,7 +504,7 @@ def _generate_personalized_response(
         return _generate_general_response(greeting, vehicles, context_analysis)
 
 
-def _generate_test_drive_response(greeting: str, vehicles: List[Dict[str, Any]], context_analysis: Dict[str, Any]) -> str:
+def _generate_test_drive_response(greeting: str, vehicles: list[dict[str, Any]], context_analysis: dict[str, Any]) -> str:
     """Generate response focused on test drive scheduling"""
     response_parts = [
         f"{greeting}Great! I'd be happy to help you schedule a test drive. "
@@ -532,7 +531,7 @@ def _generate_test_drive_response(greeting: str, vehicles: List[Dict[str, Any]],
     return "\n".join(response_parts)
 
 
-def _generate_pricing_response(greeting: str, vehicles: List[Dict[str, Any]], context_analysis: Dict[str, Any]) -> str:
+def _generate_pricing_response(greeting: str, vehicles: list[dict[str, Any]], context_analysis: dict[str, Any]) -> str:
     """Generate response focused on pricing information"""
     response_parts = [
         f"{greeting}Here are the pricing details for vehicles that match your criteria:\n"
@@ -559,7 +558,7 @@ def _generate_pricing_response(greeting: str, vehicles: List[Dict[str, Any]], co
     return "\n".join(response_parts)
 
 
-def _generate_availability_response(greeting: str, vehicles: List[Dict[str, Any]], context_analysis: Dict[str, Any]) -> str:
+def _generate_availability_response(greeting: str, vehicles: list[dict[str, Any]], context_analysis: dict[str, Any]) -> str:
     """Generate response focused on vehicle availability"""
     response_parts = [
         f"{greeting}Great news! I found {len(vehicles)} vehicles that are currently available:\n"
@@ -585,7 +584,7 @@ def _generate_availability_response(greeting: str, vehicles: List[Dict[str, Any]
     return "\n".join(response_parts)
 
 
-def _generate_financing_response(greeting: str, vehicles: List[Dict[str, Any]], context_analysis: Dict[str, Any]) -> str:
+def _generate_financing_response(greeting: str, vehicles: list[dict[str, Any]], context_analysis: dict[str, Any]) -> str:
     """Generate response focused on financing options"""
     response_parts = [
         f"{greeting}I'd be happy to help you with financing options! "
@@ -613,7 +612,7 @@ def _generate_financing_response(greeting: str, vehicles: List[Dict[str, Any]], 
     return "\n".join(response_parts)
 
 
-def _generate_general_response(greeting: str, vehicles: List[Dict[str, Any]], context_analysis: Dict[str, Any]) -> str:
+def _generate_general_response(greeting: str, vehicles: list[dict[str, Any]], context_analysis: dict[str, Any]) -> str:
     """Generate general response for various inquiries"""
     response_parts = [
         f"{greeting}I found {len(vehicles)} vehicles that match your interests:\n"

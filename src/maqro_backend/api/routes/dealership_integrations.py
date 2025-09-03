@@ -3,10 +3,10 @@ Dealership Integration Management API routes
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict, Any
+from typing import List
 from pydantic import BaseModel
 
-from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id, require_dealership_manager
+from maqro_backend.api.deps import get_db_session, get_user_dealership_id, require_dealership_manager
 from maqro_backend.services.dealership_phone_mapping import dealership_phone_mapping_service
 import logging
 

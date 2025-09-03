@@ -3,15 +3,13 @@ User Profile API routes
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 
-from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id, require_dealership_manager
+from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id
 from maqro_backend.schemas.user_profile import (
     UserProfileCreate, 
     UserProfileResponse, 
     UserProfileUpdate,
     UserProfileWithRoleResponse,
-    UserProfileLegacyResponse
 )
 from maqro_backend.services.roles_service import RolesService
 from maqro_backend.schemas.roles import RoleResponse
@@ -181,7 +179,7 @@ async def get_my_profile_with_role(
     )
 
 
-@router.get("/user-profiles/dealership", response_model=List[UserProfileResponse])
+@router.get("/user-profiles/dealership", response_model=list[UserProfileResponse])
 async def get_dealership_user_profiles(
     db: AsyncSession = Depends(get_db_session),
     dealership_id: str = Depends(get_user_dealership_id),

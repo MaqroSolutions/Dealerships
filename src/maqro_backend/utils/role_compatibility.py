@@ -1,10 +1,10 @@
 """
 Role compatibility utilities for handling both old and new role systems
 """
-from typing import Optional
+
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import select
 from ..db.models import UserProfile, UserRole, Role
 
 
@@ -12,7 +12,7 @@ async def get_user_role_name(
     session: AsyncSession, 
     user_id: str, 
     dealership_id: str
-) -> Optional[str]:
+) -> None | str:
     """
     Get user's role name, compatible with both old and new role systems
     

@@ -10,7 +10,7 @@ import pandas as pd
 from io import BytesIO
 import re
 
-from maqro_backend.api.deps import get_db_session, get_current_user_id, get_optional_user_id, get_user_dealership_id, get_optional_user_dealership_id
+from maqro_backend.api.deps import get_db_session, get_user_dealership_id
 from maqro_backend.schemas.inventory import InventoryCreate, InventoryResponse, InventoryUpdate
 from maqro_backend.crud import (
     create_inventory_item,

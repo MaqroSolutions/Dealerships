@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 import pytz 
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from maqro_backend.crud import get_conversations_by_lead_id
 from maqro_backend.db.models import Lead
