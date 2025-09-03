@@ -125,16 +125,16 @@ export function PricingSection() {
 
       {/* Cal.com Calendar Modal */}
       {showCalEmbed && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm p-4">
-          <div className="max-w-5xl h-[600px] bg-gray-900 rounded-2xl border border-white/10 shadow-2xl overflow-hidden mx-auto mt-8">
-            {/* Close Button */}
-            <button
-              onClick={() => setShowCalEmbed(false)}
-              className="fixed top-6 right-6 z-60 text-white/80 hover:text-white transition-colors"
-              title="Close demo booking"
-            >
-              <X className="h-6 w-6" />
-            </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          {/* Simple Close Button - Top Right Corner */}
+          <button
+            onClick={() => setShowCalEmbed(false)}
+            className="fixed top-6 right-6 z-60 text-white/80 hover:text-white transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          
+          <div className="relative w-full max-w-5xl h-[600px] bg-gray-900 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
 
             {/* Loading State */}
             {isCalendarLoading && (
@@ -147,15 +147,17 @@ export function PricingSection() {
             )}
 
             {/* Calendar iframe */}
-            <iframe
-              src="https://cal.com/aryan-mundre?embed=true"
-              width="100%"
-              height="100%"
-              frameBorder="0"
-              onLoad={() => setIsCalendarLoading(false)}
-              title="Book a demo with Maqro"
-              className="bg-transparent"
-            />
+            <div className="h-full">
+              <iframe
+                src="https://cal.com/aryan-mundre?embed=true"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                className="bg-transparent"
+                title="Book a demo with Maqro"
+                onLoad={() => setIsCalendarLoading(false)}
+              />
+            </div>
           </div>
         </div>
       )}
