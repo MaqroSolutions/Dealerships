@@ -15,6 +15,8 @@ interface PricingTier {
   pricePerUnit: number;
   setupFee: number;
   label: string;
+  description: string;
+  productId: string;
 }
 
 interface StripeCheckoutProps {
@@ -31,31 +33,39 @@ export function StripeCheckout({ onSuccess, onError }: StripeCheckoutProps) {
   const pricingTiers: PricingTier[] = [
     {
       minQuantity: 1,
-      maxQuantity: 5,
-      pricePerUnit: 50.00,
-      setupFee: 500.00,
-      label: "1-5 Salespeople"
+      maxQuantity: 3,
+      pricePerUnit: 500.00,
+      setupFee: 0.00,
+      label: "Basic",
+      description: "1-3 Salespeople",
+      productId: "prod_Sz5IHIEbqcYsXs"
     },
     {
-      minQuantity: 6,
-      maxQuantity: 20,
-      pricePerUnit: 40.00,
-      setupFee: 500.00,
-      label: "6-20 Salespeople"
+      minQuantity: 4,
+      maxQuantity: 10,
+      pricePerUnit: 1000.00,
+      setupFee: 0.00,
+      label: "Premium",
+      description: "Up to 10 Salespeople",
+      productId: "prod_Sz5IjUXqN7W5e4"
     },
     {
-      minQuantity: 21,
-      maxQuantity: 50,
-      pricePerUnit: 30.00,
-      setupFee: 500.00,
-      label: "21-50 Salespeople"
-    },
-    {
-      minQuantity: 51,
+      minQuantity: 11,
       maxQuantity: null,
-      pricePerUnit: 25.00,
-      setupFee: 500.00,
-      label: "51+ Salespeople"
+      pricePerUnit: 1500.00,
+      setupFee: 0.00,
+      label: "Deluxe",
+      description: "10+ Salespeople",
+      productId: "prod_Sz5HxTV9UWI1mH"
+    },
+    {
+      minQuantity: 1,
+      maxQuantity: null,
+      pricePerUnit: 0.00,
+      setupFee: 0.00,
+      label: "Test Product",
+      description: "Free testing plan",
+      productId: "prod_Sz7Wz92o80HyIb"
     }
   ];
 
@@ -66,7 +76,7 @@ export function StripeCheckout({ onSuccess, onError }: StripeCheckoutProps) {
 
   // Calculate pricing for a specific tier and quantity
   const calculatePricing = (tier: PricingTier, qty: number) => {
-    const monthlyCost = qty * tier.pricePerUnit;
+    const monthlyCost = tier.pricePerUnit; // Fixed monthly rate
     const totalFirstMonth = monthlyCost + tier.setupFee;
     return { monthlyCost, totalFirstMonth };
   };
@@ -91,8 +101,9 @@ export function StripeCheckout({ onSuccess, onError }: StripeCheckoutProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          priceId: 'price_1S1yKyFVu6VsADxGxisd3PIN', // Use your existing price ID
+          priceId: tier.productId, // Use the product ID for this tier
           quantity: quantity,
+          dealershipId: 'd660c7d6-99e2-4fa8-b99b-d221def53d20', // TODO: Get from user context
           customPricing: {
             pricePerUnit: tier.pricePerUnit,
             setupFee: tier.setupFee,
@@ -184,27 +195,22 @@ export function StripeCheckout({ onSuccess, onError }: StripeCheckoutProps) {
                   <div
                     key={index}
                     className="group relative p-6 rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-800/50 to-gray-900/50 hover:border-blue-500/50 hover:scale-105 transition-all duration-500 cursor-pointer"
-                    onClick={() => handleCheckout(tier, tier.minQuantity)}
+                    onClick={() => handleCheckout(tier, 1)}
                   >
                     <div className="text-center">
                       <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-800 group-hover:from-blue-500 group-hover:to-purple-500 flex items-center justify-center transition-all duration-300">
                         <Users className="w-8 h-8 text-gray-400 group-hover:text-white transition-colors duration-300" />
                       </div>
-                      <h4 className="text-lg font-bold text-white mb-2">
+                      <h4 className="text-lg font-bold text-white mb-1">
                         {tier.label}
                       </h4>
+                      <p className="text-sm text-gray-400 mb-2">
+                        {tier.description}
+                      </p>
                       <p className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-1">
                         ${tier.pricePerUnit.toFixed(2)}
                       </p>
-                      <p className="text-sm text-gray-400 mb-3">per salesperson/month</p>
-                      <div className="px-3 py-1 rounded-full bg-gray-700/50 text-xs text-gray-300 mb-4">
-                        Setup: ${tier.setupFee.toFixed(2)}
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm text-gray-400 mb-1">Starting at</p>
-                        <p className="text-xl font-bold text-white">${totalFirstMonth.toFixed(2)}</p>
-                        <p className="text-xs text-gray-500">first month</p>
-                      </div>
+                      <p className="text-sm text-gray-400 mb-3">per month</p>
                     </div>
                     <Button
                       disabled={checkoutLoading === tier.label}
