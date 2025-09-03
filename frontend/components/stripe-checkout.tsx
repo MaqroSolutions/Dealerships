@@ -4,18 +4,17 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CreditCard, Check } from 'lucide-react';
+
+import { Loader2, CreditCard, Check, Users, Calculator } from 'lucide-react';
 import { getStripe, isStripeConfigured } from '@/lib/stripe';
 import { useToast } from '@/hooks/use-toast';
 
-interface StripePrice {
-  id: string;
-  amount: number | null;
-  currency: string;
-  interval?: string;
-  intervalCount?: number;
-  type: string;
-  nickname?: string;
+interface PricingTier {
+  minQuantity: number;
+  maxQuantity: number | null;
+  pricePerUnit: number;
+  setupFee: number;
+  label: string;
 }
 
 interface StripeCheckoutProps {
@@ -24,61 +23,81 @@ interface StripeCheckoutProps {
 }
 
 export function StripeCheckout({ onSuccess, onError }: StripeCheckoutProps) {
-  const [prices, setPrices] = useState<StripePrice[]>([]);
-  const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [configured, setConfigured] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const checkConfiguration = () => {
-      setConfigured(isStripeConfigured());
-    };
-
-    const fetchPrices = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/stripe/prices');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch pricing');
-        }
-
-        const data = await response.json();
-        setPrices(data.prices || []);
-      } catch (error: any) {
-        console.error('Error fetching prices:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load pricing information",
-          variant: "destructive",
-        });
-        onError?.(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkConfiguration();
-    if (isStripeConfigured()) {
-      fetchPrices();
-    } else {
-      setLoading(false);
+  // Define pricing tiers
+  const pricingTiers: PricingTier[] = [
+    {
+      minQuantity: 1,
+      maxQuantity: 5,
+      pricePerUnit: 50.00,
+      setupFee: 500.00,
+      label: "1-5 Salespeople"
+    },
+    {
+      minQuantity: 6,
+      maxQuantity: 20,
+      pricePerUnit: 40.00,
+      setupFee: 500.00,
+      label: "6-20 Salespeople"
+    },
+    {
+      minQuantity: 21,
+      maxQuantity: 50,
+      pricePerUnit: 30.00,
+      setupFee: 500.00,
+      label: "21-50 Salespeople"
+    },
+    {
+      minQuantity: 51,
+      maxQuantity: null,
+      pricePerUnit: 25.00,
+      setupFee: 500.00,
+      label: "51+ Salespeople"
     }
-  }, [toast, onError]);
+  ];
 
-  const handleCheckout = async (priceId: string) => {
+  // Check if Stripe is configured
+  useEffect(() => {
+    setConfigured(isStripeConfigured());
+  }, []);
+
+  // Calculate pricing for a specific tier and quantity
+  const calculatePricing = (tier: PricingTier, qty: number) => {
+    const monthlyCost = qty * tier.pricePerUnit;
+    const totalFirstMonth = monthlyCost + tier.setupFee;
+    return { monthlyCost, totalFirstMonth };
+  };
+
+  const handleCheckout = async (tier: PricingTier, quantity: number) => {
+    if (!configured) {
+      toast({
+        title: "Configuration Error",
+        description: "Stripe is not properly configured",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      setCheckoutLoading(priceId);
+      setCheckoutLoading(tier.label);
 
-      // Create checkout session
+      // Create checkout session with custom pricing
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          priceId,
+          priceId: 'price_1S1yKyFVu6VsADxGxisd3PIN', // Use your existing price ID
+          quantity: quantity,
+          customPricing: {
+            pricePerUnit: tier.pricePerUnit,
+            setupFee: tier.setupFee,
+            tier: tier.label
+          },
           successUrl: window.location.origin + '/admin/billing?success=true',
           cancelUrl: window.location.origin + '/admin/billing?canceled=true',
         }),
@@ -117,134 +136,99 @@ export function StripeCheckout({ onSuccess, onError }: StripeCheckoutProps) {
     }
   };
 
-  const formatPrice = (price: StripePrice) => {
-    if (price.amount === null) return 'Contact us';
-    
-    const amount = (price.amount / 100).toLocaleString('en-US', {
-      style: 'currency',
-      currency: price.currency.toUpperCase(),
-    });
-
-    if (price.type === 'recurring' && price.interval) {
-      const interval = price.intervalCount && price.intervalCount > 1 
-        ? `${price.intervalCount} ${price.interval}s`
-        : price.interval;
-      return `${amount}/${interval}`;
-    }
-
-    return amount;
-  };
-
   if (!configured) {
     return (
-      <Card className="bg-gray-900/70 border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-gray-100">Payment Integration</CardTitle>
-          <CardDescription className="text-gray-400">
-            Payment system is not configured
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <CreditCard className="mx-auto h-12 w-12 text-gray-500 mb-4" />
-            <p className="text-gray-400">
-              Stripe payment integration is not yet configured. Please contact your administrator.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (loading) {
-    return (
-      <Card className="bg-gray-900/70 border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-gray-100">Loading Pricing</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (prices.length === 0) {
-    return (
-      <Card className="bg-gray-900/70 border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-gray-100">No Pricing Available</CardTitle>
-          <CardDescription className="text-gray-400">
-            No pricing plans are currently configured
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-gray-400">
-              Please contact support for pricing information.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-orange-500/10 to-red-500/10 rounded-3xl blur-xl"></div>
+        <Card className="relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-red-500/30 backdrop-blur-xl">
+          <CardHeader className="text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+              <CreditCard className="w-10 h-10 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-white">Payment Integration</CardTitle>
+            <CardDescription className="text-gray-400 text-lg">
+              Payment system is not configured
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-gray-300 text-lg">
+                Stripe payment integration is not yet configured. Please contact your administrator.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="bg-gray-900/70 border-gray-800">
-      <CardHeader>
-        <CardTitle className="text-gray-100">Available Plans</CardTitle>
-        <CardDescription className="text-gray-400">
-          Choose a plan that works for you
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-4">
-          {prices.map((price) => (
-            <div
-              key={price.id}
-              className="flex items-center justify-between p-4 border border-gray-700 rounded-lg bg-gray-800/50"
-            >
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <CreditCard className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-100">
-                    {price.nickname || 'Professional Plan'}
-                  </h4>
-                  <p className="text-2xl font-bold text-blue-400">
-                    {formatPrice(price)}
-                  </p>
-                  {price.type === 'recurring' && (
-                    <Badge className="mt-1 bg-green-500/20 text-green-400 border-green-500/30">
-                      Subscription
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <Button
-                onClick={() => handleCheckout(price.id)}
-                disabled={checkoutLoading !== null}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {checkoutLoading === price.id ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Subscribe
-                  </>
-                )}
-              </Button>
+    <div className="space-y-8">
+      {/* Pricing Tiers */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 rounded-3xl blur-xl"></div>
+        <Card className="relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 backdrop-blur-xl">
+          <CardHeader className="text-center pb-8">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              Choose Your Plan
+            </CardTitle>
+            <CardDescription className="text-gray-400 text-lg">
+              Click on a plan to start your subscription
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {pricingTiers.map((tier, index) => {
+                const { monthlyCost, totalFirstMonth } = calculatePricing(tier, tier.minQuantity);
+                return (
+                  <div
+                    key={index}
+                    className="group relative p-6 rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-800/50 to-gray-900/50 hover:border-blue-500/50 hover:scale-105 transition-all duration-500 cursor-pointer"
+                    onClick={() => handleCheckout(tier, tier.minQuantity)}
+                  >
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-800 group-hover:from-blue-500 group-hover:to-purple-500 flex items-center justify-center transition-all duration-300">
+                        <Users className="w-8 h-8 text-gray-400 group-hover:text-white transition-colors duration-300" />
+                      </div>
+                      <h4 className="text-lg font-bold text-white mb-2">
+                        {tier.label}
+                      </h4>
+                      <p className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-1">
+                        ${tier.pricePerUnit.toFixed(2)}
+                      </p>
+                      <p className="text-sm text-gray-400 mb-3">per salesperson/month</p>
+                      <div className="px-3 py-1 rounded-full bg-gray-700/50 text-xs text-gray-300 mb-4">
+                        Setup: ${tier.setupFee.toFixed(2)}
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-gray-400 mb-1">Starting at</p>
+                        <p className="text-xl font-bold text-white">${totalFirstMonth.toFixed(2)}</p>
+                        <p className="text-xs text-gray-500">first month</p>
+                      </div>
+                    </div>
+                    <Button
+                      disabled={checkoutLoading === tier.label}
+                      className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
+                    >
+                      {checkoutLoading === tier.label ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4 mr-2" />
+                          Get Started
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

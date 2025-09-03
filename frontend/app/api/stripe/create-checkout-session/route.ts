@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { priceId, successUrl, cancelUrl } = await request.json();
+    const { priceId, successUrl, cancelUrl, quantity, customPricing } = await request.json();
 
     if (!priceId) {
       return NextResponse.json(
@@ -31,20 +31,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let lineItems: any[] = [];
+
+    if (customPricing) {
+      // Handle custom pricing with setup fee and recurring subscription
+      const { pricePerUnit, setupFee, tier } = customPricing;
+      const qty = quantity || 1;
+
+      // Create a one-time setup fee item
+      if (setupFee > 0) {
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: {
+                          name: `Setup Fee - ${tier}`,
+            description: `One-time setup fee for ${qty} salespeople`,
+            },
+            unit_amount: Math.round(setupFee * 100), // Convert to cents
+          },
+          quantity: 1,
+        });
+      }
+
+      // Create the recurring subscription item
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `Monthly Subscription - ${tier}`,
+            description: `Monthly subscription for ${qty} salespeople at $${pricePerUnit.toFixed(2)} per salesperson`,
+          },
+          recurring: {
+            interval: 'month',
+          },
+          unit_amount: Math.round(pricePerUnit * 100), // Convert to cents
+        },
+        quantity: qty,
+      });
+    } else {
+      // Fallback to original behavior
+      lineItems = [
+        {
+          price: priceId,
+          quantity: quantity || 1,
+        },
+      ];
+    }
+
     // Create Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription', // For recurring payments
+      line_items: lineItems,
+      mode: customPricing ? 'payment' : 'subscription', // Use payment mode for custom pricing
       success_url: successUrl || `${request.nextUrl.origin}/admin/billing?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl || `${request.nextUrl.origin}/admin/billing?canceled=true`,
       metadata: {
         product_id: process.env.STRIPE_PRODUCT_ID,
+        ...(customPricing && {
+          tier: customPricing.tier,
+          quantity: quantity,
+          price_per_unit: customPricing.pricePerUnit,
+          setup_fee: customPricing.setupFee,
+        }),
       },
     });
 
