@@ -12,6 +12,7 @@ import { getMyLeadById } from "@/lib/leads-api"
 import { getConversations, addMessage } from "@/lib/conversations-api"
 import { sendSMS } from "@/lib/sms-api"
 import type { Lead, Conversation } from "@/lib/supabase"
+import { PremiumSpinner } from "@/components/ui/premium-spinner"
 
 const statusColors = {
   new: "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -203,7 +204,7 @@ export default function ConversationDetail({ params }: { params: Promise<{ id: s
                           disabled={sending || !customMessage.trim()}
                           className="bg-blue-600 hover:bg-blue-700 text-white self-end"
                         >
-                          {sending ? <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Send className="w-4 h-4" />}
+                                                     {sending ? <PremiumSpinner size="sm" /> : <Send className="w-4 h-4" />}
                         </Button>
                       </div>
                       {sendSuccess && (
@@ -229,7 +230,7 @@ export default function ConversationDetail({ params }: { params: Promise<{ id: s
                           disabled={sendingSMS || !smsMessage.trim() || !leadData?.phone}
                           className="bg-green-600 hover:bg-green-700 text-white self-end"
                         >
-                          {sendingSMS ? <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Phone className="w-4 h-4" />}
+                                                     {sendingSMS ? <PremiumSpinner size="sm" /> : <Phone className="w-4 h-4" />}
                         </Button>
                       </div>
                       {smsSuccess && (

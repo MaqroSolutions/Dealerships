@@ -17,6 +17,7 @@ import { type Inventory } from '@/lib/supabase';
 import { INVENTORY_STATUS, UI } from '@/lib/constants';
 import { useToast } from '@/components/ui/use-toast';
 import { useUserRole } from '@/hooks/use-user-role';
+import { PremiumSpinner } from "@/components/ui/premium-spinner"
 
 export default function AdminInventoryPage() {
   const [inventory, setInventory] = useState<Inventory[]>([]);
@@ -390,9 +391,9 @@ export default function AdminInventoryPage() {
   if (loading) {
     return (
       <div className="space-y-8">
-        <div className="flex items-center justify-center h-64">
-          <div className={`animate-spin rounded-full border-b-2 border-blue-500 ${UI.LOADING_SPINNER_SIZE}`}></div>
-        </div>
+                  <div className="flex items-center justify-center h-64">
+            <PremiumSpinner size="lg" />
+          </div>
       </div>
     );
   }
@@ -481,7 +482,7 @@ export default function AdminInventoryPage() {
                      >
                        {isUploading ? (
                          <>
-                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                           <PremiumSpinner size="sm" />
                            Uploading...
                          </>
                        ) : (

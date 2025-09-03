@@ -13,6 +13,7 @@ import { inventoryApi, type InventoryRow, type InventoryUploadResult } from '@/l
 import { fileParser } from '@/lib/file-parser';
 import { FILE_UPLOAD } from '@/lib/constants';
 import { useToast } from '@/components/ui/use-toast';
+import { PremiumSpinner } from '@/components/ui/premium-spinner';
 
 export default function InventoryUploadPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -205,7 +206,7 @@ export default function InventoryUploadPage() {
               >
                 {isUploading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <PremiumSpinner size="sm" />
                     Uploading...
                   </>
                 ) : (

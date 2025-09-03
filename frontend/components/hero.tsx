@@ -1,6 +1,7 @@
 "use client"
 
-import { Sparkles, MessageSquare, TrendingUp, Users, ArrowRight, Play, X, Loader2 } from "lucide-react"
+import { ArrowRight, X, TrendingUp, Users, MessageSquare, Clock, CheckCircle, Sparkles } from "lucide-react"
+import { PremiumSpinner } from "./ui/premium-spinner"
 import { useState } from "react"
 
 export function Hero() {
@@ -170,17 +171,7 @@ export function Hero() {
             {/* Loading State */}
             {isCalendarLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-[#171717] z-10">
-                <div className="flex flex-col items-center justify-center">
-                  <div className="relative mb-6">
-                    {/* Outer ring with gradient */}
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 animate-pulse"></div>
-                    {/* Main spinner ring */}
-                    <div className="absolute inset-2 w-16 h-16 border-4 border-white/10 rounded-full"></div>
-                    {/* Animated spinner with gradient */}
-                    <div className="absolute inset-2 w-16 h-16 border-4 border-transparent border-t-blue-500 border-r-purple-500 rounded-full animate-spin"></div>
-                  </div>
-                  <p className="text-white text-sm font-medium tracking-wide">Loading calendar...</p>
-                </div>
+                <PremiumSpinner size="xl" text="Loading calendar..." />
               </div>
             )}
             

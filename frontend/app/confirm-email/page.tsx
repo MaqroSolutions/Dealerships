@@ -1,10 +1,13 @@
 "use client"
 
-import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { CheckCircle, Mail } from 'lucide-react'
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CheckCircle, AlertCircle, Mail, ArrowRight, Home } from "lucide-react"
+import Link from "next/link"
+import { PremiumSpinner } from "@/components/ui/premium-spinner"
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
@@ -64,11 +67,11 @@ export default function ConfirmEmailPage() {
                 variant="outline"
                 className="w-full border-gray-700 text-gray-300 hover:bg-gray-800"
               >
-                {isResending ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-                    Resending...
-                  </div>
+                                  {isResending ? (
+                    <div className="flex items-center gap-2">
+                      <PremiumSpinner size="sm" />
+                      Resending...
+                    </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4" />

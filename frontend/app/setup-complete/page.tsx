@@ -1,9 +1,14 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CheckCircle, ArrowRight, Home, Settings, Users, MessageSquare } from "lucide-react"
+import Link from "next/link"
+import { PremiumSpinner } from "@/components/ui/premium-spinner"
 import { supabase } from '@/lib/supabase'
-import { LoadingScreen } from '@/components/ui/loading-spinner'
 
 export default function SetupCompletePage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -119,7 +124,11 @@ export default function SetupCompletePage() {
   }, [router])
 
   if (status === 'loading') {
-    return <LoadingScreen />
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <PremiumSpinner size="xl" text="Loading..." />
+      </div>
+    )
   }
 
   return (

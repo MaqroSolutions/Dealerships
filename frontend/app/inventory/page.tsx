@@ -12,6 +12,7 @@ import { inventoryApi } from '@/lib/inventory-api';
 import { type Inventory } from '@/lib/supabase';
 import { INVENTORY_STATUS, UI } from '@/lib/constants';
 import { useToast } from '@/components/ui/use-toast';
+import { PremiumSpinner } from '@/components/ui/premium-spinner';
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<Inventory[]>([]);
@@ -80,9 +81,9 @@ export default function InventoryPage() {
   if (loading) {
     return (
       <div className="space-y-8">
-        <div className="flex items-center justify-center h-64">
-          <div className={`animate-spin rounded-full border-b-2 border-blue-500 ${UI.LOADING_SPINNER_SIZE}`}></div>
-        </div>
+                  <div className="flex items-center justify-center h-64">
+            <PremiumSpinner size="lg" />
+          </div>
       </div>
     );
   }

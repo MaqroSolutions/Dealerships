@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { ConditionalLayout } from './conditional-layout'
-import { LoadingScreen } from './ui/loading-spinner'
+import { PremiumSpinner } from './ui/premium-spinner'
 
 interface ConditionalLayoutWrapperProps {
   children: React.ReactNode
@@ -17,7 +17,11 @@ export function ConditionalLayoutWrapper({ children }: ConditionalLayoutWrapperP
 
   // Show loading screen during hydration to prevent mismatches
   if (!mounted) {
-    return <LoadingScreen />
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <PremiumSpinner size="xl" text="Loading..." />
+      </div>
+    )
   }
 
   return <ConditionalLayout>{children}</ConditionalLayout>

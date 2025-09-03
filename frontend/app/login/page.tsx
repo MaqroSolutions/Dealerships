@@ -1,14 +1,17 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { PremiumSpinner } from "@/components/ui/premium-spinner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 
@@ -138,11 +141,11 @@ export default function LoginPage() {
                 className="w-full bg-white text-gray-900 hover:opacity-90 rounded-full font-semibold"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Signing in...
-                  </div>
+                                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <PremiumSpinner size="sm" />
+                      Signing in...
+                    </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     Sign In

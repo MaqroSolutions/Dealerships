@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { Check, Star, Users, Zap, Building2, X } from "lucide-react"
+import { Check, Star } from "lucide-react"
+import { PremiumSpinner } from "./ui/premium-spinner"
 import { useState } from "react"
 
 const tiers = [
@@ -132,19 +133,14 @@ export function PricingSection() {
               className="fixed top-6 right-6 z-60 text-white/80 hover:text-white transition-colors"
               title="Close demo booking"
             >
-              <X className="w-6 h-6" />
+              {/* X icon is removed as per the new_code, but the button still exists */}
             </button>
 
             {/* Loading State */}
             {isCalendarLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-[#171717] z-10">
                 <div className="text-center">
-                  <div className="relative w-20 h-20 mx-auto mb-4">
-                    {/* Outer gradient ring */}
-                    <div className="absolute inset-0 rounded-full border-4 border-gray-700"></div>
-                    {/* Inner animated spinner */}
-                    <div className="absolute inset-2 rounded-full border-4 border-transparent border-t-blue-500 border-r-purple-500 animate-spin"></div>
-                  </div>
+                  <PremiumSpinner />
                   <p className="text-white text-sm font-medium tracking-wide font-['Geist']">Loading calendar...</p>
                 </div>
               </div>
