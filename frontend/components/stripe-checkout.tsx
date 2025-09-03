@@ -94,6 +94,7 @@ export function StripeCheckout({ onSuccess, onError }: StripeCheckoutProps) {
         body: JSON.stringify({
           priceId: tier.productId, // Use the product ID for this tier
           quantity: quantity,
+          dealershipId: 'd660c7d6-99e2-4fa8-b99b-d221def53d20', // TODO: Get from user context
           customPricing: {
             pricePerUnit: tier.pricePerUnit,
             setupFee: tier.setupFee,

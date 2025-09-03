@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { priceId, successUrl, cancelUrl, quantity, customPricing } = await request.json();
+    const { priceId, successUrl, cancelUrl, quantity, customPricing, dealershipId } = await request.json();
 
     if (!priceId) {
       return NextResponse.json(
@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
       success_url: successUrl || `${request.nextUrl.origin}/admin/billing?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl || `${request.nextUrl.origin}/admin/billing?canceled=true`,
       metadata: {
-        product_id: process.env.STRIPE_PRODUCT_ID,
+        product_id: priceId,
+        dealership_id: dealershipId,
         ...(customPricing && {
           tier: customPricing.tier,
           quantity: quantity,
