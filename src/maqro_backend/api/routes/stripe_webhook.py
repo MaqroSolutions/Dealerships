@@ -12,13 +12,13 @@ from ...db.models import Dealership, SubscriptionPlan, DealershipSubscription, S
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/stripe", tags=["stripe"])
+router = APIRouter(tags=["stripe"])
 
 # Initialize Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
-@router.post("/webhook")
+@router.post("/api/stripe/webhook")
 async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Handle Stripe webhook events for subscription tracking
