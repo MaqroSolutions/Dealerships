@@ -18,7 +18,7 @@ router = APIRouter(tags=["stripe"])
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
-@router.post("/api/stripe/webhook")
+@router.post("/stripe/webhook")
 async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Handle Stripe webhook events for subscription tracking
