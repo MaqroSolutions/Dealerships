@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any
 
-from ...db.session import get_db_session
+from ...db.session import get_db
 from ...db.models import Dealership, SubscriptionPlan, DealershipSubscription, SubscriptionEvent
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 @router.post("/webhook")
-async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db_session)):
+async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Handle Stripe webhook events for subscription tracking
     """
