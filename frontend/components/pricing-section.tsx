@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Check, Star } from "lucide-react"
+import { Check, Star, X } from "lucide-react"
 import { PremiumSpinner } from "./ui/premium-spinner"
 import { useState } from "react"
 
@@ -133,7 +133,7 @@ export function PricingSection() {
               className="fixed top-6 right-6 z-60 text-white/80 hover:text-white transition-colors"
               title="Close demo booking"
             >
-              {/* X icon is removed as per the new_code, but the button still exists */}
+              <X className="h-6 w-6" />
             </button>
 
             {/* Loading State */}
