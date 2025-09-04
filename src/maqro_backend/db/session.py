@@ -2,6 +2,7 @@
 Database session management with connection pooling for scalability
 """
 import os
+import ssl
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from loguru import logger
@@ -20,7 +21,7 @@ def _normalize_database_url(url: str) -> str:
 
     - Convert postgres:// to postgresql://
     - Ensure driver is asyncpg: postgresql+asyncpg://
-    - Add sslmode=require if not present and host is not localhost
+    - Do not inject sslmode for asyncpg; use connect_args instead
     """
     if not url:
         return "postgresql+asyncpg://user:password@localhost/dbname"
@@ -38,15 +39,8 @@ def _normalize_database_url(url: str) -> str:
     elif scheme == "postgres":
         scheme = "postgresql+asyncpg"
 
-    # Query params
+    # Query params (preserve existing; don't add sslmode for asyncpg)
     query_params = dict(parse_qsl(parsed.query))
-
-    hostname = parsed.hostname or ""
-    is_local = hostname in {"localhost", "127.0.0.1"} or hostname.endswith(".local")
-
-    # Enforce SSL for non-local databases if not explicitly set
-    if not is_local and "sslmode" not in query_params:
-        query_params["sslmode"] = "require"
 
     normalized = urlunparse(
         (
@@ -62,9 +56,18 @@ def _normalize_database_url(url: str) -> str:
 
 
 DATABASE_URL = _normalize_database_url(RAW_DATABASE_URL)
+parsed_url = urlparse(DATABASE_URL)
+hostname = parsed_url.hostname or ""
+is_local = hostname in {"localhost", "127.0.0.1"} or hostname.endswith(".local")
 logger.info(f"Using DATABASE_URL (async): {DATABASE_URL.split('@')[-1]}")
+logger.info(f"DB SSL required: {'no' if is_local else 'yes'}")
 
 # Connection pooling configuration for scalability
+connect_args = {}
+if not is_local:
+    # asyncpg expects an SSL context or True via the 'ssl' argument
+    connect_args = {"ssl": ssl.create_default_context()}
+
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,  # Set to True for SQL debugging
@@ -73,6 +76,7 @@ engine = create_async_engine(
     pool_pre_ping=True,  # Validate connections before use
     pool_recycle=3600,  # Recycle connections every hour
     pool_timeout=30,  # Timeout for getting connection from pool
+    connect_args=connect_args,
 )
 
 # Session factory with connection pooling
@@ -109,7 +113,8 @@ async def check_db_health() -> bool:
     """Check if database is accessible."""
     try:
         async with AsyncSessionLocal() as session:
-            result = await session.execute("SELECT 1")
+            from sqlalchemy import text
+            result = await session.execute(text("SELECT 1"))
             result.fetchone()
         return True
     except Exception as e:
