@@ -65,7 +65,8 @@ logger.info(f"DB SSL required: {'no' if is_local else 'yes'}")
 # Connection pooling configuration for scalability
 connect_args = {}
 if not is_local:
-    # Build a strict SSL context. Try certifi bundle if available for wider CA support
+    # Build SSL context. Try certifi bundle if available for wider CA support
+    allow_self_signed = os.getenv("DB_SSL_ALLOW_SELF_SIGNED", "false").lower() in {"1", "true", "yes"}
     ssl_context = None
     try:
         import certifi  # type: ignore
@@ -74,8 +75,15 @@ if not is_local:
     except Exception:
         ssl_context = ssl.create_default_context()
         logger.info("Using system CA bundle for DB SSL verification")
-    ssl_context.check_hostname = True
-    ssl_context.verify_mode = ssl.CERT_REQUIRED
+
+    if allow_self_signed:
+        logger.warning("DB SSL verification relaxed: allowing self-signed certificates (DB_SSL_ALLOW_SELF_SIGNED=true)")
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+    else:
+        ssl_context.check_hostname = True
+        ssl_context.verify_mode = ssl.CERT_REQUIRED
+
     connect_args = {"ssl": ssl_context}
 
 engine = create_async_engine(
