@@ -19,6 +19,16 @@ router = APIRouter(tags=["stripe"])
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
+
+def _ts_to_dt(value: Any) -> datetime | None:
+    """Convert a unix timestamp (seconds) to datetime, or return None when missing."""
+    try:
+        if value is None:
+            return None
+        return datetime.fromtimestamp(int(value))
+    except Exception:
+        return None
+
 @router.post("/stripe/webhook")
 async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     """
@@ -192,11 +202,11 @@ async def handle_subscription_created(subscription: Dict[str, Any], db: AsyncSes
             """
         ),
         {
-            "stripe_id": subscription['id'],
-            "customer_id": subscription['customer'],
-            "status": subscription['status'],
-            "period_start": datetime.fromtimestamp(subscription['current_period_start']),
-            "period_end": datetime.fromtimestamp(subscription['current_period_end']),
+            "stripe_id": subscription.get('id'),
+            "customer_id": subscription.get('customer'),
+            "status": subscription.get('status'),
+            "period_start": _ts_to_dt(subscription.get('current_period_start')),
+            "period_end": _ts_to_dt(subscription.get('current_period_end')),
         }
     )
     await db.commit()
@@ -215,11 +225,11 @@ async def handle_subscription_updated(subscription: Dict[str, Any], db: AsyncSes
             """
         ),
         {
-            "stripe_id": subscription['id'],
-            "status": subscription['status'],
-            "period_start": datetime.fromtimestamp(subscription['current_period_start']),
-            "period_end": datetime.fromtimestamp(subscription['current_period_end']),
-            "canceled_at": datetime.fromtimestamp(subscription['canceled_at']) if subscription.get('canceled_at') else None,
+            "stripe_id": subscription.get('id'),
+            "status": subscription.get('status'),
+            "period_start": _ts_to_dt(subscription.get('current_period_start')),
+            "period_end": _ts_to_dt(subscription.get('current_period_end')),
+            "canceled_at": _ts_to_dt(subscription.get('canceled_at')),
         }
     )
     await db.commit()
