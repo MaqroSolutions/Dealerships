@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any
 
 from ...db.session import get_db
+from sqlalchemy import text
 from ...db.models import Dealership, SubscriptionPlan, DealershipSubscription, SubscriptionEvent
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         # Test database connection
         try:
-            await db.execute("SELECT 1")
+            await db.execute(text("SELECT 1"))
         except Exception as db_error:
             logger.error(f"Database connection failed: {db_error}")
             raise HTTPException(status_code=500, detail="Database connection failed")
@@ -108,7 +109,7 @@ async def handle_checkout_session_completed(session: Dict[str, Any], db: AsyncSe
     # Get the subscription plan
     try:
         plan = await db.execute(
-            "SELECT * FROM subscription_plans WHERE stripe_product_id = :product_id",
+            text("SELECT * FROM subscription_plans WHERE stripe_product_id = :product_id"),
             {"product_id": product_id}
         )
         plan = plan.fetchone()
@@ -134,29 +135,33 @@ async def handle_checkout_session_completed(session: Dict[str, Any], db: AsyncSe
     }
     
     result = await db.execute(
-        """
-        INSERT INTO dealership_subscriptions 
-        (dealership_id, subscription_plan_id, stripe_subscription_id, stripe_customer_id, status, current_period_start, current_period_end)
-        VALUES (:dealership_id, :subscription_plan_id, :stripe_subscription_id, :stripe_customer_id, :status, :current_period_start, :current_period_end)
-        RETURNING id
-        """,
+        text(
+            """
+            INSERT INTO dealership_subscriptions 
+            (dealership_id, subscription_plan_id, stripe_subscription_id, stripe_customer_id, status, current_period_start, current_period_end)
+            VALUES (:dealership_id, :subscription_plan_id, :stripe_subscription_id, :stripe_customer_id, :status, :current_period_start, :current_period_end)
+            RETURNING id
+            """
+        ),
         subscription_data
     )
     subscription_id = result.fetchone()[0]
     
     # Update dealership with current subscription
     await db.execute(
-        "UPDATE dealerships SET current_subscription_id = :subscription_id WHERE id = :dealership_id",
+        text("UPDATE dealerships SET current_subscription_id = :subscription_id WHERE id = :dealership_id"),
         {"subscription_id": subscription_id, "dealership_id": dealership_id}
     )
     
     # Log the event
     await db.execute(
-        """
-        INSERT INTO subscription_events 
-        (dealership_subscription_id, event_type, stripe_event_id, event_data)
-        VALUES (:subscription_id, :event_type, :stripe_event_id, :event_data)
-        """,
+        text(
+            """
+            INSERT INTO subscription_events 
+            (dealership_subscription_id, event_type, stripe_event_id, event_data)
+            VALUES (:subscription_id, :event_type, :stripe_event_id, :event_data)
+            """
+        ),
         {
             "subscription_id": subscription_id,
             "event_type": "created",
@@ -178,12 +183,14 @@ async def handle_subscription_created(subscription: Dict[str, Any], db: AsyncSes
     logger.info(f"Processing subscription created: {subscription['id']}")
     
     await db.execute(
-        """
-        UPDATE dealership_subscriptions 
-        SET stripe_subscription_id = :stripe_id, stripe_customer_id = :customer_id, 
-            status = :status, current_period_start = :period_start, current_period_end = :period_end
-        WHERE stripe_subscription_id = :stripe_id
-        """,
+        text(
+            """
+            UPDATE dealership_subscriptions 
+            SET stripe_subscription_id = :stripe_id, stripe_customer_id = :customer_id, 
+                status = :status, current_period_start = :period_start, current_period_end = :period_end
+            WHERE stripe_subscription_id = :stripe_id
+            """
+        ),
         {
             "stripe_id": subscription['id'],
             "customer_id": subscription['customer'],
@@ -199,12 +206,14 @@ async def handle_subscription_updated(subscription: Dict[str, Any], db: AsyncSes
     logger.info(f"Processing subscription updated: {subscription['id']}")
     
     await db.execute(
-        """
-        UPDATE dealership_subscriptions 
-        SET status = :status, current_period_start = :period_start, current_period_end = :period_end,
-            canceled_at = :canceled_at
-        WHERE stripe_subscription_id = :stripe_id
-        """,
+        text(
+            """
+            UPDATE dealership_subscriptions 
+            SET status = :status, current_period_start = :period_start, current_period_end = :period_end,
+                canceled_at = :canceled_at
+            WHERE stripe_subscription_id = :stripe_id
+            """
+        ),
         {
             "stripe_id": subscription['id'],
             "status": subscription['status'],
@@ -220,11 +229,13 @@ async def handle_subscription_deleted(subscription: Dict[str, Any], db: AsyncSes
     logger.info(f"Processing subscription deleted: {subscription['id']}")
     
     await db.execute(
-        """
-        UPDATE dealership_subscriptions 
-        SET status = 'canceled', canceled_at = :canceled_at
-        WHERE stripe_subscription_id = :stripe_id
-        """,
+        text(
+            """
+            UPDATE dealership_subscriptions 
+            SET status = 'canceled', canceled_at = :canceled_at
+            WHERE stripe_subscription_id = :stripe_id
+            """
+        ),
         {
             "stripe_id": subscription['id'],
             "canceled_at": datetime.now(),
@@ -241,18 +252,20 @@ async def handle_payment_succeeded(invoice: Dict[str, Any], db: AsyncSession):
     
     # Log the event
     result = await db.execute(
-        "SELECT id FROM dealership_subscriptions WHERE stripe_subscription_id = :stripe_id",
+        text("SELECT id FROM dealership_subscriptions WHERE stripe_subscription_id = :stripe_id"),
         {"stripe_id": invoice['subscription']}
     )
     subscription = result.fetchone()
     
     if subscription:
         await db.execute(
-            """
-            INSERT INTO subscription_events 
-            (dealership_subscription_id, event_type, stripe_event_id, event_data)
-            VALUES (:subscription_id, :event_type, :stripe_event_id, :event_data)
-            """,
+            text(
+                """
+                INSERT INTO subscription_events 
+                (dealership_subscription_id, event_type, stripe_event_id, event_data)
+                VALUES (:subscription_id, :event_type, :stripe_event_id, :event_data)
+                """
+            ),
             {
                 "subscription_id": subscription[0],
                 "event_type": "payment_succeeded",
@@ -274,24 +287,26 @@ async def handle_payment_failed(invoice: Dict[str, Any], db: AsyncSession):
     
     # Update subscription status
     await db.execute(
-        "UPDATE dealership_subscriptions SET status = 'past_due' WHERE stripe_subscription_id = :stripe_id",
+        text("UPDATE dealership_subscriptions SET status = 'past_due' WHERE stripe_subscription_id = :stripe_id"),
         {"stripe_id": invoice['subscription']}
     )
     
     # Log the event
     result = await db.execute(
-        "SELECT id FROM dealership_subscriptions WHERE stripe_subscription_id = :stripe_id",
+        text("SELECT id FROM dealership_subscriptions WHERE stripe_subscription_id = :stripe_id"),
         {"stripe_id": invoice['subscription']}
     )
     subscription = result.fetchone()
     
     if subscription:
         await db.execute(
-            """
-            INSERT INTO subscription_events 
-            (dealership_subscription_id, event_type, stripe_event_id, event_data)
-            VALUES (:subscription_id, :event_type, :stripe_event_id, :event_data)
-            """,
+            text(
+                """
+                INSERT INTO subscription_events 
+                (dealership_subscription_id, event_type, stripe_event_id, event_data)
+                VALUES (:subscription_id, :event_type, :stripe_event_id, :event_data)
+                """
+            ),
             {
                 "subscription_id": subscription[0],
                 "event_type": "payment_failed",
