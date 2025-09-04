@@ -26,3 +26,4 @@ slowapi>=0.1.9
 supabase>=2.0.0
 pydantic[email]>=2.0.0
 stripe>=7.0.0
+certifi>=2024.2.2

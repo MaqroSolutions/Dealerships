@@ -65,8 +65,18 @@ logger.info(f"DB SSL required: {'no' if is_local else 'yes'}")
 # Connection pooling configuration for scalability
 connect_args = {}
 if not is_local:
-    # asyncpg expects an SSL context or True via the 'ssl' argument
-    connect_args = {"ssl": ssl.create_default_context()}
+    # Build a strict SSL context. Try certifi bundle if available for wider CA support
+    ssl_context = None
+    try:
+        import certifi  # type: ignore
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        logger.info("Using certifi CA bundle for DB SSL verification")
+    except Exception:
+        ssl_context = ssl.create_default_context()
+        logger.info("Using system CA bundle for DB SSL verification")
+    ssl_context.check_hostname = True
+    ssl_context.verify_mode = ssl.CERT_REQUIRED
+    connect_args = {"ssl": ssl_context}
 
 engine = create_async_engine(
     DATABASE_URL,
