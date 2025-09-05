@@ -1,11 +1,31 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { StripeCheckout } from "@/components/stripe-checkout"
+import { getAuthenticatedApi } from "@/lib/api-client"
 
 import "@/styles/modern-billing.css"
 
 function BillingContent() {
+  const [loading, setLoading] = useState(true)
+  const [current, setCurrent] = useState<any>(null)
+  const [plans, setPlans] = useState<any[]>([])
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const api = await getAuthenticatedApi()
+        const sub = await api.get<{ subscription: any }>("/billing/subscription/current")
+        const available = await api.get<{ plans: any[] }>("/billing/plans")
+        setCurrent(sub.subscription)
+        setPlans(available.plans)
+      } catch (e) {
+        console.error("Failed to load billing data", e)
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       {/* Hero Section */}
@@ -29,9 +49,38 @@ function BillingContent() {
 
 
 
+      {/* Current Plan */}
+      <div className="px-6 sm:px-8 lg:px-12 pb-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="rounded-xl border border-gray-700 bg-gray-800/60 p-4 text-gray-200">
+            {loading ? (
+              <div>Loading current plan…</div>
+            ) : current ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-gray-400">Current plan</div>
+                  <div className="text-xl font-semibold">{current.plan?.name} · ${(current.plan?.monthly_price_cents/100).toFixed(2)}/mo</div>
+                  <div className="text-xs text-gray-400">Status: {current.status}</div>
+                </div>
+                <a href="#plans" className="text-blue-400 hover:underline">Change plan</a>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-gray-400">Current plan</div>
+                  <div className="text-xl font-semibold">No active subscription</div>
+                </div>
+                <a href="#plans" className="text-blue-400 hover:underline">Choose a plan</a>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Pricing Section */}
       <div className="px-6 sm:px-8 lg:px-12 pb-16">
         <div className="max-w-6xl mx-auto">
+          <div id="plans" className="mb-6 text-gray-300">Select a plan to upgrade or downgrade.</div>
           <StripeCheckout
             onSuccess={() => {
               console.log('Payment successful!');
