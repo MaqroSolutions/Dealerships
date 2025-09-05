@@ -65,22 +65,67 @@ logger.info(f"DB SSL required: {'no' if is_local else 'yes'}")
 # Connection pooling configuration for scalability
 connect_args = {}
 if not is_local:
-    # Build SSL context. Try certifi bundle if available for wider CA support
+    # Build SSL context. Try multiple CA bundle locations
     allow_self_signed = os.getenv("DB_SSL_ALLOW_SELF_SIGNED", "false").lower() in {"1", "true", "yes"}
     ssl_context = None
-    try:
-        import certifi  # type: ignore
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-        logger.info("Using certifi CA bundle for DB SSL verification")
-    except Exception:
-        ssl_context = ssl.create_default_context()
-        logger.info("Using system CA bundle for DB SSL verification")
-
+    
     if allow_self_signed:
         logger.warning("DB SSL verification relaxed: allowing self-signed certificates (DB_SSL_ALLOW_SELF_SIGNED=true)")
+        ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
     else:
+        # Try multiple CA bundle locations in order of preference
+        ca_bundle_paths = []
+        
+        # 1. Try certifi first (most reliable)
+        try:
+            import certifi  # type: ignore
+            ca_bundle_paths.append(certifi.where())
+            logger.info(f"Found certifi CA bundle: {certifi.where()}")
+        except Exception as e:
+            logger.debug(f"certifi not available: {e}")
+        
+        # 2. Try common system locations
+        system_paths = [
+            "/etc/ssl/certs/ca-certificates.crt",  # Debian/Ubuntu
+            "/etc/ssl/certs/ca-bundle.crt",        # CentOS/RHEL
+            "/etc/pki/tls/certs/ca-bundle.crt",    # CentOS/RHEL
+            "/usr/local/share/ca-certificates/ca-certificates.crt",  # Some systems
+        ]
+        
+        for path in system_paths:
+            if os.path.exists(path):
+                ca_bundle_paths.append(path)
+                logger.info(f"Found system CA bundle: {path}")
+        
+        # 3. Try environment variables
+        env_ca_paths = [
+            os.getenv("SSL_CERT_FILE"),
+            os.getenv("REQUESTS_CA_BUNDLE"),
+            os.getenv("CURL_CA_BUNDLE"),
+        ]
+        
+        for path in env_ca_paths:
+            if path and os.path.exists(path):
+                ca_bundle_paths.append(path)
+                logger.info(f"Found CA bundle from env: {path}")
+        
+        # Create SSL context with best available CA bundle
+        ssl_context = ssl.create_default_context()
+        
+        if ca_bundle_paths:
+            # Use the first available CA bundle
+            ca_file = ca_bundle_paths[0]
+            try:
+                ssl_context.load_verify_locations(ca_file)
+                logger.info(f"Using CA bundle: {ca_file}")
+            except Exception as e:
+                logger.warning(f"Failed to load CA bundle {ca_file}: {e}")
+                logger.info("Falling back to system default CA bundle")
+        else:
+            logger.warning("No CA bundles found, using system default (may fail)")
+        
         ssl_context.check_hostname = True
         ssl_context.verify_mode = ssl.CERT_REQUIRED
 
