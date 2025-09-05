@@ -33,18 +33,17 @@ export async function POST(request: NextRequest) {
 
     let lineItems: any[] = [];
 
-        if (customPricing) {
-      // Handle custom pricing with setup fee included in first month
+    if (customPricing) {
+      // Handle custom pricing for subscription mode
       const { pricePerUnit, setupFee, tier } = customPricing;
       const qty = quantity || 1;
-
-      // Create the recurring subscription with setup fee included in first month
+      // Create the recurring subscription item
       lineItems.push({
         price_data: {
           currency: 'usd',
           product_data: {
             name: `Subscription - ${tier}`,
-            description: `Monthly subscription for ${qty} salespeople`,
+            description: `Monthly subscription for ${tier}`,
           },
           recurring: {
             interval: 'month',
@@ -67,7 +66,7 @@ export async function POST(request: NextRequest) {
     const sessionConfig: any = {
       payment_method_types: ['card'],
       line_items: lineItems,
-      mode: 'subscription',
+      mode: 'subscription', // Always use subscription mode for recurring billing
       success_url: successUrl || `${request.nextUrl.origin}/admin/billing?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl || `${request.nextUrl.origin}/admin/billing?canceled=true`,
       metadata: {

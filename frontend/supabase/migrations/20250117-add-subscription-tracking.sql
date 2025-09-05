@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.subscription_plans (
   updated_at timestamp with time zone DEFAULT now()
 );
 
--- Insert the three subscription plans
+-- Insert the subscription plans
 INSERT INTO public.subscription_plans (stripe_product_id, name, description, monthly_price_cents, max_salespeople) VALUES
   ('prod_Sz5IHIEbqcYsXs', 'Basic', '1-3 Salespeople', 50000, 3),
   ('prod_Sz5IjUXqN7W5e4', 'Premium', 'Up to 10 Salespeople', 100000, 10),
