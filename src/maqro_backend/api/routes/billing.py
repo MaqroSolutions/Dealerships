@@ -4,8 +4,14 @@ from sqlalchemy import text
 from typing import Any, Dict
 
 from maqro_backend.api.deps import get_db_session, get_user_dealership_id
+import stripe
+import os
+from datetime import datetime
 
 router = APIRouter()
+
+# Initialize Stripe
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 
 @router.get("/billing/subscription/current")
@@ -72,5 +78,72 @@ async def list_plans(db: AsyncSession = Depends(get_db_session)) -> Dict[str, An
         for r in rows
     ]
     return {"plans": plans}
+
+
+@router.post("/billing/subscription/cancel")
+async def cancel_current_subscription(
+    db: AsyncSession = Depends(get_db_session),
+    dealership_id: str = Depends(get_user_dealership_id),
+    immediate: bool = False,
+) -> Dict[str, Any]:
+    """Cancel the current dealership subscription.
+
+    - If immediate is False (default), set cancel_at_period_end in Stripe.
+    - If immediate is True, cancel immediately in Stripe and mark canceled in DB.
+    """
+    if not stripe.api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+
+    # Fetch current subscription row with Stripe subscription id
+    q = text(
+        """
+        SELECT ds.id as subscription_id,
+               ds.stripe_subscription_id
+        FROM dealerships d
+        LEFT JOIN dealership_subscriptions ds ON d.current_subscription_id = ds.id
+        WHERE d.id = :dealership_id
+        """
+    )
+    res = await db.execute(q, {"dealership_id": dealership_id})
+    row = res.fetchone()
+    if not row or not row.stripe_subscription_id:
+        raise HTTPException(status_code=404, detail="No active subscription to cancel")
+
+    stripe_sub_id = row.stripe_subscription_id
+
+    try:
+        if immediate:
+            # Cancel immediately
+            stripe.Subscription.delete(stripe_sub_id)
+            await db.execute(
+                text(
+                    """
+                    UPDATE dealership_subscriptions
+                    SET status = 'canceled', canceled_at = :now
+                    WHERE id = :id
+                    """
+                ),
+                {"id": row.subscription_id, "now": datetime.utcnow()},
+            )
+        else:
+            # Cancel at period end
+            stripe.Subscription.modify(stripe_sub_id, cancel_at_period_end=True)
+            await db.execute(
+                text(
+                    """
+                    UPDATE dealership_subscriptions
+                    SET status = 'canceled'
+                    WHERE id = :id
+                    """
+                ),
+                {"id": row.subscription_id},
+            )
+
+        await db.commit()
+        return {"ok": True}
+
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Stripe cancel failed: {e}")
 
 

@@ -10,6 +10,7 @@ function BillingContent() {
   const [loading, setLoading] = useState(true)
   const [current, setCurrent] = useState<any>(null)
   const [plans, setPlans] = useState<any[]>([])
+  const [canceling, setCanceling] = useState<"soft" | "hard" | null>(null)
 
   useEffect(() => {
     (async () => {
@@ -26,6 +27,41 @@ function BillingContent() {
       }
     })()
   }, [])
+  const refresh = async () => {
+    try {
+      const api = await getAuthenticatedApi()
+      const sub = await api.get<{ subscription: any }>("/billing/subscription/current")
+      setCurrent(sub.subscription)
+    } catch (e) {
+      console.error("Failed to refresh subscription", e)
+    }
+  }
+
+  const cancelAtPeriodEnd = async () => {
+    try {
+      setCanceling("soft")
+      const api = await getAuthenticatedApi()
+      await api.post("/billing/subscription/cancel?immediate=false", {})
+      await refresh()
+    } catch (e) {
+      console.error("Cancel (period end) failed", e)
+    } finally {
+      setCanceling(null)
+    }
+  }
+
+  const cancelImmediately = async () => {
+    try {
+      setCanceling("hard")
+      const api = await getAuthenticatedApi()
+      await api.post("/billing/subscription/cancel?immediate=true", {})
+      await refresh()
+    } catch (e) {
+      console.error("Immediate cancel failed", e)
+    } finally {
+      setCanceling(null)
+    }
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       {/* Hero Section */}
@@ -56,13 +92,32 @@ function BillingContent() {
             {loading ? (
               <div>Loading current plan…</div>
             ) : current ? (
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="text-sm text-gray-400">Current plan</div>
                   <div className="text-xl font-semibold">{current.plan?.name} · ${(current.plan?.monthly_price_cents/100).toFixed(2)}/mo</div>
                   <div className="text-xs text-gray-400">Status: {current.status}</div>
                 </div>
-                <a href="#plans" className="text-blue-400 hover:underline">Change plan</a>
+                <div className="flex items-center gap-3">
+                  <a href="#plans" className="text-blue-400 hover:underline">Change plan</a>
+                  <div className="h-4 w-px bg-gray-700 hidden sm:block" />
+                  <button
+                    onClick={cancelAtPeriodEnd}
+                    disabled={canceling !== null}
+                    className="px-3 py-1.5 rounded-md border border-yellow-600/40 text-yellow-300 hover:bg-yellow-600/10 disabled:opacity-50"
+                    title="Cancel at period end"
+                  >
+                    {canceling === "soft" ? "Cancelling…" : "Cancel at period end"}
+                  </button>
+                  <button
+                    onClick={cancelImmediately}
+                    disabled={canceling !== null}
+                    className="px-3 py-1.5 rounded-md border border-red-600/40 text-red-300 hover:bg-red-600/10 disabled:opacity-50"
+                    title="Cancel immediately"
+                  >
+                    {canceling === "hard" ? "Cancelling…" : "Cancel now"}
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center justify-between">
