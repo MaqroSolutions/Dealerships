@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     whatsapp_app_secret: Optional[str] = None
     whatsapp_api_version: str = "v21.0"
 
+    # Telnyx SMS Configuration
+    telnyx_api_key: Optional[str] = None
+    telnyx_phone_number: Optional[str] = None
+    telnyx_messaging_profile_id: Optional[str] = None
+    telnyx_webhook_secret: Optional[str] = None
+
     # Resend Email Configuration
     resend_api_key: str
 
