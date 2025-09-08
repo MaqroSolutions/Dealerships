@@ -1,60 +1,185 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.engine import URL
+"""
+Database session management with connection pooling for scalability
+"""
 import os
 import ssl
+from typing import AsyncGenerator
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from loguru import logger
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
-# Supabase Direct Connection Configuration (Following Official Guidance)
-DB_USER = os.getenv("SUPABASE_USER")
-DB_PASSWORD = os.getenv("SUPABASE_PASSWORD") 
-DB_HOST = os.getenv("SUPABASE_HOST")
-DB_NAME = os.getenv("SUPABASE_DBNAME", "postgres")
+# Database configuration
+# Prefer SUPABASE_DB_URL if provided, otherwise fallback to DATABASE_URL
+RAW_DATABASE_URL = (
+    os.getenv("SUPABASE_DB_URL")
+    or os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost/dbname")
+)
 
-# Use DATABASE_URL if provided, otherwise construct direct connection URL
-DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not DATABASE_URL and all([DB_USER, DB_PASSWORD, DB_HOST]):
-    # Create URL using SQLAlchemy's URL.create for proper SSL handling
-    database_url = URL.create(
-        "postgresql+asyncpg",
-        username=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=5432,                # Direct connection port (not pgbouncer 6543)
-        database=DB_NAME,
-        query={"ssl": "true"},    # asyncpg SSL configuration
+def _normalize_database_url(url: str) -> str:
+    """Normalize DATABASE_URL to async format and enforce SSL in production.
+
+    - Convert postgres:// to postgresql://
+    - Ensure driver is asyncpg: postgresql+asyncpg://
+    - Do not inject sslmode for asyncpg; use connect_args instead
+    """
+    if not url:
+        return "postgresql+asyncpg://user:password@localhost/dbname"
+
+    # Handle legacy scheme used by some providers
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+
+    parsed = urlparse(url)
+
+    # Ensure asyncpg driver
+    scheme = parsed.scheme
+    if scheme == "postgresql":
+        scheme = "postgresql+asyncpg"
+    elif scheme == "postgres":
+        scheme = "postgresql+asyncpg"
+
+    # Query params (preserve existing; don't add sslmode for asyncpg)
+    query_params = dict(parse_qsl(parsed.query))
+
+    normalized = urlunparse(
+        (
+            scheme,
+            parsed.netloc,
+            parsed.path,
+            parsed.params,
+            urlencode(query_params),
+            parsed.fragment,
+        )
     )
-    DATABASE_URL = str(database_url)
+    return normalized
 
-if not DATABASE_URL:
-    raise ValueError("Database connection URL is not set. Please set DATABASE_URL or individual SUPABASE_* variables.")
 
-# Optimized engine configuration for direct Supabase connection
+DATABASE_URL = _normalize_database_url(RAW_DATABASE_URL)
+parsed_url = urlparse(DATABASE_URL)
+hostname = parsed_url.hostname or ""
+is_local = hostname in {"localhost", "127.0.0.1"} or hostname.endswith(".local")
+logger.info(f"Using DATABASE_URL (async): {DATABASE_URL.split('@')[-1]}")
+logger.info(f"DB SSL required: {'no' if is_local else 'yes'}")
+
+# Connection pooling configuration for scalability
+connect_args = {}
+if not is_local:
+    # Build SSL context. Try multiple CA bundle locations
+    allow_self_signed = os.getenv("DB_SSL_ALLOW_SELF_SIGNED", "false").lower() in {"1", "true", "yes"}
+    ssl_context = None
+    
+    if allow_self_signed:
+        logger.warning("DB SSL verification relaxed: allowing self-signed certificates (DB_SSL_ALLOW_SELF_SIGNED=true)")
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+    else:
+        # Try multiple CA bundle locations in order of preference
+        ca_bundle_paths = []
+        
+        # 1. Try certifi first (most reliable)
+        try:
+            import certifi  # type: ignore
+            ca_bundle_paths.append(certifi.where())
+            logger.info(f"Found certifi CA bundle: {certifi.where()}")
+        except Exception as e:
+            logger.debug(f"certifi not available: {e}")
+        
+        # 2. Try common system locations
+        system_paths = [
+            "/etc/ssl/certs/ca-certificates.crt",  # Debian/Ubuntu
+            "/etc/ssl/certs/ca-bundle.crt",        # CentOS/RHEL
+            "/etc/pki/tls/certs/ca-bundle.crt",    # CentOS/RHEL
+            "/usr/local/share/ca-certificates/ca-certificates.crt",  # Some systems
+        ]
+        
+        for path in system_paths:
+            if os.path.exists(path):
+                ca_bundle_paths.append(path)
+                logger.info(f"Found system CA bundle: {path}")
+        
+        # 3. Try environment variables
+        env_ca_paths = [
+            os.getenv("SSL_CERT_FILE"),
+            os.getenv("REQUESTS_CA_BUNDLE"),
+            os.getenv("CURL_CA_BUNDLE"),
+        ]
+        
+        for path in env_ca_paths:
+            if path and os.path.exists(path):
+                ca_bundle_paths.append(path)
+                logger.info(f"Found CA bundle from env: {path}")
+        
+        # Create SSL context with best available CA bundle
+        ssl_context = ssl.create_default_context()
+        
+        if ca_bundle_paths:
+            # Use the first available CA bundle
+            ca_file = ca_bundle_paths[0]
+            try:
+                ssl_context.load_verify_locations(ca_file)
+                logger.info(f"Using CA bundle: {ca_file}")
+            except Exception as e:
+                logger.warning(f"Failed to load CA bundle {ca_file}: {e}")
+                logger.info("Falling back to system default CA bundle")
+        else:
+            logger.warning("No CA bundles found, using system default (may fail)")
+        
+        ssl_context.check_hostname = True
+        ssl_context.verify_mode = ssl.CERT_REQUIRED
+
+    connect_args = {"ssl": ssl_context}
+
 engine = create_async_engine(
     DATABASE_URL,
-    pool_size=5,            # Tune for your process count
-    max_overflow=10,        # Additional connections during peaks
-    pool_pre_ping=True,     # Health check connections
-    pool_recycle=1800,      # 30 min recycle
-    pool_timeout=30,        # Connection acquisition timeout
-    execution_options={
-        "compiled_cache": {},
-    },
-    connect_args={
-        # RE-ENABLE prepared statement cache (safe with direct connection)
-        "statement_cache_size": 1000,
-        "command_timeout": 30,
-        "server_settings": {
-            "application_name": "maqro_backend_direct",
-        }
-    },
+    echo=False,  # Set to True for SQL debugging
+    pool_size=20,  # Number of connections to maintain
+    max_overflow=30,  # Additional connections when pool is full
+    pool_pre_ping=True,  # Validate connections before use
+    pool_recycle=3600,  # Recycle connections every hour
+    pool_timeout=30,  # Timeout for getting connection from pool
+    connect_args=connect_args,
 )
-SessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+# Session factory with connection pooling
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,  # Prevent expired object access issues
+    autocommit=False,
+    autoflush=False,
+)
 
 
-async def get_db():
-    async with SessionLocal() as session:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Get database session with proper connection management."""
+    async with AsyncSessionLocal() as session:
         try:
             yield session
+        except Exception as e:
+            logger.error(f"Database session error: {e}")
+            await session.rollback()
+            raise
         finally:
             await session.close()
+
+
+async def close_db_connections():
+    """Close all database connections (for graceful shutdown)."""
+    await engine.dispose()
+    logger.info("Database connections closed")
+
+
+# Health check function
+async def check_db_health() -> bool:
+    """Check if database is accessible."""
+    try:
+        async with AsyncSessionLocal() as session:
+            from sqlalchemy import text
+            result = await session.execute(text("SELECT 1"))
+            result.fetchone()
+        return True
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        return False

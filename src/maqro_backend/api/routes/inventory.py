@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 import pandas as pd
 from io import BytesIO
+import re
 
 from maqro_backend.api.deps import get_db_session, get_current_user_id, get_optional_user_id, get_user_dealership_id, get_optional_user_dealership_id
 from maqro_backend.schemas.inventory import InventoryCreate, InventoryResponse, InventoryUpdate
@@ -19,6 +20,7 @@ from maqro_backend.crud import (
     get_inventory_count,
     ensure_embeddings_for_dealership
 )
+from maqro_backend.services.background_tasks import queue_embedding_task
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -44,6 +46,16 @@ async def create_inventory(
     """
     logger.info(f"Creating inventory item: {inventory_data.make} {inventory_data.model} for dealership: {dealership_id}")
     
+    # Validate stock number format if provided
+    if inventory_data.stock_number:
+        stock_number = inventory_data.stock_number.strip().upper()
+        if not re.match(r'^[A-Z0-9\-]{1,32}$', stock_number):
+            raise HTTPException(
+                status_code=400, 
+                detail="Stock number must be 1-32 characters, containing only letters, numbers, and hyphens"
+            )
+        inventory_data.stock_number = stock_number
+    
     # Convert InventoryCreate to dict for CRUD function
     inventory_dict = inventory_data.model_dump()
     
@@ -53,16 +65,13 @@ async def create_inventory(
         dealership_id=dealership_id
     )
     
-    # Auto-generate embedding for this new inventory item
+    # Queue embedding generation for background processing
     try:
-        logger.info(f"🧠 Generating embedding for new inventory item: {inventory.make} {inventory.model}")
-        embedding_result = await ensure_embeddings_for_dealership(
-            session=db,
-            dealership_id=dealership_id
-        )
-        logger.info(f"✅ Generated {embedding_result.get('built_count', 0)} embeddings")
+        logger.info(f"🧠 Queuing embedding generation for new inventory item: {inventory.make} {inventory.model}")
+        # Use a more robust background task approach
+        await queue_embedding_task(inventory.id, dealership_id)
     except Exception as e:
-        logger.warning(f"⚠️ Failed to generate embedding (creation still successful): {e}")
+        logger.warning(f"⚠️ Failed to queue embedding generation: {e}")
     
     return InventoryResponse(
         id=str(inventory.id),
@@ -73,6 +82,8 @@ async def create_inventory(
         mileage=inventory.mileage,
         description=inventory.description,
         features=inventory.features,
+        condition=inventory.condition,
+        stock_number=inventory.stock_number,
         dealership_id=str(inventory.dealership_id),
         status=inventory.status,
         created_at=inventory.created_at,
@@ -110,6 +121,8 @@ async def get_dealership_inventory(
             mileage=item.mileage,
             description=item.description,
             features=item.features,
+            condition=item.condition,
+            stock_number=item.stock_number,
             dealership_id=str(item.dealership_id),
             status=item.status,
             created_at=item.created_at,
@@ -150,6 +163,8 @@ async def get_inventory_item(
         mileage=inventory.mileage,
         description=inventory.description,
         features=inventory.features,
+        condition=inventory.condition,
+        stock_number=inventory.stock_number,
         dealership_id=str(inventory.dealership_id),
         status=inventory.status,
         created_at=inventory.created_at,
@@ -178,6 +193,16 @@ async def update_inventory_item(
     if str(inventory.dealership_id) != dealership_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
+    # Validate stock number format if provided
+    if inventory_update.stock_number:
+        stock_number = inventory_update.stock_number.strip().upper()
+        if not re.match(r'^[A-Z0-9\-]{1,32}$', stock_number):
+            raise HTTPException(
+                status_code=400, 
+                detail="Stock number must be 1-32 characters, containing only letters, numbers, and hyphens"
+            )
+        inventory_update.stock_number = stock_number
+    
     # Update fields that are provided
     update_data = inventory_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -186,16 +211,13 @@ async def update_inventory_item(
     await db.commit()
     await db.refresh(inventory)
     
-    # Auto-refresh embedding for the updated inventory item
+    # Queue embedding refresh for background processing
     try:
-        logger.info(f"🧠 Refreshing embedding for updated inventory item: {inventory.make} {inventory.model}")
-        embedding_result = await ensure_embeddings_for_dealership(
-            session=db,
-            dealership_id=dealership_id
-        )
-        logger.info(f"✅ Generated {embedding_result.get('built_count', 0)} embeddings")
+        logger.info(f"🧠 Queuing embedding refresh for updated inventory item: {inventory.make} {inventory.model}")
+        # Use a more robust background task approach
+        await queue_embedding_task(inventory.id, dealership_id)
     except Exception as e:
-        logger.warning(f"⚠️ Failed to refresh embedding (update still successful): {e}")
+        logger.warning(f"⚠️ Failed to queue embedding refresh: {e}")
     
     return InventoryResponse(
         id=str(inventory.id),
@@ -206,6 +228,8 @@ async def update_inventory_item(
         mileage=inventory.mileage,
         description=inventory.description,
         features=inventory.features,
+        condition=inventory.condition,
+        stock_number=inventory.stock_number,
         dealership_id=str(inventory.dealership_id),
         status=inventory.status,
         created_at=inventory.created_at,

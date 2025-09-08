@@ -14,6 +14,7 @@ class InventoryBase(BaseModel):
     description: str | None = None
     features: str | None = None
     condition: str | None = None
+    stock_number: str | None = None
 
 
 class InventoryCreate(InventoryBase):
@@ -31,6 +32,7 @@ class InventoryUpdate(BaseModel):
     description: str | None = None
     features: str | None = None
     condition: str | None = None
+    stock_number: str | None = None
     status: str | None = None
 
 
@@ -45,6 +47,7 @@ class InventoryResponse(BaseModel):
     description: str | None = None
     features: str | None = None
     condition: str | None = None
+    stock_number: str | None = None
     dealership_id: str = Field(..., description="Dealership UUID as string")
     status: str
     created_at: datetime

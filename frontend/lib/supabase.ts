@@ -42,6 +42,7 @@ export type Inventory = {
   description?: string;
   features?: string;
   condition?: string;
+  stock_number?: string;
   dealership_id: string; // Foreign key to auth.users
   status: 'active' | 'sold' | 'pending';
 };

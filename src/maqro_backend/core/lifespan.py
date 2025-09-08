@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
-from maqro_rag import Config, VehicleRetriever, EnhancedRAGService
+from maqro_rag import Config, EnhancedRAGService
 from maqro_rag.db_retriever import DatabaseRAGRetriever
 from maqro_backend.core.config import settings
 from maqro_backend.services.ai_services import analyze_conversation_context
@@ -12,7 +12,6 @@ from maqro_backend.crud import ensure_embeddings_for_dealership, get_rag_stats
 
 
 # Global variables to store RAG components
-retriever = None
 db_retriever = None
 enhanced_rag_service = None
 
@@ -24,7 +23,7 @@ async def lifespan(app: FastAPI):
     - Shutdown: Cleanup (if needed)
     """
 
-    global retriever, db_retriever, enhanced_rag_service
+    global db_retriever, enhanced_rag_service
     logger.info("Starting up Maqro API with Database RAG...")
     
     # 1. Load RAG configuration
@@ -33,18 +32,6 @@ async def lifespan(app: FastAPI):
     # 2. Initialize database RAG retriever (no file dependencies)
     db_retriever = DatabaseRAGRetriever(config)
     logger.info("Database RAG retriever initialized")
-    
-    # 3. Keep legacy retriever for backward compatibility (if needed)
-    retriever = VehicleRetriever(config) 
-    
-    # Try to load legacy index if it exists (fallback)
-    index_path = settings.rag_index_name
-    if os.path.exists(f"{index_path}.faiss") and os.path.exists(f"{index_path}.metadata"):
-        try:
-            retriever.load_index(index_path)
-            logger.info("Legacy FAISS index loaded as fallback")
-        except Exception as e:
-            logger.warning(f"Could not load legacy index: {e}")
     
     # 4. Initialize Enhanced RAG service with database retriever
     enhanced_rag_service = EnhancedRAGService(
@@ -85,11 +72,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down...")
 
 
-def get_retriever() -> VehicleRetriever:
-    """Dependency to get the legacy RAG retriever (fallback)"""
-    if retriever is None:
-        raise RuntimeError("Legacy RAG system not initialized")
-    return retriever
+
 
 def get_db_retriever() -> DatabaseRAGRetriever:
     """Dependency to get the database RAG retriever"""

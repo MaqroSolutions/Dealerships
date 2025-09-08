@@ -18,6 +18,7 @@ from ...core.lifespan import get_db_retriever
 from ...services.whatsapp_service import whatsapp_service
 from ...services.salesperson_sms_service import salesperson_sms_service
 from ...services.message_flow_service import message_flow_service
+from ...services.dealership_phone_mapping import dealership_phone_mapping_service
 from ...crud import (
     get_lead_by_phone, 
     create_lead, 
@@ -134,15 +135,24 @@ async def whatsapp_webhook(
         normalized_phone = whatsapp_service.normalize_phone_number(from_phone)
         logger.info(f"Processing message from {normalized_phone}: {message_text}")
         
-        # Use specific dealership ID for testing
-        default_dealership_id = "d660c7d6-99e2-4fa8-b99b-d221def53d20"
+        # Determine which dealership this phone number belongs to
+        dealership_id = await dealership_phone_mapping_service.get_dealership_for_phone(
+            session=db,
+            phone_number=normalized_phone
+        )
+        
+        if not dealership_id:
+            logger.error(f"Could not determine dealership for phone {normalized_phone}")
+            return {"status": "error", "message": "Unable to determine dealership for this phone number"}
+        
+        logger.info(f"Determined dealership {dealership_id} for phone {normalized_phone}")
         
         # Use the new message flow service to handle the incoming message
         result = await message_flow_service.process_incoming_message(
             session=db,
             from_phone=normalized_phone,
             message_text=message_text,
-            dealership_id=default_dealership_id,
+            dealership_id=dealership_id,
             enhanced_rag_service=enhanced_rag_service,
             message_source="whatsapp"
         )

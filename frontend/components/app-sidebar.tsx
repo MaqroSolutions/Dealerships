@@ -43,7 +43,7 @@ const adminItems = [
   },
   {
     title: "Settings",
-    url: "/admin/settings",
+    url: "/settings",
     icon: Settings,
   },
 ]

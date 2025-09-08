@@ -141,6 +141,7 @@ class Inventory(Base):
     description = Column(Text)
     features = Column(Text)
     condition = Column(Text)  # Physical condition of the vehicle (excellent, good, fair, poor, etc.)
+    stock_number = Column(Text)  # Stock number for vehicle identification
     dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), nullable=False)
     status = Column(Text, default="active")  # 'active', 'sold', 'pending'
 
@@ -176,6 +177,7 @@ class Dealership(Base):
     name = Column(Text, nullable=False)
     location = Column(Text)
     integration_config = Column(JSON, default={})
+    current_subscription_id = Column(UUID(as_uuid=True), ForeignKey("dealership_subscriptions.id"))
 
     # Relationships
     user_profiles = relationship("UserProfile", back_populates="dealership")
@@ -185,6 +187,7 @@ class Dealership(Base):
     user_roles = relationship("UserRole", back_populates="dealership")
     dealership_settings = relationship("DealershipSetting", back_populates="dealership")
     invites = relationship("Invite", back_populates="dealership")
+    dealership_subscriptions = relationship("DealershipSubscription", back_populates="dealership")
 
 
 class PendingApproval(Base):
@@ -226,3 +229,57 @@ class Invite(Base):
 
     # Relationships
     dealership = relationship("Dealership", back_populates="invites")
+
+
+class SubscriptionPlan(Base):
+    """Subscription plan model for Stripe products"""
+    __tablename__ = "subscription_plans"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    stripe_product_id = Column(Text, nullable=False, unique=True)
+    name = Column(Text, nullable=False)  # 'Basic', 'Premium', 'Deluxe'
+    description = Column(Text)
+    monthly_price_cents = Column(Integer, nullable=False)  # Price in cents
+    max_salespeople = Column(Integer)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    dealership_subscriptions = relationship("DealershipSubscription", back_populates="subscription_plan")
+
+
+class DealershipSubscription(Base):
+    """Dealership subscription model for tracking active subscriptions"""
+    __tablename__ = "dealership_subscriptions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), nullable=False)
+    subscription_plan_id = Column(UUID(as_uuid=True), ForeignKey("subscription_plans.id"), nullable=False)
+    stripe_subscription_id = Column(Text, unique=True)
+    stripe_customer_id = Column(Text)
+    status = Column(Text, nullable=False, default="active")  # 'active', 'canceled', 'past_due', 'unpaid', 'incomplete'
+    current_period_start = Column(DateTime(timezone=True))
+    current_period_end = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    canceled_at = Column(DateTime(timezone=True))
+
+    # Relationships
+    dealership = relationship("Dealership", back_populates="dealership_subscriptions")
+    subscription_plan = relationship("SubscriptionPlan", back_populates="dealership_subscriptions")
+    subscription_events = relationship("SubscriptionEvent", back_populates="dealership_subscription")
+
+
+class SubscriptionEvent(Base):
+    """Subscription event model for tracking all subscription changes"""
+    __tablename__ = "subscription_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    dealership_subscription_id = Column(UUID(as_uuid=True), ForeignKey("dealership_subscriptions.id"), nullable=False)
+    event_type = Column(Text, nullable=False)  # 'created', 'updated', 'canceled', 'renewed', 'payment_failed', etc.
+    stripe_event_id = Column(Text, unique=True)
+    event_data = Column(JSON)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    dealership_subscription = relationship("DealershipSubscription", back_populates="subscription_events")

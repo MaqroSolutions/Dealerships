@@ -15,6 +15,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { RoleBasedAuthAPI, UserRole } from "@/lib/auth/role-based-auth"
+import { PremiumSpinner } from "@/components/ui/premium-spinner"
 
 type SignupStep = 'role-selection' | 'admin-form' | 'salesperson-form'
 
@@ -346,7 +347,7 @@ export function SignupFlow() {
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <PremiumSpinner size="sm" />
                       {loadingText}
                     </div>
                   ) : (

@@ -15,6 +15,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
+import { PremiumSpinner } from "@/components/ui/premium-spinner"
 
 type SignupFlow = 'role-selection' | 'dealership-signup' | 'sales-signup' | 'confirm-email'
 
@@ -439,14 +440,14 @@ export function DualSignupFlow() {
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-white text-gray-900 hover:opacity-90 rounded-full font-semibold"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Creating dealership...
-                  </div>
+                                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <PremiumSpinner size="sm" />
+                      Creating dealership...
+                    </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     Create Dealership
@@ -604,14 +605,14 @@ export function DualSignupFlow() {
 
               <Button
                 type="submit"
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                className="w-full bg-white text-gray-900 hover:opacity-90 rounded-full font-semibold"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Creating account...
-                  </div>
+                                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <PremiumSpinner size="sm" />
+                      Creating account...
+                    </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     Create Account

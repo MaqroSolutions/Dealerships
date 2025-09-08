@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE IF NOT EXISTS vehicle_embeddings (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     inventory_id uuid NOT NULL REFERENCES inventory(id) ON DELETE CASCADE,
-    embedding vector(1536), -- OpenAI ada-002 embedding size (1536 dimensions)
+    embedding vector(1536), -- OpenAI text-embedding-3-small embedding size (1536 dimensions)
     formatted_text text NOT NULL, -- The text that was embedded for debugging
     dealership_id uuid NOT NULL REFERENCES dealerships(id), -- For fast filtering
     created_at timestamp with time zone DEFAULT now(),

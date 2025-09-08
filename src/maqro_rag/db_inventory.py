@@ -48,6 +48,7 @@ class DatabaseInventoryProcessor:
                         'description': inventory_item.description or '',
                         'features': inventory_item.features or '',
                         'condition': inventory_item.condition or '',
+                        'stock_number': inventory_item.stock_number or '',
                         'status': inventory_item.status or 'active',
                         # Default values for fields not in database
                         'color': '',
@@ -79,7 +80,8 @@ class DatabaseInventoryProcessor:
                         'model': vehicle.model,
                         'price': vehicle.price,
                         'features': vehicle.features,
-                        'description': vehicle.description
+                        'description': vehicle.description,
+                        'stock_number': vehicle.stock_number
                     }
                     metadata.append(meta)
                     

@@ -29,9 +29,9 @@ services:
       - key: EMBEDDING_PROVIDER
         value: openai
       - key: EMBEDDING_MODEL
-        value: text-embedding-ada-002
+        value: text-embedding-3-small
       - key: VECTOR_STORE_TYPE
-        value: faiss
+        value: pgvector
       - key: TOP_K
         value: "3"
       - key: SIMILARITY_THRESHOLD

@@ -8,12 +8,9 @@ from typing import List, Optional
 import numpy as np
 from loguru import logger
 
-# Load environment variables
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+# Environment variables should be loaded by the main application
+# Don't load .env here to avoid conflicts
+pass
 
 try:
     import openai
@@ -43,7 +40,7 @@ class EmbeddingProvider(ABC):
 
 
 class OpenAIEmbeddingProvider(EmbeddingProvider):
-    """OpenAI embedding provider using text-embedding-ada-002."""
+    """OpenAI embedding provider using text-embedding-3-small."""
     
     def __init__(self, config: Config):
         """Initialize OpenAI embedding provider."""

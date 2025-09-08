@@ -40,8 +40,8 @@ Make sure your repository contains:
 
 **Application Configuration:**
 - `EMBEDDING_PROVIDER` - Set to "openai" (default)
-- `EMBEDDING_MODEL` - Set to "text-embedding-ada-002" (default)
-- `VECTOR_STORE_TYPE` - Set to "faiss" (default)
+- `EMBEDDING_MODEL` - Set to "text-embedding-3-small" (default)
+- `VECTOR_STORE_TYPE` - Set to "pgvector" (default)
 - `TOP_K` - Set to "3" (default)
 - `SIMILARITY_THRESHOLD` - Set to "0.7" (default)
 - `LOG_LEVEL` - Set to "INFO" (default)
@@ -106,8 +106,8 @@ After deployment, your API will be available at:
 | `OPENAI_API_KEY` | OpenAI API key | Yes | - |
 | `COHERE_API_KEY` | Cohere API key | No | - |
 | `EMBEDDING_PROVIDER` | Embedding provider | No | openai |
-| `EMBEDDING_MODEL` | Embedding model | No | text-embedding-ada-002 |
-| `VECTOR_STORE_TYPE` | Vector store type | No | faiss |
+| `EMBEDDING_MODEL` | Embedding model | No | text-embedding-3-small |
+| `VECTOR_STORE_TYPE` | Vector store type | No | pgvector |
 | `TOP_K` | Number of results to return | No | 3 |
 | `SIMILARITY_THRESHOLD` | Similarity threshold | No | 0.7 |
 | `LOG_LEVEL` | Logging level | No | INFO |

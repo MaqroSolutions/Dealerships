@@ -4,7 +4,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 import pytz
-from maqro_rag import VehicleRetriever, EnhancedRAGService
+from maqro_rag import EnhancedRAGService
 from maqro_backend.api.deps import get_db_session, get_enhanced_rag_services, get_current_user_id
 from maqro_backend.schemas.ai import AIResponseRequest, GeneralAIRequest
 from maqro_backend.crud import (
@@ -68,9 +68,11 @@ async def generate_conversation_ai_response(
             raise HTTPException(status_code=400, detail="No customer message found to respond to")
         
         # Use enhanced RAG system to find relevant vehicles with context
-        vehicles = enhanced_rag_service.search_vehicles_with_context(
-            last_customer_message, 
-            all_conversations, 
+        vehicles = await enhanced_rag_service.search_vehicles_with_context(
+            session=db,
+            dealership_id=lead.dealership_id,
+            query=last_customer_message, 
+            conversations=all_conversations, 
             top_k=3
         )
         
@@ -129,9 +131,11 @@ async def generate_general_ai_response(
     logger.info(f"Generating general AI response for query: {request_data.query}")
     
     try:   
-        vehicles  = enhanced_rag_service.search_vehicles_with_context(
-            request_data.query, 
-            [], 
+        vehicles  = await enhanced_rag_service.search_vehicles_with_context(
+            session=db,
+            dealership_id=request_data.dealership_id,
+            query=request_data.query, 
+            conversations=[], 
             top_k=3
         )
 
@@ -171,9 +175,11 @@ async def generate_enhanced_ai_response(
     
     try:
         # Use enhanced RAG system with advanced features
-        vehicles = enhanced_rag_service.search_vehicles_with_context(
-            request_data.query, 
-            [], 
+        vehicles = await enhanced_rag_service.search_vehicles_with_context(
+            session=db,
+            dealership_id=request_data.dealership_id,
+            query=request_data.query, 
+            conversations=[], 
             top_k=5  # Get more vehicles for enhanced response
         )
         

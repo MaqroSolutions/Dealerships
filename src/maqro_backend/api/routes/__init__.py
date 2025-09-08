@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .import health, leads, conversation, ai, inventory, dealerships, user_profiles, vonage, whatsapp, settings, roles, invites
+from . import health, leads, conversation, ai, inventory, dealerships, user_profiles, vonage, whatsapp, settings, roles, invites, stripe_webhook, billing
 
 api_router = APIRouter()
 
@@ -14,5 +14,7 @@ api_router.include_router(user_profiles.router, tags=["user-profiles"])
 api_router.include_router(settings.router, tags=["settings"])
 api_router.include_router(roles.router, tags=["roles"])
 api_router.include_router(invites.router, tags=["invites"])
+api_router.include_router(billing.router, tags=["billing"])
 api_router.include_router(vonage.router, prefix="/vonage", tags=["vonage"])
-api_router.include_router(whatsapp.router, prefix="/whatsapp", tags=["whatsapp"]) 
+api_router.include_router(whatsapp.router, prefix="/whatsapp", tags=["whatsapp"])
+api_router.include_router(stripe_webhook.router, tags=["stripe"]) 

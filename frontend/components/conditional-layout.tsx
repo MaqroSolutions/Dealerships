@@ -3,7 +3,7 @@
 import { useRoleBasedAuth } from "@/components/auth/role-based-auth-provider"
 import { LandingNav } from "@/components/landing-nav"
 import { AppNav } from "@/components/app-nav"
-import { LoadingScreen } from "@/components/ui/loading-spinner"
+import { PremiumSpinner } from "@/components/ui/premium-spinner"
 import { usePathname } from "next/navigation"
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
@@ -12,7 +12,11 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
 
   // Show loading state while checking authentication
   if (loading) {
-    return <LoadingScreen />
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <PremiumSpinner size="xl" text="Loading..." />
+      </div>
+    )
   }
 
   // Show app layout for authenticated users on admin/* routes or salesperson routes

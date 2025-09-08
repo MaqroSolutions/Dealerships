@@ -46,7 +46,7 @@ async def create_lead(*, session: AsyncSession, lead_in: LeadCreate, user_id: st
         last_contact_at=datetime.now(pytz.timezone('utc')),  # Current time in UTC
         message=getattr(lead_in, 'message', ''),  # Initial message
         max_price=getattr(lead_in, 'max_price', None),  # Maximum price range
-        user_id=uuid.UUID(user_id) if user_id else None,  # Assigned salesperson (nullable)
+        assigned_user_id=uuid.UUID(user_id) if user_id else None,  # Assigned salesperson (nullable)
         dealership_id=uuid.UUID(dealership_id)  # Required dealership ID
     )
     session.add(db_obj)
@@ -328,6 +328,7 @@ async def create_inventory_item(*, session: AsyncSession, inventory_data: dict, 
             description=inventory_data.get('description'),
             features=inventory_data.get('features'),
             condition=inventory_data.get('condition'),
+            stock_number=inventory_data.get('stock_number'),
             dealership_id=dealership_uuid,
             status=inventory_data.get('status', 'active')
         )
@@ -396,6 +397,7 @@ async def bulk_create_inventory_items(
                 description=item.get('description'),
                 features=item.get('features'),
                 condition=item.get('condition'),
+                stock_number=item.get('stock_number'),
                 dealership_id=dealership_uuid,
                 status=item.get('status', 'active')
             ) for item in inventory_data
@@ -452,7 +454,7 @@ async def get_lead_stats(*, session: AsyncSession, dealership_id: str) -> dict:
 # =============================================================================
 
 async def create_dealership(*, session: AsyncSession, name: str, location: str = None) -> Dealership:
-    """Create a new dealership"""
+    """Create a new dealership and automatically build embeddings for any existing inventory"""
     db_obj = Dealership(
         name=name,
         location=location
@@ -460,6 +462,30 @@ async def create_dealership(*, session: AsyncSession, name: str, location: str =
     session.add(db_obj)
     await session.commit()
     await session.refresh(db_obj)
+    
+    # Automatically build embeddings for any existing inventory in this dealership
+    try:
+        from maqro_rag.db_retriever import DatabaseRAGRetriever
+        from maqro_rag.config import Config
+        
+        # Initialize RAG retriever
+        config = Config.from_yaml("config.yaml")
+        retriever = DatabaseRAGRetriever(config)
+        
+        # Build embeddings for any existing inventory
+        built_count = await retriever.build_embeddings_for_dealership(
+            session=session,
+            dealership_id=str(db_obj.id),
+            force_rebuild=False
+        )
+        
+        if built_count > 0:
+            logger.info(f"Automatically built {built_count} embeddings for new dealership {db_obj.name} ({db_obj.id})")
+        
+    except Exception as e:
+        logger.warning(f"Could not build embeddings for new dealership {db_obj.name}: {e}")
+        # Don't fail dealership creation if embedding building fails
+    
     return db_obj
 
 

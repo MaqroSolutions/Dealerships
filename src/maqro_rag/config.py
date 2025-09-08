@@ -16,7 +16,7 @@ load_dotenv()
 class EmbeddingConfig(BaseModel):
     """Configuration for embedding providers."""
     provider: str = Field(default="openai", description="Embedding provider: 'openai' or 'cohere'")
-    model: str = Field(default="text-embedding-ada-002", description="OpenAI model name")
+    model: str = Field(default="text-embedding-3-small", description="OpenAI model name")
     cohere_model: Optional[str] = Field(default=None, description="Cohere model name")
     batch_size: int = Field(default=100, description="Batch size for embedding requests")
     max_retries: int = Field(default=3, description="Maximum retries for API calls")
@@ -24,7 +24,7 @@ class EmbeddingConfig(BaseModel):
 
 class VectorStoreConfig(BaseModel):
     """Configuration for vector store."""
-    type: str = Field(default="faiss", description="Vector store type: 'faiss', 'pinecone', 'weaviate'")
+    type: str = Field(default="pgvector", description="Vector store type: 'pgvector', 'pinecone', 'weaviate'")
     dimension: int = Field(default=1536, description="Embedding dimension")
     pinecone: Optional[Dict[str, str]] = Field(default=None, description="Pinecone configuration")
     weaviate: Optional[Dict[str, str]] = Field(default=None, description="Weaviate configuration")
@@ -67,13 +67,13 @@ class Config(BaseModel):
         return cls(
             embedding=EmbeddingConfig(
                 provider=os.getenv("EMBEDDING_PROVIDER", "openai"),
-                model=os.getenv("EMBEDDING_MODEL", "text-embedding-ada-002"),
+                model=os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
                 cohere_model=os.getenv("COHERE_MODEL"),
                 batch_size=int(os.getenv("BATCH_SIZE", "100")),
                 max_retries=int(os.getenv("MAX_RETRIES", "3"))
             ),
             vector_store=VectorStoreConfig(
-                type=os.getenv("VECTOR_STORE_TYPE", "faiss"),
+                type=os.getenv("VECTOR_STORE_TYPE", "pgvector"),
                 dimension=int(os.getenv("VECTOR_DIMENSION", "1536"))
             ),
             retrieval=RetrievalConfig(

@@ -1,0 +1,15 @@
+You're invited to {{ dealership_name }}!
+
+Hi {{ email }},
+
+You've been invited to join {{ dealership_name }} as a {{ role_name }}.
+
+To accept this invitation and create your account, visit:
+{{ invite_link }}
+
+This invitation is unique to {{ email }}. If you weren't expecting this, you can safely ignore this email.
+
+© 2025 Maqro
+https://usemaqro.com
+
+Need help? support@usemaqro.com

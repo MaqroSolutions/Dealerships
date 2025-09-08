@@ -15,6 +15,7 @@ from ...api.deps import get_db_session, get_current_user_id, get_user_dealership
 from ...services.sms_service import sms_service
 from ...services.salesperson_sms_service import salesperson_sms_service
 from ...services.message_flow_service import message_flow_service
+from ...services.dealership_phone_mapping import dealership_phone_mapping_service
 from ...crud import (
     get_lead_by_phone, 
     create_lead, 
@@ -121,15 +122,24 @@ async def vonage_webhook(
         # Normalize phone number
         normalized_phone = sms_service.normalize_phone_number(from_number)
         
-        # Use specific dealership ID for testing
-        default_dealership_id = "d660c7d6-99e2-4fa8-b99b-d221def53d20"
+        # Determine which dealership this phone number belongs to
+        dealership_id = await dealership_phone_mapping_service.get_dealership_for_phone(
+            session=db,
+            phone_number=normalized_phone
+        )
+        
+        if not dealership_id:
+            logger.error(f"Could not determine dealership for phone {normalized_phone}")
+            return {"status": "error", "message": "Unable to determine dealership for this phone number"}
+        
+        logger.info(f"Determined dealership {dealership_id} for phone {normalized_phone}")
         
         # Use the new message flow service to handle the incoming message
         result = await message_flow_service.process_incoming_message(
             session=db,
             from_phone=normalized_phone,
             message_text=message_text,
-            dealership_id=default_dealership_id,
+            dealership_id=dealership_id,
             enhanced_rag_service=enhanced_rag_service,
             message_source="sms"
         )

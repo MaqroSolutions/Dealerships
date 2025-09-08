@@ -3,22 +3,22 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from maqro_rag import VehicleRetriever, EnhancedRAGService
+from maqro_rag import EnhancedRAGService
 from ..db.session import get_db
-from ..core.lifespan import get_retriever, get_enhanced_rag_service
+from ..core.lifespan import get_enhanced_rag_service
 from ..db.models import UserProfile
 from ..services.roles_service import RolesService
 from ..services.settings_service import SettingsService
 from .auth import get_current_user_id, get_optional_user_id
 import logging
 import uuid
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
 
 # Re-export for easy importing
 get_db_session = get_db
-get_rag_retriever = get_retriever   
 get_enhanced_rag_services = get_enhanced_rag_service
 
 
@@ -46,12 +46,13 @@ async def get_user_dealership_id(
     
     # Look up their profile to get dealership_id
     try:
-        user_uuid = uuid.UUID(user_id)
+        # Avoid strict UUID parsing in Python; rely on DB to store UUID and compare as text
         result = await db.execute(
-            select(UserProfile.dealership_id)
-            .where(UserProfile.user_id == user_uuid)
+            text("SELECT dealership_id FROM user_profiles WHERE user_id::text = :user_id"),
+            {"user_id": user_id}
         )
-        dealership_id = result.scalar_one_or_none()
+        row = result.fetchone()
+        dealership_id = row[0] if row else None
         
         if not dealership_id:
             logger.error(f"❌ No dealership found for user {user_id}")
@@ -65,7 +66,7 @@ async def get_user_dealership_id(
         
     except ValueError:
         logger.error(f"❌ Invalid user ID format: {user_id}")
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
+        raise HTTPException(status_code=401, detail="Invalid or missing authentication token")
     except Exception as e:
         logger.error(f"❌ Database error fetching dealership for user {user_id}: {str(e)}")
         raise HTTPException(

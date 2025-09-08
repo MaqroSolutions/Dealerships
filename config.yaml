@@ -1,13 +1,13 @@
 # Maqro RAG Configuration
 embedding:
   provider: "openai"  # "openai" or "cohere"
-  model: "text-embedding-ada-002"  # OpenAI model
+  model: "text-embedding-3-small"  # OpenAI model
   # cohere_model: "embed-english-v3.0"  # Cohere model (if using cohere)
   batch_size: 100
   max_retries: 3
 
 vector_store:
-  type: "faiss"  # "faiss", "pinecone", "weaviate"
+  type: "pgvector"  # "pgvector", "pinecone", "weaviate"
   dimension: 1536  # OpenAI ada-002 dimension
   # pinecone:
   #   environment: "us-west1-gcp"

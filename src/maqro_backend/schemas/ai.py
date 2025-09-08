@@ -10,6 +10,7 @@ class GeneralAIRequest(BaseModel):
     """Data structure for general AI response (no conversation context)"""
     query: str
     customer_name: str | None = None
+    dealership_id: str
 
 
 class AIResponse(BaseModel):

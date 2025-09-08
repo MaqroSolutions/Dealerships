@@ -434,9 +434,11 @@ Please generate a response that:
 Generate a response that prioritizes the edit instructions:"""
             
             # Generate new response using RAG with edit-focused prompt
-            vehicles = enhanced_rag_service.search_vehicles_with_context(
-                enhanced_prompt,
-                all_conversations,
+            vehicles = await enhanced_rag_service.search_vehicles_with_context(
+                session=session,
+                dealership_id=dealership_id,
+                query=enhanced_prompt,
+                conversations=all_conversations,
                 top_k=3
             )
             
@@ -470,9 +472,11 @@ The response should be built around these edit requirements, not just include th
 Focus on: {edit_instructions}"""
                 
                 # Regenerate with stronger emphasis
-                vehicles_retry = enhanced_rag_service.search_vehicles_with_context(
-                    stronger_prompt,
-                    all_conversations,
+                vehicles_retry = await enhanced_rag_service.search_vehicles_with_context(
+                    session=session,
+                    dealership_id=dealership_id,
+                    query=stronger_prompt,
+                    conversations=all_conversations,
                     top_k=3
                 )
                 
@@ -735,32 +739,37 @@ Focus on: {edit_instructions}"""
                 session=session,
                 lead=lead,
                 message_text=message_text,
+                dealership_id=dealership_id,
                 enhanced_rag_service=enhanced_rag_service
             )
             
             if not rag_response["success"]:
                 return rag_response
             
-            # If lead has an assigned salesperson, send for approval
+            # Always send automatic response to customer
+            direct_response_result = await self._send_direct_response(
+                session=session,
+                lead=lead,
+                response_text=rag_response["response_text"],
+                customer_phone=from_phone,
+                message_source=message_source
+            )
+            
+            # If lead has an assigned salesperson, also notify them (but don't wait for approval)
             if lead.assigned_user_id:
-                return await self._send_for_approval(
-                    session=session,
-                    lead=lead,
-                    customer_message=message_text,
-                    generated_response=rag_response["response_text"],
-                    customer_phone=from_phone,
-                    dealership_id=dealership_id,
-                    message_source=message_source
-                )
-            else:
-                # No assigned salesperson - send response directly to customer
-                return await self._send_direct_response(
-                    session=session,
-                    lead=lead,
-                    response_text=rag_response["response_text"],
-                    customer_phone=from_phone,
-                    message_source=message_source
-                )
+                try:
+                    await self._notify_assigned_salesperson(
+                        session=session,
+                        lead=lead,
+                        customer_message=message_text,
+                        generated_response=rag_response["response_text"],
+                        customer_phone=from_phone,
+                        message_source=message_source
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to notify assigned salesperson: {e}")
+            
+            return direct_response_result
                 
         except Exception as e:
             logger.error(f"Error handling customer message: {e}")
@@ -826,6 +835,7 @@ Focus on: {edit_instructions}"""
         session: AsyncSession,
         lead: Any,
         message_text: str,
+        dealership_id: str,
         enhanced_rag_service: EnhancedRAGService
     ) -> Dict[str, Any]:
         """Generate RAG response for customer message"""
@@ -848,18 +858,27 @@ Focus on: {edit_instructions}"""
             ]
             
             # Use enhanced RAG system to find relevant vehicles
-            vehicles = enhanced_rag_service.search_vehicles_with_context(
-                message_text,
-                all_conversations,
+            vehicles = await enhanced_rag_service.search_vehicles_with_context(
+                session=session,
+                dealership_id=dealership_id,
+                query=message_text,
+                conversations=all_conversations,
                 top_k=3
             )
             
-            # Generate enhanced AI response
+            # Get actual dealership name
+            dealership_query = text("SELECT name FROM dealerships WHERE id = :dealership_id")
+            dealership_result = await session.execute(dealership_query, {"dealership_id": dealership_id})
+            dealership = dealership_result.fetchone()
+            dealership_name = dealership.name if dealership else "our dealership"
+            
+            # Generate enhanced AI response with actual dealership name
             enhanced_response = enhanced_rag_service.generate_enhanced_response(
                 message_text,
                 vehicles,
                 all_conversations,
-                lead.name
+                lead.name,
+                dealership_name
             )
             
             return {
@@ -876,6 +895,57 @@ Focus on: {edit_instructions}"""
                 "message": "Sorry, there was an error generating a response. Please try again."
             }
     
+    async def _notify_assigned_salesperson(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        customer_message: str,
+        generated_response: str,
+        customer_phone: str,
+        message_source: str
+    ) -> None:
+        """Notify assigned salesperson about customer interaction (no approval required)"""
+        try:
+            # Get the assigned user's phone number
+            assigned_user = await get_user_profile_by_user_id(
+                session=session,
+                user_id=str(lead.assigned_user_id)
+            )
+            
+            if not assigned_user or not assigned_user.phone:
+                logger.warning(f"Assigned user {lead.assigned_user_id} not found or has no phone number")
+                return
+            
+            # Send notification message to salesperson
+            notification_message = (
+                f"📱 Customer interaction from {lead.name} ({customer_phone}):\n\n"
+                f"Customer: {customer_message}\n\n"
+                f"🤖 AI Response Sent: {generated_response}\n\n"
+                f"💡 The customer received an automatic response. You can follow up if needed."
+            )
+            
+            # Send notification to salesperson
+            if message_source == "whatsapp":
+                from ..services.whatsapp_service import whatsapp_service
+                send_result = await whatsapp_service.send_message(
+                    assigned_user.phone,
+                    notification_message
+                )
+            else:
+                from ..services.sms_service import sms_service
+                send_result = await sms_service.send_sms(
+                    assigned_user.phone,
+                    notification_message
+                )
+            
+            if send_result["success"]:
+                logger.info(f"Notified assigned salesperson {lead.assigned_user_id} about customer interaction")
+            else:
+                logger.warning(f"Failed to notify salesperson: {send_result['error']}")
+                
+        except Exception as e:
+            logger.error(f"Error notifying assigned salesperson: {e}")
+
     async def _send_for_approval(
         self,
         session: AsyncSession,
@@ -891,7 +961,7 @@ Focus on: {edit_instructions}"""
             # Get the assigned user's phone number
             assigned_user = await get_user_profile_by_user_id(
                 session=session,
-                assigned_user_id=str(lead.assigned_user_id)
+                user_id=str(lead.assigned_user_id)
             )
             
             if not assigned_user or not assigned_user.phone:
