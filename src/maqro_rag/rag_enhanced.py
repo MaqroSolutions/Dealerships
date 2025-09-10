@@ -377,21 +377,26 @@ class EnhancedRAGService:
     
     def _get_agent_config_from_context(self, context: ConversationContext, lead_name: str, dealership_name: str = None) -> AgentConfig:
         """Get customized agent config based on conversation context."""
-        # Adapt tone based on context
+        # Adapt tone based on context and conversation stage
         tone = "friendly"
         if context.urgency == "high":
             tone = "professional"
-        elif context.conversation_length > 5:
+        elif context.conversation_length > 8:
             tone = "concise"
         
-        # Customize persona based on intent
-        persona_blurb = "friendly, persuasive car salesperson"
+        # Customize persona based on intent and conversation stage
+        persona_blurb = "warm, genuine car salesperson focused on building trust"
+        
+        # Adjust persona based on conversation stage and intent
         if context.intent == "test_drive":
-            persona_blurb = "helpful car sales expert focused on test drive scheduling"
+            persona_blurb = "enthusiastic car sales expert focused on getting you behind the wheel"
         elif context.intent == "financing":
-            persona_blurb = "knowledgeable car sales expert specializing in financing options"
+            persona_blurb = "helpful car sales expert who makes financing simple and transparent"
         elif context.intent == "pricing":
-            persona_blurb = "transparent car sales expert focused on pricing and value"
+            persona_blurb = "honest car sales expert focused on finding you the best value"
+        elif context.conversation_length > 5:
+            # Later in conversation - more direct about next steps
+            persona_blurb = "focused car sales expert ready to help you make a decision"
         
         return AgentConfig(
             tone=tone,
