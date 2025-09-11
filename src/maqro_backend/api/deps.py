@@ -46,10 +46,11 @@ async def get_user_dealership_id(
     
     # Look up their profile to get dealership_id
     try:
-        # Avoid strict UUID parsing in Python; rely on DB to store UUID and compare as text
+        # Use raw SQL with UUID-typed bind parameter to avoid ORM mapper initialization issues
+        user_uuid = uuid.UUID(user_id)
         result = await db.execute(
-            text("SELECT dealership_id FROM user_profiles WHERE user_id::text = :user_id"),
-            {"user_id": user_id}
+            text("SELECT dealership_id FROM user_profiles WHERE user_id = :user_id"),
+            {"user_id": user_uuid}
         )
         row = result.fetchone()
         dealership_id = row[0] if row else None
@@ -64,9 +65,6 @@ async def get_user_dealership_id(
         logger.info(f"✅ Found dealership ID: {dealership_id} for user: {user_id}")
         return str(dealership_id)
         
-    except ValueError:
-        logger.error(f"❌ Invalid user ID format: {user_id}")
-        raise HTTPException(status_code=401, detail="Invalid or missing authentication token")
     except Exception as e:
         logger.error(f"❌ Database error fetching dealership for user {user_id}: {str(e)}")
         raise HTTPException(
