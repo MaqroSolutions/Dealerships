@@ -141,11 +141,8 @@ function BillingContent() {
     }
 
     if (plan.id === "scale") {
-      // Handle custom plan - redirect to contact or show modal
-      toast({
-        title: "Book a Demo",
-        description: "Please book a demo with our sales team for custom pricing",
-      })
+      // Open Cal.com in a new tab (same link used on the landing page)
+      window.open('https://cal.com/aryan-mundre', '_blank', 'noopener,noreferrer')
       return
     }
 
