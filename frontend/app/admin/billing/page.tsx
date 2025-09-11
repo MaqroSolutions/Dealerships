@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { getAuthenticatedApi } from "@/lib/api-client"
-import { getStripe, isStripeConfigured } from "@/lib/stripe"
+import { isStripeConfigured } from "@/lib/stripe"
 import { useToast } from "@/hooks/use-toast"
 import { 
   Clock, 
@@ -87,7 +87,7 @@ function BillingContent() {
       ],
       isPopular: true,
       isCurrent: false,
-      productId: "prod_Sz5IjUXqN7W5e4"
+      productId: "prod_Sz5IHIEbqcYsXs"
     },
     {
       id: "scale",
@@ -161,23 +161,26 @@ function BillingContent() {
     try {
       setCheckoutLoading(plan.id)
 
+      const isCatalogId = typeof plan.productId === 'string' && (plan.productId.startsWith('prod_') || plan.productId.startsWith('price_'))
+      const body: any = {
+        priceId: plan.productId,
+        quantity: 1,
+        dealershipId: 'd660c7d6-99e2-4fa8-b99b-d221def53d20', // TODO: Get from user context
+        successUrl: window.location.origin + '/admin/billing?success=true',
+        cancelUrl: window.location.origin + '/admin/billing?canceled=true',
+      }
+      if (!isCatalogId) {
+        body.customPricing = {
+          pricePerUnit: isYearly ? (plan.yearlyPrice || plan.monthlyPrice) : plan.monthlyPrice,
+          setupFee: 0,
+          tier: plan.name
+        }
+      }
+
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          priceId: plan.productId,
-          quantity: 1,
-          dealershipId: 'd660c7d6-99e2-4fa8-b99b-d221def53d20', // TODO: Get from user context
-          customPricing: {
-            pricePerUnit: isYearly ? (plan.yearlyPrice || plan.monthlyPrice) : plan.monthlyPrice,
-            setupFee: 0,
-            tier: plan.name
-          },
-          successUrl: window.location.origin + '/admin/billing?success=true',
-          cancelUrl: window.location.origin + '/admin/billing?canceled=true',
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       })
 
       if (!response.ok) {
@@ -185,19 +188,11 @@ function BillingContent() {
         throw new Error(errorData.error || 'Failed to create checkout session')
       }
 
-      const { sessionId } = await response.json()
+      const { sessionId, sessionUrl } = await response.json()
 
-      // Redirect to Stripe Checkout
-      const stripe = await getStripe()
-      if (!stripe) {
-        throw new Error('Stripe failed to load')
-      }
-
-      const { error } = await stripe.redirectToCheckout({ sessionId })
-
-      if (error) {
-        throw new Error(error.message)
-      }
+      // Open Checkout in a new tab using the session URL
+      if (!sessionUrl) throw new Error('Checkout URL not returned by server')
+      window.open(sessionUrl, '_blank', 'noopener,noreferrer')
 
     } catch (error: any) {
       console.error('Checkout error:', error)
@@ -222,6 +217,19 @@ function BillingContent() {
     return "September 24, 2025" // Fallback
   }
 
+  const isPilot = () => (current?.plan?.name || '').toLowerCase() === 'pilot' || !current
+  const isPro = () => (current?.plan?.name || '').toLowerCase() === 'pro'
+  const getSummaryLine = () => {
+    if (isPilot()) {
+      return `Pilot — Free for 14 days (Active, ends ${getTrialEndDate()})`
+    }
+    if (isPro()) {
+      const price = ((current?.plan?.monthly_price_cents || 80000) / 100).toFixed(0)
+      return `Pro — $${price} / dealership / month (Active, renews ${getTrialEndDate()})`
+    }
+    return `Current — renews ${getTrialEndDate()}`
+  }
+
   return (
     <div className="space-y-8 ml-4">
         {/* Header */}
@@ -233,7 +241,7 @@ function BillingContent() {
         {/* Horizontal Separator */}
         <div className="border-t border-gray-700 mb-8"></div>
 
-        {/* Current Plan Status */}
+        {/* Plan Summary Card */}
         <div className="mb-8">
           <div className="flex items-start mb-4">
             <div className="w-[40%]">
@@ -251,20 +259,30 @@ function BillingContent() {
                 <>
                   <div className="flex items-center space-x-6">
                     <div className="text-lg font-semibold text-white">
-                      Current plan: {current.plan?.name || "Pro"} · ${((current.plan?.monthly_price_cents || 25000) / 100).toFixed(2)}/mo
+                      {getSummaryLine()}
                     </div>
                     <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
                       <Clock className="w-4 h-4 text-amber-400" />
                       <span className="text-sm text-amber-400 font-medium">On trial until {getTrialEndDate()}</span>
                     </div>
                   </div>
-                  <Button 
-                    onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 py-2"
-                  >
-                    Upgrade now
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
+                  {isPro() ? (
+                    <Button 
+                      onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="bg-gray-700 hover:bg-gray-600 text-white rounded-full px-4 py-2"
+                    >
+                      Manage plan
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => handleCheckout({ id: 'pro', name: 'Pro', description: '', monthlyPrice: 800, features: [], productId: 'prod_Sz5IHIEbqcYsXs' } as any)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 py-2"
+                    >
+                      Upgrade to Pro
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>
@@ -367,36 +385,54 @@ function BillingContent() {
                 </ul>
                 
                 <div className="mt-6 sm:mt-8" />
-                
-                <button
-                  onClick={() => handleCheckout(plan)}
-                  disabled={checkoutLoading === plan.id || plan.isCurrent}
-                  className={`mt-auto inline-flex w-full items-center justify-center rounded-full px-6 py-3 font-bold text-base transition-all font-['Geist'] ${
-                    plan.isCurrent
-                      ? "bg-gray-600/50 text-gray-400 cursor-not-allowed border border-gray-600"
-                      : plan.isPopular
-                        ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:shadow-[0_8px_30px_rgba(59,130,246,0.4)] hover:-translate-y-0.5 transition-all duration-300"
-                        : "border border-white/15 text-white/90 hover:bg-white/5 hover:border-white/25 hover:text-white transition-all duration-200"
-                  }`}
-                >
-                  {checkoutLoading === plan.id ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : plan.id === "scale" ? (
-                    "Book a Demo"
-                  ) : plan.isCurrent ? (
-                    "Current Plan"
-                  ) : plan.id === "pilot" ? (
-                    "Start Free Pilot"
-                  ) : (
-                    "Upgrade to Pro"
-                  )}
-                </button>
+                {plan.id !== 'pilot' && (
+                  <button
+                    onClick={() => handleCheckout(plan)}
+                    disabled={checkoutLoading === plan.id || (plan.id === 'pro' && isPro())}
+                    className={`mt-auto inline-flex w-full items-center justify-center rounded-full px-6 py-3 font-bold text-base transition-all font-['Geist'] ${
+                      plan.id === 'pro' && isPro()
+                        ? "bg-gray-600/50 text-gray-400 cursor-not-allowed border border-gray-600"
+                        : plan.isPopular
+                          ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:shadow-[0_8px_30px_rgba(59,130,246,0.4)] hover:-translate-y-0.5 transition-all duration-300"
+                          : "border border-white/15 text-white/90 hover:bg-white/5 hover:border-white/25 hover:text-white transition-all duration-200"
+                    }`}
+                  >
+                    {checkoutLoading === plan.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : plan.id === "scale" ? (
+                      "Book a Demo"
+                    ) : plan.id === 'pro' && isPro() ? (
+                      "Current Plan"
+                    ) : (
+                      "Upgrade to Pro"
+                    )}
+                  </button>
+                )}
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Payment Method Section — removed per request */}
+
+        {/* Invoices Section */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-white mb-2">Invoices</h3>
+          <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-6">
+            {isPilot() ? (
+              <p className="text-gray-400">No invoices yet.</p>
+            ) : (
+              <p className="text-gray-400">Invoices will appear here after your first payment.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Compliance Footer */}
+        <div className="text-xs text-gray-500">
+          Maqro does not store payment details. All billing is encrypted and PCI compliant.
         </div>
     </div>
   )
