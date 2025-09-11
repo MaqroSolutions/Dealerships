@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { config as loadEnv } from 'dotenv';
-import path from 'path';
-
-// Ensure we can read secrets from the repo root .env when running locally
-try {
-  const rootEnvPath = path.resolve(process.cwd(), '../.env');
-  loadEnv({ path: rootEnvPath });
-} catch {}
 
 export async function POST(request: NextRequest) {
   try {
