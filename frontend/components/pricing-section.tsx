@@ -14,7 +14,6 @@ const tiers = [
     highlight: false,
     description: "Add Maqro as an extra salesperson for your team",
     features: [
-      "Handles up to 50 new leads during the trial",
       "Instant AI responses to fresh inquiries",
       "Human-like drafts for nuanced questions",
       "Launch in 1 day"
@@ -37,11 +36,11 @@ const tiers = [
   },
   {
     name: "Scale",
-    price: "Custom",
-    cadence: "pricing",
+    price: "Contact us",
+    cadence: "",
     cta: { label: "Book a Demo", href: "#", isDemo: true },
     highlight: false,
-    description: "Everything in Pro",
+    description: "For dealer groups that need advanced integrations and scale",
     features: [
       "Multi-store rollout",
       "Native CRM integrations (VinSolutions, Elead, DealerSocket, etc.)",

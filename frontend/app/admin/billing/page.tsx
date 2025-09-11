@@ -65,7 +65,6 @@ function BillingContent() {
       monthlyPrice: 0,
       yearlyPrice: 0,
       features: [
-        "Handles up to 50 new leads during the trial",
         "Instant AI responses to fresh inquiries",
         "Human-like drafts for nuanced questions",
         "Launch in 1 day"
@@ -92,7 +91,7 @@ function BillingContent() {
     {
       id: "scale",
       name: "Scale",
-      description: "Everything in Pro",
+      description: "For dealer groups that need advanced integrations and scale",
       monthlyPrice: 0, // Custom pricing
       features: [
         "Multi-store rollout",
@@ -346,12 +345,16 @@ function BillingContent() {
                 
                 <div className="mt-4 flex items-baseline gap-2">
                   <span className="text-4xl sm:text-5xl font-bold text-white tracking-tight font-['Geist']">
-                    {plan.monthlyPrice === 0 ? "Free" : `$${isYearly ? (plan.yearlyPrice || plan.monthlyPrice) : plan.monthlyPrice}`}
+                    {plan.id === 'scale'
+                      ? 'Contact us'
+                      : (plan.monthlyPrice === 0
+                          ? 'Free'
+                          : `$${isYearly ? (plan.yearlyPrice || plan.monthlyPrice) : plan.monthlyPrice}`)}
                   </span>
                   {plan.monthlyPrice === 0 ? (
-                    <span className="text-gray-400 text-sm font-medium font-['Geist']">
-                      {plan.id === "pilot" ? "for 14 days" : "pricing"}
-                    </span>
+                    plan.id === 'pilot' ? (
+                      <span className="text-gray-400 text-sm font-medium font-['Geist']">for 14 days</span>
+                    ) : null
                   ) : (
                     <span className="text-gray-400 text-sm font-medium font-['Geist']">
                       {isYearly && plan.yearlyPrice ? (
