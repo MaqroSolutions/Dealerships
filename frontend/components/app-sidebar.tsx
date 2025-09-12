@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart3, MessageSquare, Settings, LayoutTemplateIcon as Template, Home, Upload, Car, Users, Building2, TrendingUp, CreditCard } from 'lucide-react'
+import { BarChart3, MessageSquare, Settings, LayoutTemplateIcon as Template, Home, Upload, Car, Users, Building2, CreditCard } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -17,7 +17,7 @@ import { useUserRole } from "@/hooks/use-user-role"
 
 const adminItems = [
   {
-    title: "Dashboard",
+    title: "Home",
     url: "/admin/dashboard",
     icon: Home,
   },
@@ -30,11 +30,6 @@ const adminItems = [
     title: "Inventory",
     url: "/admin/inventory",
     icon: Car,
-  },
-  {
-    title: "Analytics",
-    url: "/admin/analytics",
-    icon: TrendingUp,
   },
   {
     title: "Billing",
