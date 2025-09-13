@@ -39,6 +39,7 @@ import { RoleBasedAuthAPI, InviteData, UserRole } from "@/lib/auth/role-based-au
 import { getDealershipProfile } from "@/lib/user-profile-api"
 import type { UserProfile } from "@/lib/supabase"
 import { getAuthenticatedApi } from "@/lib/api-client"
+import { PremiumSpinner } from "@/components/ui/premium-spinner"
 
 interface TeamMember extends UserProfile {
   role: string
@@ -48,6 +49,7 @@ interface TeamManagementState {
   teamMembers: TeamMember[]
   invites: InviteData[]
   loading: boolean
+  inviteLoading: boolean
   inviteDialogOpen: boolean
   inviteForm: {
     email: string
@@ -60,6 +62,7 @@ export function TeamManagement() {
     teamMembers: [],
     invites: [],
     loading: true,
+    inviteLoading: false,
     inviteDialogOpen: false,
     inviteForm: {
       email: '',
@@ -103,6 +106,9 @@ export function TeamManagement() {
   const handleCreateInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Prevent multiple submissions
+    if (state.inviteLoading) return
+    
     console.log('🚀 handleCreateInvite called!')
     console.log('📧 Current state:', state)
     console.log('📧 Form data:', state.inviteForm)
@@ -124,6 +130,9 @@ export function TeamManagement() {
     
     console.log('✅ Form validation passed, proceeding with invite creation')
     
+    // Set loading state
+    setState(prev => ({ ...prev, inviteLoading: true }))
+    
     try {
       console.log('Creating invite with data:', state.inviteForm)
       const result = await RoleBasedAuthAPI.createInvite(state.inviteForm)
@@ -142,15 +151,18 @@ export function TeamManagement() {
         setState(prev => ({
           ...prev,
           inviteDialogOpen: false,
+          inviteLoading: false,
           inviteForm: { email: '', role_name: 'salesperson' }
         }))
         loadTeamData() // Refresh the data
       } else {
         console.error('Invite creation failed:', result.error)
+        setState(prev => ({ ...prev, inviteLoading: false }))
         toast.error(result.error || 'Failed to create invite')
       }
     } catch (error: any) {
       console.error('Invite creation error:', error)
+      setState(prev => ({ ...prev, inviteLoading: false }))
       toast.error(error.message || 'Failed to create invite')
     }
   }
@@ -328,8 +340,19 @@ export function TeamManagement() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  Send Invite
+                <Button 
+                  type="submit" 
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={state.inviteLoading}
+                >
+                  {state.inviteLoading ? (
+                    <div className="flex items-center gap-2">
+                      <PremiumSpinner size="sm" />
+                      Sending...
+                    </div>
+                  ) : (
+                    "Send Invite"
+                  )}
                 </Button>
               </div>
             </form>
