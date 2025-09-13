@@ -68,7 +68,7 @@ async def whatsapp_webhook_verify(request: Request):
         
         if verified_challenge:
             logger.info("Webhook verification successful")
-            return int(verified_challenge)  # Meta expects integer response
+            return verified_challenge  # Meta expects the challenge string back
         else:
             logger.warning("Webhook verification failed")
             raise HTTPException(status_code=403, detail="Forbidden")
