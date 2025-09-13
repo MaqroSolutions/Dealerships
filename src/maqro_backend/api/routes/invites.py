@@ -351,7 +351,9 @@ async def cancel_invite(
     if not invite:
         raise HTTPException(status_code=404, detail="Invite not found")
     
-    if invite.dealership_id != dealership_id:
+    # Verify the invite belongs to the authenticated user's dealership
+    # (invite.dealership_id is UUID object, dealership_id is string)
+    if str(invite.dealership_id) != dealership_id:
         raise HTTPException(status_code=403, detail="You can only cancel invites for your dealership")
     
     if invite.status != "pending":

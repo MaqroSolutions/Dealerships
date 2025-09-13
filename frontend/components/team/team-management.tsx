@@ -157,15 +157,26 @@ export function TeamManagement() {
 
   const handleCancelInvite = async (inviteId: string) => {
     try {
+      setState(prev => ({
+        ...prev,
+        invites: prev.invites.map(invite => 
+          invite.id === inviteId 
+            ? { ...invite, status: 'cancelled' as const }
+            : invite
+        )
+      }))
+      
       const result = await RoleBasedAuthAPI.cancelInvite(inviteId)
       
       if (result.success) {
         toast.success('Invite cancelled')
-        loadTeamData() // Refresh the data
       } else {
+        loadTeamData()
         toast.error(result.error || 'Failed to cancel invite')
       }
     } catch (error: any) {
+      // Revert optimistic update on error
+      loadTeamData()
       toast.error(error.message || 'Failed to cancel invite')
     }
   }
