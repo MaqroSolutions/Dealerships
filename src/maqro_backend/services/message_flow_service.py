@@ -10,6 +10,7 @@ This service implements the new flow where:
 import logging
 from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from datetime import datetime
 import pytz
 
