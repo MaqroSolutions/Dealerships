@@ -10,6 +10,7 @@ from .roles import RoleResponse
 class UserProfileBase(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
+    role: Optional[str] = None
     timezone: str = "America/New_York"
 
 

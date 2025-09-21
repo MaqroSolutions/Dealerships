@@ -187,7 +187,8 @@ class Dealership(Base):
     user_roles = relationship("UserRole", back_populates="dealership")
     dealership_settings = relationship("DealershipSetting", back_populates="dealership")
     invites = relationship("Invite", back_populates="dealership")
-    dealership_subscriptions = relationship("DealershipSubscription", back_populates="dealership")
+    dealership_subscriptions = relationship("DealershipSubscription", back_populates="dealership", foreign_keys="[DealershipSubscription.dealership_id]")
+    current_subscription = relationship("DealershipSubscription", foreign_keys="[Dealership.current_subscription_id]")
 
 
 class PendingApproval(Base):
@@ -265,7 +266,7 @@ class DealershipSubscription(Base):
     canceled_at = Column(DateTime(timezone=True))
 
     # Relationships
-    dealership = relationship("Dealership", back_populates="dealership_subscriptions")
+    dealership = relationship("Dealership", back_populates="dealership_subscriptions", foreign_keys="[DealershipSubscription.dealership_id]")
     subscription_plan = relationship("SubscriptionPlan", back_populates="dealership_subscriptions")
     subscription_events = relationship("SubscriptionEvent", back_populates="dealership_subscription")
 

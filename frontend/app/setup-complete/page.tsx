@@ -43,7 +43,7 @@ export default function SetupCompletePage() {
           if (profile.role === 'owner' || profile.role === 'admin' || profile.role === 'manager') {
             router.push('/admin/dashboard')
           } else {
-            router.push('/app/leads')
+            router.push('/leads')
           }
           return
         }

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const pageNames: Record<string, string> = {
-  "/": "Dashboard",
+  "/": "Home",
   "/conversations": "Conversations",
   "/templates": "Template Manager",
   "/settings": "Settings",
@@ -28,7 +28,7 @@ export function Header() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState("")
-  const pageName = pageNames[pathname] || "Dashboard"
+  const pageName = pageNames[pathname] || "Home"
   const { user, signOut, loading } = useRoleBasedAuth()
 
   // Initialize search term from URL params

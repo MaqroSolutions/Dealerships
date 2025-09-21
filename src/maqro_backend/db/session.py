@@ -2,11 +2,29 @@
 Database session management with connection pooling for scalability
 """
 import os
+from pathlib import Path
 import ssl
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from loguru import logger
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+
+# Ensure environment variables from project .env are loaded for all users
+try:
+    from dotenv import load_dotenv  # type: ignore
+    # Search for a .env at project root (two to four levels up from this file)
+    current_path = Path(__file__).resolve()
+    candidate_roots = [
+        current_path.parents[3],  # project root (../../..)
+        current_path.parents[4] if len(current_path.parents) > 4 else current_path.parents[3],
+    ]
+    for root in candidate_roots:
+        env_path = root / ".env"
+        if env_path.exists():
+            load_dotenv(dotenv_path=str(env_path), override=False)
+            break
+except Exception as e:
+    logger.debug(f"dotenv not loaded (optional): {e}")
 
 # Database configuration
 # Prefer SUPABASE_DB_URL if provided, otherwise fallback to DATABASE_URL

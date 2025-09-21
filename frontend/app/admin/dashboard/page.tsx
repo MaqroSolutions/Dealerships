@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { 
   Users, 
   Car, 
-  TrendingUp, 
   MessageSquare, 
   Settings, 
   Plus,
@@ -33,7 +32,7 @@ function AdminDashboardContent() {
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-100">Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-100">Admin Home</h1>
           <p className="text-gray-400 mt-2">
             Welcome back, {full_name}. You're managing your dealership as a {role}.
           </p>
@@ -111,12 +110,6 @@ function AdminDashboardContent() {
                 <Link href="/admin/inventory">
                   <Car className="w-4 h-4 mr-2" />
                   View Inventory
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/admin/analytics">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Analytics
                 </Link>
               </Button>
               <Button asChild variant="outline">

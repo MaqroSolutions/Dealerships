@@ -110,19 +110,13 @@ export function StripeCheckout({ onSuccess, onError }: StripeCheckoutProps) {
         throw new Error(errorData.error || 'Failed to create checkout session');
       }
 
-      const { sessionId } = await response.json();
+      const { sessionId, sessionUrl } = await response.json();
 
-      // Redirect to Stripe Checkout
-      const stripe = await getStripe();
-      if (!stripe) {
-        throw new Error('Stripe failed to load');
+      // Open Checkout in a new tab using the session URL
+      if (!sessionUrl) {
+        throw new Error('Checkout URL not returned by server');
       }
-
-      const { error } = await stripe.redirectToCheckout({ sessionId });
-
-      if (error) {
-        throw new Error(error.message);
-      }
+      window.open(sessionUrl, '_blank', 'noopener,noreferrer');
 
       onSuccess?.();
     } catch (error: any) {

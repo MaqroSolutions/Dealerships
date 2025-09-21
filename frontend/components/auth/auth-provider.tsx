@@ -99,8 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 } else if (userRole === 'salesperson') {
                   // Salesperson users should be in app routes
                   if (pathname === "/" || pathname.startsWith("/admin/")) {
-                    console.log('AuthProvider: Redirecting salesperson to app');
-                    router.push("/app/leads");
+                    console.log('AuthProvider: Redirecting salesperson to leads');
+                    router.push("/leads");
                   }
                 }
               } else {
