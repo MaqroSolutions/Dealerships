@@ -39,6 +39,15 @@ export async function GET(request: Request) {
       if (session?.user) {
         console.log('✅ Email confirmed, user logged in:', session.user.id);
         
+        // Check if this is a password recovery flow
+        const isPasswordRecovery = requestUrl.searchParams.get('type') === 'recovery' || 
+                                 requestUrl.hash.includes('type=recovery');
+        
+        if (isPasswordRecovery) {
+          console.log('🔐 Password recovery detected, redirecting to reset password page');
+          return NextResponse.redirect(new URL('/reset-password?type=recovery', requestUrl.origin));
+        }
+        
         // Check if user has a profile
         const { data: profile } = await supabase
           .from('user_profiles')
