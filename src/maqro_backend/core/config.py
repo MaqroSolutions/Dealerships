@@ -19,17 +19,12 @@ class Settings(BaseSettings):
     vonage_api_secret: Optional[str] = None
     vonage_phone_number: Optional[str] = None
 
-    # WhatsApp Business API Configuration
-    whatsapp_access_token: Optional[str] = None
-    whatsapp_phone_number_id: Optional[str] = None
-    whatsapp_webhook_verify_token: Optional[str] = None
-    whatsapp_app_secret: Optional[str] = None
-    whatsapp_api_version: str = "v21.0"
+    # (Removed) WhatsApp Business API Configuration
 
-    # Telnyx SMS Configuration
+    # Telnyx Messaging Configuration
     telnyx_api_key: Optional[str] = None
-    telnyx_phone_number: Optional[str] = None
     telnyx_messaging_profile_id: Optional[str] = None
+    telnyx_phone_number: Optional[str] = None
     telnyx_webhook_secret: Optional[str] = None
 
     # Resend Email Configuration
