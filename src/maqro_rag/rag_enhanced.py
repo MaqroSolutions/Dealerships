@@ -11,6 +11,7 @@ from loguru import logger
 from .config import Config
 from .db_retriever import DatabaseRAGRetriever
 from .prompt_builder import PromptBuilder, AgentConfig
+from .confidence_router import ConfidenceRouter
 
 
 @dataclass
@@ -113,6 +114,7 @@ class EnhancedRAGService:
         self.retriever = retriever
         self.analyze_conversation_context = analyze_conversation_context_func
         self.response_template = ResponseTemplate()
+        self.confidence_router = ConfidenceRouter()
         
         # Initialize PromptBuilder with default agent config
         default_agent_config = AgentConfig(
@@ -122,7 +124,7 @@ class EnhancedRAGService:
         )
         self.prompt_builder = PromptBuilder(default_agent_config)
         
-        logger.info("Initialized EnhancedRAGService with PromptBuilder")
+        logger.info("Initialized EnhancedRAGService with PromptBuilder and ConfidenceRouter")
     
     async def search_vehicles_with_context(
         self, 
@@ -259,7 +261,7 @@ class EnhancedRAGService:
         lead_name: str = None,
         dealership_name: str = None
     ) -> Dict[str, Any]:
-        """Generate enhanced AI response with quality scoring."""
+        """Generate enhanced AI response with quality scoring and confidence routing."""
         try:
             # Analyze context
             context_analysis = self.analyze_conversation_context(conversations)
@@ -271,11 +273,27 @@ class EnhancedRAGService:
             # Generate response text using PromptBuilder
             response_text = self._generate_response_text(query, vehicles, context, lead_name, dealership_name)
             
+            # Calculate retrieval score (average similarity of retrieved vehicles)
+            retrieval_score = 0.0
+            if vehicles:
+                retrieval_score = sum(v.get('similarity_score', 0) for v in vehicles) / len(vehicles)
+            
+            # Calculate confidence and routing decision
+            confidence, reasoning, should_auto_send = self.confidence_router.calculate_confidence(
+                query=query,
+                vehicles=vehicles,
+                response_text=response_text,
+                retrieval_score=retrieval_score
+            )
+            
             # Calculate response quality metrics
             quality_metrics = self._calculate_response_quality(response_text, vehicles, context)
             
             # Generate follow-up suggestions
             follow_ups = self._generate_follow_up_suggestions(context, vehicles)
+            
+            # Log routing decision
+            logger.info(f"Confidence routing: query='{query[:50]}...', confidence={confidence:.2f}, auto_send={should_auto_send}, reasoning='{reasoning}'")
             
             return {
                 'response_text': response_text,
@@ -284,7 +302,11 @@ class EnhancedRAGService:
                 'context_analysis': context_analysis,
                 'vehicles_found': len(vehicles),
                 'query': query,
-                'used_prompt_builder': True
+                'used_prompt_builder': True,
+                'confidence_score': confidence,
+                'routing_reasoning': reasoning,
+                'should_auto_send': should_auto_send,
+                'retrieval_score': retrieval_score
             }
             
         except Exception as e:
