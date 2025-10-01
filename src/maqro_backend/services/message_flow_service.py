@@ -794,7 +794,8 @@ Focus on: {edit_instructions}"""
                     customer_phone=from_phone,
                     message_source=message_source,
                     confidence_score=confidence_score,
-                    routing_reasoning=routing_reasoning
+                    routing_reasoning=routing_reasoning,
+                    dealership_id=dealership_id
                 )
                 
                 return approval_result
@@ -999,7 +1000,8 @@ Focus on: {edit_instructions}"""
         customer_phone: str,
         message_source: str,
         confidence_score: float,
-        routing_reasoning: str
+        routing_reasoning: str,
+        dealership_id: str
     ) -> Dict[str, Any]:
         """Create pending approval for human review"""
         try:
@@ -1016,11 +1018,11 @@ Focus on: {edit_instructions}"""
             approval = await create_pending_approval(
                 session=session,
                 lead_id=str(lead.id),
+                user_id=str(assigned_user_id) if assigned_user_id else str(lead.assigned_user_id) if lead.assigned_user_id else "00000000-0000-0000-0000-000000000000",  # Fallback UUID
                 customer_message=customer_message,
                 generated_response=generated_response,
-                assigned_user_id=str(assigned_user_id) if assigned_user_id else None,
-                confidence_score=confidence_score,
-                routing_reasoning=routing_reasoning
+                customer_phone=customer_phone,
+                dealership_id=dealership_id
             )
             
             # Send notification to assigned salesperson if available

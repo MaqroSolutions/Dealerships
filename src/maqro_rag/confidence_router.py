@@ -158,7 +158,8 @@ class ConfidenceRouter:
         # Check for uncertainty indicators in response
         uncertainty_indicators = [
             'i think', 'maybe', 'possibly', 'might', 'could be',
-            'let me check', 'double-check', 'not sure'
+            'let me check', 'double-check', 'not sure', 'didn\'t catch',
+            'seems like', 'might be looking'
         ]
         
         has_uncertainty = any(indicator in response_lower for indicator in uncertainty_indicators)
