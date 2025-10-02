@@ -12,6 +12,9 @@ from .embedding import EmbeddingProvider, get_embedding_provider, EmbeddingManag
 from .inventory import InventoryProcessor, VehicleData
 from .db_retriever import DatabaseRAGRetriever
 from .rag_enhanced import EnhancedRAGService, ConversationContext, ResponseQuality, ResponseTemplate
+from .state_manager import ConversationStateManager, ConversationState
+from .memory import MemoryStore, ConversationMemory
+from .rapport import RapportLibrary
 from .entity_parser import EntityParser, VehicleQuery
 from .prompt_builder import PromptBuilder, AgentConfig
 
@@ -30,5 +33,10 @@ __all__ = [
     "EntityParser",
     "VehicleQuery",
     "PromptBuilder",
-    "AgentConfig"
+    "AgentConfig",
+    "ConversationStateManager",
+    "ConversationState",
+    "MemoryStore",
+    "ConversationMemory",
+    "RapportLibrary",
 ] 

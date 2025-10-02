@@ -747,14 +747,43 @@ Focus on: {edit_instructions}"""
             if not rag_response["success"]:
                 return rag_response
             
-            # Implement confidence routing
-            should_auto_send = rag_response.get("should_auto_send", False)
-            confidence_score = rag_response.get("confidence_score", 0.0)
-            routing_reasoning = rag_response.get("routing_reasoning", "")
+            # Implement handoff routing
+            should_handoff = rag_response.get("should_handoff", False)
+            handoff_reason = rag_response.get("handoff_reason", "")
+            handoff_reasoning = rag_response.get("handoff_reasoning", "")
             
-            if should_auto_send:
-                # Auto-send high confidence responses
-                logger.info(f"Auto-sending response for lead {lead.id}: confidence={confidence_score:.2f}, reasoning='{routing_reasoning}'")
+            if should_handoff:
+                # Handoff to salesperson
+                logger.info(f"Handing off to salesperson for lead {lead.id}: reason='{handoff_reason}', reasoning='{handoff_reasoning}'")
+                
+                # Send handoff message
+                handoff_message = "That's something my teammate can help with, let me connect you."
+                direct_response_result = await self._send_direct_response(
+                    session=session,
+                    lead=lead,
+                    response_text=handoff_message,
+                    customer_phone=from_phone,
+                    message_source=message_source
+                )
+                
+                # Notify assigned salesperson about handoff
+                if lead.assigned_user_id:
+                    try:
+                        await self._notify_assigned_salesperson_handoff(
+                            session=session,
+                            lead=lead,
+                            customer_message=message_text,
+                            handoff_reason=handoff_reason,
+                            customer_phone=from_phone,
+                            message_source=message_source
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to notify assigned salesperson about handoff: {e}")
+                
+                return direct_response_result
+            else:
+                # Auto-send regular responses
+                logger.info(f"Auto-sending response for lead {lead.id}: no handoff triggers detected")
                 
                 direct_response_result = await self._send_direct_response(
                     session=session,
@@ -764,41 +793,7 @@ Focus on: {edit_instructions}"""
                     message_source=message_source
                 )
                 
-                # Notify assigned salesperson about auto-sent response
-                if lead.assigned_user_id:
-                    try:
-                        await self._notify_assigned_salesperson_auto_sent(
-                            session=session,
-                            lead=lead,
-                            customer_message=message_text,
-                            generated_response=rag_response["response_text"],
-                            customer_phone=from_phone,
-                            message_source=message_source,
-                            confidence_score=confidence_score,
-                            routing_reasoning=routing_reasoning
-                        )
-                    except Exception as e:
-                        logger.warning(f"Failed to notify assigned salesperson: {e}")
-                
                 return direct_response_result
-            else:
-                # Draft low confidence responses for human review
-                logger.info(f"Drafting response for lead {lead.id}: confidence={confidence_score:.2f}, reasoning='{routing_reasoning}'")
-                
-                # Create pending approval for human review
-                approval_result = await self._create_pending_approval(
-                    session=session,
-                    lead=lead,
-                    customer_message=message_text,
-                    generated_response=rag_response["response_text"],
-                    customer_phone=from_phone,
-                    message_source=message_source,
-                    confidence_score=confidence_score,
-                    routing_reasoning=routing_reasoning,
-                    dealership_id=dealership_id
-                )
-                
-                return approval_result
                 
         except Exception as e:
             logger.error(f"Error handling customer message: {e}")
@@ -907,25 +902,26 @@ Focus on: {edit_instructions}"""
                 vehicles,
                 all_conversations,
                 lead.name,
-                dealership_name
+                dealership_name,
+                lead_id=str(lead.id)
             )
             
-            # Extract confidence routing information
-            confidence_score = enhanced_response.get('confidence_score', 0.0)
-            should_auto_send = enhanced_response.get('should_auto_send', False)
-            routing_reasoning = enhanced_response.get('routing_reasoning', '')
+            # Extract handoff routing information
+            should_handoff = enhanced_response.get('should_handoff', False)
+            handoff_reason = enhanced_response.get('handoff_reason', '')
+            handoff_reasoning = enhanced_response.get('handoff_reasoning', '')
             retrieval_score = enhanced_response.get('retrieval_score', 0.0)
             
-            # Log confidence routing decision
-            logger.info(f"Confidence routing for lead {lead.id}: confidence={confidence_score:.2f}, auto_send={should_auto_send}, reasoning='{routing_reasoning}', retrieval_score={retrieval_score:.2f}")
+            # Log handoff routing decision
+            logger.info(f"Handoff routing for lead {lead.id}: handoff={should_handoff}, reason='{handoff_reason}', reasoning='{handoff_reasoning}', retrieval_score={retrieval_score:.2f}")
             
             return {
                 "success": True,
                 "response_text": enhanced_response['response_text'],
                 "vehicles_found": len(vehicles),
-                "confidence_score": confidence_score,
-                "should_auto_send": should_auto_send,
-                "routing_reasoning": routing_reasoning,
+                "should_handoff": should_handoff,
+                "handoff_reason": handoff_reason,
+                "handoff_reasoning": handoff_reasoning,
                 "retrieval_score": retrieval_score
             }
             
@@ -1112,6 +1108,41 @@ Focus on: {edit_instructions}"""
                 
         except Exception as e:
             logger.error(f"Error notifying assigned salesperson about draft: {e}")
+
+    async def _notify_assigned_salesperson_handoff(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        customer_message: str,
+        handoff_reason: str,
+        customer_phone: str,
+        message_source: str
+    ) -> None:
+        """Notify assigned salesperson about handoff"""
+        try:
+            # Get the assigned user's phone number
+            assigned_user = await get_user_profile_by_user_id(
+                session=session,
+                user_id=str(lead.assigned_user_id)
+            )
+            
+            if not assigned_user or not assigned_user.phone:
+                logger.warning(f"Assigned user {lead.assigned_user_id} not found or has no phone number")
+                return
+            
+            # Send notification about handoff
+            notification_message = f"Customer handoff needed for lead {lead.id}. Reason: {handoff_reason}. Customer message: {customer_message}"
+            
+            await self.sms_service.send_sms(
+                to_phone=assigned_user.phone,
+                message=notification_message
+            )
+            
+            logger.info(f"Notified salesperson {assigned_user.phone} about handoff for lead {lead.id}")
+            
+        except Exception as e:
+            logger.error(f"Error notifying assigned salesperson about handoff: {e}")
+            raise
 
     async def _notify_assigned_salesperson(
         self,

@@ -12,15 +12,16 @@ class ConfidenceRouter:
     
     def __init__(self):
         """Initialize confidence router with thresholds and patterns."""
-        # Confidence thresholds
-        self.auto_send_threshold = 0.8
-        self.draft_threshold = 0.6
+        # Confidence thresholds - more permissive for better UX
+        self.auto_send_threshold = 0.6  # Lowered from 0.8
+        self.draft_threshold = 0.4      # Lowered from 0.6
         
         # Safe topics that can be auto-sent with high confidence
         self.safe_topics = [
             'availability', 'inventory', 'stock', 'have', 'available',
             'mileage', 'year', 'make', 'model', 'color', 'features',
-            'condition', 'history', 'maintenance'
+            'condition', 'history', 'maintenance', 'hello', 'hi', 'hey',
+            'looking', 'interested', 'need', 'want', 'help'
         ]
         
         # Topics that should always be drafted for human review
@@ -29,7 +30,14 @@ class ConfidenceRouter:
             'trade', 'trade-in', 'trade in', 'appraisal', 'value',
             'price', 'cost', 'deal', 'discount', 'negotiate', 'best price',
             'warranty', 'insurance', 'legal', 'contract', 'terms',
-            'delivery', 'shipping', 'pickup', 'title', 'registration'
+            'delivery', 'shipping', 'pickup', 'title', 'registration',
+            'out the door', 'total cost', 'final price'
+        ]
+        
+        # Vague questions that need clarification
+        self.vague_questions = [
+            'what\'s in', 'what do you have', 'inventory', 'show me',
+            'what\'s available', 'what cars', 'what vehicles'
         ]
         
         # Low confidence indicators
@@ -108,6 +116,14 @@ class ConfidenceRouter:
         
         is_specific = any(re.search(pattern, query_lower) for pattern in specific_vehicle_patterns)
         
+        # Check for basic greetings (high confidence)
+        greeting_patterns = [
+            r'^(hello|hi|hey|good morning|good afternoon|good evening)$',
+            r'^(how are you|how\'s it going|what\'s up)$'
+        ]
+        
+        is_greeting = any(re.search(pattern, query_lower) for pattern in greeting_patterns)
+        
         # Check for availability questions (high confidence)
         availability_questions = [
             'do you have', 'is available', 'still available', 'in stock',
@@ -115,6 +131,9 @@ class ConfidenceRouter:
         ]
         
         is_availability = any(phrase in query_lower for phrase in availability_questions)
+        
+        # Check for vague questions (low confidence)
+        is_vague = any(phrase in query_lower for phrase in self.vague_questions)
         
         # Check for ambiguous questions (low confidence)
         ambiguous_indicators = [
@@ -126,10 +145,14 @@ class ConfidenceRouter:
         
         # Calculate confidence adjustment
         confidence_adjustment = 0.0
-        if is_specific and is_availability:
+        if is_greeting:
+            confidence_adjustment += 0.3  # High confidence for greetings
+        elif is_specific and is_availability:
             confidence_adjustment += 0.2
         elif is_specific:
             confidence_adjustment += 0.1
+        elif is_vague:
+            confidence_adjustment -= 0.3  # Low confidence for vague questions
         elif is_ambiguous:
             confidence_adjustment -= 0.2
         
@@ -137,6 +160,8 @@ class ConfidenceRouter:
             'is_specific': is_specific,
             'is_availability': is_availability,
             'is_ambiguous': is_ambiguous,
+            'is_greeting': is_greeting,
+            'is_vague': is_vague,
             'confidence_adjustment': confidence_adjustment
         }
     

@@ -11,7 +11,12 @@ from loguru import logger
 from .config import Config
 from .db_retriever import DatabaseRAGRetriever
 from .prompt_builder import PromptBuilder, AgentConfig
-from .confidence_router import ConfidenceRouter
+from .handoff_router import HandoffRouter
+from .entity_parser import EntityParser
+from .state_manager import ConversationStateManager, ConversationState
+from .memory import MemoryStore
+from .rapport import RapportLibrary
+from .calendar_service import CalendarBookingService
 
 
 @dataclass
@@ -109,12 +114,17 @@ class ResponseTemplate:
 class EnhancedRAGService:
     """Enhanced RAG service for intelligent vehicle search and response generation."""
     
-    def __init__(self, retriever: DatabaseRAGRetriever, analyze_conversation_context_func: Callable):
+    def __init__(self, retriever: DatabaseRAGRetriever, analyze_conversation_context_func: Callable, memory_store: MemoryStore = None):
         """Initialize enhanced RAG service."""
         self.retriever = retriever
         self.analyze_conversation_context = analyze_conversation_context_func
         self.response_template = ResponseTemplate()
-        self.confidence_router = ConfidenceRouter()
+        self.handoff_router = HandoffRouter()
+        self.entity_parser = EntityParser()
+        self.state_manager = ConversationStateManager()
+        self.memory_store = memory_store or MemoryStore()
+        self.rapport = RapportLibrary()
+        self.calendar_service = CalendarBookingService()
         
         # Initialize PromptBuilder with default agent config
         default_agent_config = AgentConfig(
@@ -124,7 +134,7 @@ class EnhancedRAGService:
         )
         self.prompt_builder = PromptBuilder(default_agent_config)
         
-        logger.info("Initialized EnhancedRAGService with PromptBuilder and ConfidenceRouter")
+        logger.info("Initialized EnhancedRAGService with state manager, memory, and rapport library")
     
     async def search_vehicles_with_context(
         self, 
@@ -139,6 +149,22 @@ class EnhancedRAGService:
             # Analyze conversation context
             context_analysis = self.analyze_conversation_context(conversations)
             context = ConversationContext(**context_analysis)
+            # Derive state from signals and early-stage heuristics
+            state = self._infer_state(conversations, query)
+            
+            # Gate retrieval: only search when the user provided specifics
+            vehicle_query = self.entity_parser.parse_message(query)
+            has_specific_signals = any([
+                vehicle_query.has_strong_signals,
+                bool(context.budget_range),
+                bool(context.vehicle_type)
+            ])
+            # Also obey state machine: do not retrieve in early discovery
+            if state in {ConversationState.GREETING, ConversationState.DISCOVERY}:
+                return []
+            if not has_specific_signals:
+                # Not enough specifics yet — stay in discovery; let the prompt ask clarifiers
+                return []
             
             # Generate search queries based on context
             search_queries = self._generate_search_queries(query, context)
@@ -259,7 +285,8 @@ class EnhancedRAGService:
         vehicles: List[Dict[str, Any]],
         conversations: List[Dict],
         lead_name: str = None,
-        dealership_name: str = None
+        dealership_name: str = None,
+        lead_id: str = None
     ) -> Dict[str, Any]:
         """Generate enhanced AI response with quality scoring and confidence routing."""
         try:
@@ -270,21 +297,78 @@ class EnhancedRAGService:
             # Add conversation history to context for PromptBuilder
             context.conversation_history = conversations
             
-            # Generate response text using PromptBuilder
-            response_text = self._generate_response_text(query, vehicles, context, lead_name, dealership_name)
+            # Load short-term memory and update with current user turn
+            conversation_id = self._get_conversation_id(conversations)
+            memory = self.memory_store.load(conversation_id)
+            memory.add_turn("customer", query)
+            
+            # Extract entities/slots and update memory
+            try:
+                parsed = self.entity_parser.parse_message(query)
+                # Support both object with attributes and dict-like
+                slot_dict = {}
+                for key in ["budget", "model", "body_type", "vehicle_type", "features", "year"]:
+                    val = getattr(parsed, key, None) if hasattr(parsed, key) else parsed.get(key) if isinstance(parsed, dict) else None
+                    if val:
+                        slot_dict[key] = val
+                memory.update_slots(slot_dict)
+            except Exception:
+                pass
+            
+            # Advance state machine
+            signals = ConversationStateManager.extract_signals(memory.slots, memory.turns[-5:])
+            state_info = self.state_manager.next(signals)
+            
+            # Check if customer is asking about existing appointment
+            if has_appointment and self._is_appointment_question(query):
+                appointment_summary = memory.get_appointment_summary()
+                response_text = self.rapport.get_appointment_info(memory.appointment.time)
+            else:
+                # Generate response text using PromptBuilder
+                response_text = self._generate_response_text(query, vehicles, context, lead_name, dealership_name)
+            
+            # Note: Rapport is now handled naturally by the improved prompt, no post-processing needed
             
             # Calculate retrieval score (average similarity of retrieved vehicles)
             retrieval_score = 0.0
             if vehicles:
                 retrieval_score = sum(v.get('similarity_score', 0) for v in vehicles) / len(vehicles)
             
-            # Calculate confidence and routing decision
-            confidence, reasoning, should_auto_send = self.confidence_router.calculate_confidence(
+            # Check for handoff triggers (pass appointment status)
+            has_appointment = memory.has_appointment()
+            should_handoff, handoff_reason, handoff_reasoning = self.handoff_router.should_handoff(
                 query=query,
-                vehicles=vehicles,
                 response_text=response_text,
-                retrieval_score=retrieval_score
+                has_appointment=has_appointment
             )
+            
+            # Handle test drive scheduling with calendar booking
+            calendar_booking = self._handle_calendar_integration(
+                handoff_reason=handoff_reason,
+                query=query,
+                lead_name=lead_name,
+                vehicles=vehicles,
+                lead_id=lead_id
+            )
+            
+            # Store appointment details if time was confirmed
+            if handoff_reason == 'test_drive_time_confirmed':
+                # Extract time from query
+                time = self._extract_time_from_query(query)
+                date = self._extract_date_from_query(query)
+                vehicle = self._extract_vehicle_interest(vehicles)
+                
+                # Store in memory
+                memory.set_appointment(date=date, time=time, vehicle=vehicle)
+                
+                # Use natural appointment confirmation
+                if not response_text.endswith('!'):
+                    response_text = self.rapport.get_appointment_confirmation(time)
+            
+            # Update response with calendar link if booking was successful
+            if calendar_booking and calendar_booking.get('success'):
+                calendar_url = calendar_booking.get('calendar_url')
+                response_text += f"\n\n📅 Perfect! I've scheduled your test drive. Here's your calendar link: {calendar_url}"
             
             # Calculate response quality metrics
             quality_metrics = self._calculate_response_quality(response_text, vehicles, context)
@@ -292,9 +376,21 @@ class EnhancedRAGService:
             # Generate follow-up suggestions
             follow_ups = self._generate_follow_up_suggestions(context, vehicles)
             
-            # Log routing decision
-            logger.info(f"Confidence routing: query='{query[:50]}...', confidence={confidence:.2f}, auto_send={should_auto_send}, reasoning='{reasoning}'")
+            # Log handoff decision
+            logger.info(f"Handoff routing: query='{query[:50]}...', handoff={should_handoff}, reason='{handoff_reason}', reasoning='{handoff_reasoning}'")
             
+            # Update memory with agent response and last inventory mention
+            memory.add_turn("agent", response_text)
+            if vehicles:
+                # Track the first recommended vehicle for pronoun resolution
+                top_vehicle = vehicles[0].get('vehicle') if isinstance(vehicles[0], dict) else None
+                if top_vehicle:
+                    memory.set_last_inventory_mention(top_vehicle)
+                # Also store recent vehicles for better pronoun resolution
+                recent_vehicles = [v.get('vehicle') for v in vehicles if v.get('vehicle')]
+                memory.recent_vehicles = recent_vehicles
+            self.memory_store.save(memory)
+
             return {
                 'response_text': response_text,
                 'quality_metrics': quality_metrics.__dict__,
@@ -303,15 +399,180 @@ class EnhancedRAGService:
                 'vehicles_found': len(vehicles),
                 'query': query,
                 'used_prompt_builder': True,
-                'confidence_score': confidence,
-                'routing_reasoning': reasoning,
-                'should_auto_send': should_auto_send,
-                'retrieval_score': retrieval_score
+                'should_handoff': should_handoff,
+                'handoff_reason': handoff_reason,
+                'handoff_reasoning': handoff_reasoning,
+                'retrieval_score': retrieval_score,
+                'calendar_booking': calendar_booking
             }
             
         except Exception as e:
             logger.error(f"Error generating enhanced response: {e}")
             raise
+    
+    def _handle_calendar_integration(
+        self,
+        handoff_reason: str,
+        query: str,
+        lead_name: str,
+        vehicles: List[Dict[str, Any]],
+        lead_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Handle calendar integration for test drive scheduling.
+        
+        Args:
+            handoff_reason: The reason for handoff
+            query: Customer's message
+            lead_name: Name of the lead
+            vehicles: List of vehicles found
+            lead_id: Lead ID for database updates
+            
+        Returns:
+            Calendar booking result or None
+        """
+        if handoff_reason == 'test_drive_scheduling':
+            # First step: Ask for time preference (don't schedule yet)
+            logger.info("Test drive scheduling detected - asking for time preference")
+            return None
+            
+        elif handoff_reason == 'test_drive_time_confirmed':
+            # Second step: Customer provided time, now schedule the appointment
+            return self._schedule_test_drive_appointment(
+                query=query,
+                lead_name=lead_name,
+                vehicles=vehicles,
+                lead_id=lead_id
+            )
+        
+        return None
+    
+    def _schedule_test_drive_appointment(
+        self,
+        query: str,
+        lead_name: str,
+        vehicles: List[Dict[str, Any]],
+        lead_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Schedule a test drive appointment with calendar booking.
+        
+        Args:
+            query: Customer's message
+            lead_name: Name of the lead
+            vehicles: List of vehicles found
+            lead_id: Lead ID for database updates
+            
+        Returns:
+            Calendar booking result or None
+        """
+        try:
+            # Extract scheduling details from query
+            customer_name = lead_name or "Customer"
+            customer_phone = "Unknown"  # Would need to be passed in or extracted
+            vehicle_interest = self._extract_vehicle_interest(vehicles)
+            
+            # Extract date and time preferences
+            preferred_date, preferred_time = self._extract_date_time_preferences(query)
+            
+            # Generate calendar booking
+            calendar_booking = self.calendar_service.schedule_test_drive_sync(
+                customer_name=customer_name,
+                customer_phone=customer_phone,
+                vehicle_interest=vehicle_interest,
+                preferred_date=preferred_date,
+                preferred_time=preferred_time,
+                special_requests="None",
+                lead_id=lead_id
+            )
+            
+            return calendar_booking
+            
+        except Exception as e:
+            logger.error(f"Error creating calendar booking: {e}")
+            return None
+    
+    def _extract_vehicle_interest(self, vehicles: List[Dict[str, Any]]) -> str:
+        """Extract vehicle interest from vehicles list."""
+        if vehicles and len(vehicles) > 0:
+            vehicle = vehicles[0].get('vehicle', {})
+            if isinstance(vehicle, dict):
+                return vehicle.get('model', 'Vehicle')
+        return "Vehicle"
+    
+    def _extract_date_time_preferences(self, query: str) -> tuple[str, str]:
+        """
+        Extract date and time preferences from customer query.
+        
+        Args:
+            query: Customer's message
+            
+        Returns:
+            Tuple of (preferred_date, preferred_time)
+        """
+        query_lower = query.lower()
+        
+        # Extract date preference
+        preferred_date = self._extract_date_preference(query_lower)
+        
+        # Extract time preference
+        preferred_time = self._extract_time_preference(query_lower)
+        
+        return preferred_date, preferred_time
+    
+    def _extract_date_preference(self, query_lower: str) -> str:
+        """Extract date preference from query."""
+        if "today" in query_lower:
+            return "today"
+        elif "tomorrow" in query_lower:
+            return "tomorrow"
+        elif "next week" in query_lower:
+            return "next week"
+        else:
+            return "tomorrow"  # Default
+    
+    def _extract_time_preference(self, query_lower: str) -> str:
+        """Extract time preference from query."""
+        # Check for specific times first
+        specific_times = ["2pm", "3pm", "4pm", "10am", "11am", "1pm", "5pm", "6pm", "7pm", "8am", "12pm", "noon"]
+        for time in specific_times:
+            if time in query_lower:
+                return time
+        
+        # Check for general time periods
+        if "morning" in query_lower:
+            return "10am"
+        elif "afternoon" in query_lower:
+            return "2pm"
+        elif "evening" in query_lower:
+            return "6pm"
+        else:
+            return "2pm"  # Default
+    
+    def _extract_time_from_query(self, query: str) -> str:
+        """Extract time from query for appointment storage."""
+        return self._extract_time_preference(query.lower())
+    
+    def _extract_date_from_query(self, query: str) -> str:
+        """Extract date from query for appointment storage."""
+        query_lower = query.lower()
+        if "today" in query_lower:
+            return "today"
+        elif "tomorrow" in query_lower:
+            return "tomorrow"
+        elif "next week" in query_lower:
+            return "next week"
+        else:
+            return "tomorrow"  # Default
+    
+    def _is_appointment_question(self, query: str) -> bool:
+        """Check if customer is asking about their existing appointment."""
+        query_lower = query.lower()
+        appointment_phrases = [
+            'what time', 'when is', 'my appointment', 'test drive time',
+            'what time is', 'when is my', 'appointment time', 'scheduled for'
+        ]
+        return any(phrase in query_lower for phrase in appointment_phrases)
     
     def _generate_response_text(
         self,
@@ -426,6 +687,60 @@ class EnhancedRAGService:
             persona_blurb=persona_blurb,
             signature=f"- Your {persona_blurb}" if lead_name else None
         )
+
+    def _apply_rapport_layer(self, response_text: str, state: ConversationState) -> str:
+        """Blend in natural phrases based on state without making it templated."""
+        text = response_text.strip()
+        if state == ConversationState.GREETING:
+            opener = self.rapport.sample("greeting")
+            return f"{opener} {text}" if opener else text
+        if state in {ConversationState.DISCOVERY}:
+            follow = self.rapport.sample("discovery_followup")
+            # If model returned a question already, keep it; otherwise add one follow-up
+            if text.endswith("?"):
+                return text
+            return f"{text} {follow}" if follow else text
+        if state == ConversationState.RECOMMENDATION and not text.endswith("?"):
+            trans = self.rapport.sample("transition_to_reco")
+            return f"{trans} {text}" if trans else text
+        if state == ConversationState.SCHEDULE and not text.endswith("?"):
+            sched = self.rapport.sample("schedule_prompt")
+            return f"{text} {sched}" if sched else text
+        return text
+
+    def _infer_state(self, conversations: List[Dict], latest_user_text: str) -> ConversationState:
+        """Lightweight state inference for retrieval gating in absence of full memory context."""
+        # Build minimal slots from latest message
+        try:
+            parsed = self.entity_parser.parse_message(latest_user_text)
+            slots = {}
+            for key in ["budget", "model", "body_type", "vehicle_type"]:
+                val = getattr(parsed, key, None) if hasattr(parsed, key) else parsed.get(key) if isinstance(parsed, dict) else None
+                if val:
+                    slots[key] = val
+        except Exception:
+            slots = {}
+        last_5 = []
+        for conv in (conversations or [])[-5:]:
+            last_5.append({"text": conv.get("message", "")})
+        signals = ConversationStateManager.extract_signals(slots, last_5)
+        # Seed state based on history length
+        manager = ConversationStateManager(
+            ConversationState.GREETING if len(conversations or []) == 0 else ConversationState.DISCOVERY
+        )
+        return manager.next(signals).state
+
+    def _get_conversation_id(self, conversations: List[Dict]) -> str:
+        """Derive a stable conversation id for memory persistence."""
+        # Try to use an explicit id from history if present
+        for conv in conversations or []:
+            cid = conv.get("conversation_id") or conv.get("id")
+            if cid:
+                return str(cid)
+        # Fallback: hash of participants + length
+        import hashlib
+        key_src = json.dumps({"len": len(conversations or []), "first": conversations[0] if conversations else {}}, sort_keys=True)
+        return hashlib.md5(key_src.encode("utf-8")).hexdigest()
     
     def _call_openai_with_prompt(self, prompt: str) -> str:
         """Call OpenAI API with the generated prompt."""
