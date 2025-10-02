@@ -294,19 +294,12 @@ class MessageFlowService:
     ) -> Dict[str, Any]:
         """Approve and send the generated response to the customer"""
         try:
-            # Import the appropriate service based on message source
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    pending_approval.customer_phone,
-                    pending_approval.generated_response
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    pending_approval.customer_phone,
-                    pending_approval.generated_response
-                )
+            # Send via Telnyx
+            from ..services.telnyx_service import telnyx_service
+            send_result = await telnyx_service.send_sms(
+                pending_approval.customer_phone,
+                pending_approval.generated_response
+            )
             
             if send_result["success"]:
                 # Update approval status
@@ -531,18 +524,11 @@ Focus on: {edit_instructions}"""
             )
             
             # Send approval message to salesperson
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    salesperson_profile.phone,
-                    approval_message
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    salesperson_profile.phone,
-                    approval_message
-                )
+            from ..services.telnyx_service import telnyx_service
+            send_result = await telnyx_service.send_sms(
+                salesperson_profile.phone,
+                approval_message
+            )
             
             if send_result["success"]:
                 logger.info(f"Created new pending approval {new_pending_approval.id} with edited response")
@@ -638,18 +624,11 @@ Focus on: {edit_instructions}"""
                 }
             
             # Send custom message to customer
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    pending_approval.customer_phone,
-                    custom_message
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    pending_approval.customer_phone,
-                    custom_message
-                )
+            from ..services.telnyx_service import telnyx_service
+            send_result = await telnyx_service.send_sms(
+                pending_approval.customer_phone,
+                custom_message
+            )
             
             if send_result["success"]:
                 # Update approval status
@@ -930,18 +909,11 @@ Focus on: {edit_instructions}"""
             )
             
             # Send notification to salesperson
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    assigned_user.phone,
-                    notification_message
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    assigned_user.phone,
-                    notification_message
-                )
+            from ..services.telnyx_service import telnyx_service
+            send_result = await telnyx_service.send_sms(
+                assigned_user.phone,
+                notification_message
+            )
             
             if send_result["success"]:
                 logger.info(f"Notified assigned salesperson {lead.assigned_user_id} about customer interaction")
@@ -1001,18 +973,11 @@ Focus on: {edit_instructions}"""
             )
             
             # Send approval message to salesperson
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    assigned_user.phone,
-                    verification_message
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    assigned_user.phone,
-                    verification_message
-                )
+            from ..services.telnyx_service import telnyx_service
+            send_result = await telnyx_service.send_sms(
+                assigned_user.phone,
+                verification_message
+            )
             
             if send_result["success"]:
                 logger.info(f"Created pending approval {pending_approval.id} and sent to user {lead.assigned_user_id}")
@@ -1064,18 +1029,11 @@ Focus on: {edit_instructions}"""
             )
             
             # Send AI response to customer
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    customer_phone,
-                    response_text
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    customer_phone,
-                    response_text
-                )
+            from ..services.telnyx_service import telnyx_service
+            send_result = await telnyx_service.send_sms(
+                customer_phone,
+                response_text
+            )
             
             if send_result["success"]:
                 logger.info(f"Sent AI response directly to customer {customer_phone}")
