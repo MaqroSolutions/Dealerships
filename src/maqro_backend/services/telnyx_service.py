@@ -141,44 +141,59 @@ class TelnyxMessagingService:
     def parse_webhook_message(self, webhook_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Parse incoming Telnyx webhook message
-        
+
         Args:
             webhook_data: Raw webhook JSON payload
-            
+
         Returns:
             Parsed message data or None if invalid
         """
         try:
             # Navigate the Telnyx webhook structure
+            # Telnyx sends: {"data": {"event_type": "message.received", "payload": {...}}}
             data = webhook_data.get("data", {})
-            event_type = webhook_data.get("event_type")
-            
+            event_type = data.get("event_type")
+
             if not data or event_type != "message.received":
+                logger.warning(f"Invalid webhook: event_type={event_type}, has_data={bool(data)}")
                 return None
-            
+
+            # The actual message is inside the "payload" object
+            payload = data.get("payload", {})
+            if not payload:
+                logger.error("No payload found in webhook data")
+                return None
+
+            # Extract phone numbers from nested structure
+            from_data = payload.get("from", {})
+            to_data = payload.get("to", [{}])[0] if payload.get("to") else {}
+
             # Extract message details
             parsed_data = {
-                "message_id": data.get("id"),
-                "from_phone": data.get("from"),
-                "to_phone": data.get("to"),
-                "timestamp": data.get("received_at"),
-                "message_type": data.get("type"),
-                "direction": data.get("direction"),
-                "messaging_profile_id": data.get("messaging_profile_id")
+                "message_id": payload.get("id"),
+                "from_phone": from_data.get("phone_number") if isinstance(from_data, dict) else from_data,
+                "to_phone": to_data.get("phone_number") if isinstance(to_data, dict) else to_data,
+                "timestamp": payload.get("received_at"),
+                "message_type": payload.get("type"),
+                "direction": payload.get("direction"),
+                "messaging_profile_id": payload.get("messaging_profile_id")
             }
-            
+
             # Extract message content based on type
-            if data.get("type") == "SMS":
-                parsed_data["message_text"] = data.get("text")
-            elif data.get("type") == "MMS":
+            if payload.get("type") == "SMS":
+                parsed_data["message_text"] = payload.get("text")
+            elif payload.get("type") == "MMS":
                 # Handle MMS messages
-                parsed_data["media_urls"] = data.get("media", [])
-                parsed_data["message_text"] = data.get("text")
-            
+                parsed_data["media_urls"] = payload.get("media", [])
+                parsed_data["message_text"] = payload.get("text")
+
+            logger.info(f"Parsed message: from={parsed_data['from_phone']}, text={parsed_data.get('message_text')}")
             return parsed_data
-            
+
         except Exception as e:
             logger.error(f"Error parsing Telnyx webhook message: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return None
     
     async def get_message_status(self, message_id: str) -> Dict[str, Any]:
