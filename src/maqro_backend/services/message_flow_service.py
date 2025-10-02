@@ -10,6 +10,7 @@ This service implements the new flow where:
 import logging
 from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from datetime import datetime
 import pytz
 
@@ -816,14 +817,13 @@ Focus on: {edit_instructions}"""
             source=message_source.title(),
             message=message_text
         )
-        
-        # Use default user ID for testing (you can make this configurable)
-        default_user_id = "d245e4bb-91ae-4ec4-ad0f-18307b38daa6"
-        
+
+        # Don't assign a user initially - leads from SMS can be unassigned
+        # They will be assigned later by dealership staff
         lead = await create_lead(
             session=session,
             lead_in=lead_data,
-            user_id=default_user_id,
+            user_id=None,  # No assigned user for SMS leads initially
             dealership_id=dealership_id
         )
         
@@ -867,10 +867,15 @@ Focus on: {edit_instructions}"""
             )
             
             # Get actual dealership name
-            dealership_query = text("SELECT name FROM dealerships WHERE id = :dealership_id")
-            dealership_result = await session.execute(dealership_query, {"dealership_id": dealership_id})
-            dealership = dealership_result.fetchone()
-            dealership_name = dealership.name if dealership else "our dealership"
+            dealership_name = "our dealership"  # Default fallback
+            try:
+                dealership_query = text("SELECT name FROM dealerships WHERE id = :dealership_id")
+                dealership_result = await session.execute(dealership_query, {"dealership_id": dealership_id})
+                dealership = dealership_result.fetchone()
+                if dealership and dealership.name:
+                    dealership_name = dealership.name
+            except Exception as e:
+                logger.warning(f"Could not fetch dealership name: {e}")
             
             # Generate enhanced AI response with actual dealership name
             enhanced_response = enhanced_rag_service.generate_enhanced_response(
