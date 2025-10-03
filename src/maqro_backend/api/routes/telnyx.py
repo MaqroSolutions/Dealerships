@@ -138,6 +138,7 @@ async def telnyx_webhook(
         from_phone = parsed_message.get("from_phone")
         message_text = parsed_message.get("message_text")
         message_type = parsed_message.get("message_type")
+        message_id = parsed_message.get("message_id")
         
         if not from_phone or not message_text:
             logger.error("Missing required message data")
