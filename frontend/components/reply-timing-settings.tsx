@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Clock, Zap, Building } from 'lucide-react';
+import { getAuthenticatedApi } from '@/lib/api-client';
 
 // Types
 interface ReplyTimingSettings {
@@ -25,9 +26,9 @@ interface ReplyTimingSettingsProps {
 
 // Constants
 const REPLY_TIMING_MODES = [
-  { value: 'instant', label: 'Instant Reply', description: 'Send responses immediately' },
-  { value: 'custom_delay', label: 'Custom Delay', description: 'Wait a specific time before responding' },
-  { value: 'business_hours', label: 'Business Hours Profile', description: 'Different delays for business vs after hours' }
+  { value: 'instant', label: 'Instant reply', description: 'Send responses immediately' },
+  { value: 'custom_delay', label: 'Custom delay', description: 'Wait a specific time before responding' },
+  { value: 'business_hours', label: 'Business hours profile', description: 'Different delays for business vs after hours' }
 ] as const;
 
 const DEFAULT_SETTINGS: ReplyTimingSettings = {
@@ -56,31 +57,32 @@ export function ReplyTimingSettings({ dealershipId, onSave }: ReplyTimingSetting
     setError(null);
     
     try {
-      const data = await fetchSettings();
-      const replySettings = extractReplySettings(data);
+      const rows = await fetchSettings();
+      const replySettings = extractReplySettings(rows);
       setSettings(replySettings);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load settings');
+      setError('Failed to load reply timing settings');
     } finally {
       setLoading(false);
     }
   }, [dealershipId]);
 
-  const fetchSettings = async () => {
-    const response = await fetch(`/api/settings/dealership?dealership_id=${dealershipId}`);
-    if (!response.ok) {
-      throw new Error('Failed to load settings');
-    }
-    return await response.json();
+  const fetchSettings = async (): Promise<Array<{ setting_key: string; setting_value: any }>> => {
+    const api = await getAuthenticatedApi();
+    return api.get<Array<{ setting_key: string; setting_value: any }>>('/settings/dealership');
   };
 
-  const extractReplySettings = (data: any): ReplyTimingSettings => ({
-    reply_timing_mode: data.reply_timing_mode || 'instant',
-    reply_delay_seconds: data.reply_delay_seconds || 30,
-    business_hours_start: data.business_hours_start || '09:00',
-    business_hours_end: data.business_hours_end || '17:00',
-    business_hours_delay_seconds: data.business_hours_delay_seconds || 60
-  });
+  const extractReplySettings = (rows: Array<{ setting_key: string; setting_value: any }>): ReplyTimingSettings => {
+    const map: Record<string, any> = {};
+    for (const r of rows) map[r.setting_key] = r.setting_value;
+    return {
+      reply_timing_mode: (map['reply_timing_mode'] as string) || 'instant',
+      reply_delay_seconds: (map['reply_delay_seconds'] as number) ?? 30,
+      business_hours_start: (map['business_hours_start'] as string) || '09:00',
+      business_hours_end: (map['business_hours_end'] as string) || '17:00',
+      business_hours_delay_seconds: (map['business_hours_delay_seconds'] as number) ?? 60,
+    };
+  };
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -103,10 +105,13 @@ export function ReplyTimingSettings({ dealershipId, onSave }: ReplyTimingSetting
   }, [settings, onSave]);
 
   const saveSettings = async (settings: ReplyTimingSettings) => {
+    const api = await getAuthenticatedApi();
     const settingUpdates = createSettingUpdates(settings);
-    
     for (const update of settingUpdates) {
-      await updateSetting(update);
+      await api.put('/settings/dealership', {
+        setting_key: update.key,
+        setting_value: update.value,
+      });
     }
   };
 
@@ -118,20 +123,7 @@ export function ReplyTimingSettings({ dealershipId, onSave }: ReplyTimingSetting
     { key: 'business_hours_delay_seconds', value: settings.business_hours_delay_seconds }
   ];
 
-  const updateSetting = async (update: { key: string; value: any }) => {
-    const response = await fetch('/api/settings/dealership', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        setting_key: update.key,
-        setting_value: update.value
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to update ${update.key}`);
-    }
-  };
+  // updateSetting removed; handled by saveSettings via api client
 
   // Event handlers
   const handleModeChange = useCallback((mode: string) => {
@@ -158,27 +150,27 @@ export function ReplyTimingSettings({ dealershipId, onSave }: ReplyTimingSetting
   }
 
   return (
-    <Card>
+    <Card className="bg-gray-900/50 border-gray-800">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-gray-100">
           <Clock className="h-5 w-5" />
           Reply Timing Settings
         </CardTitle>
-        <CardDescription>
-          Configure how quickly the AI responds to customer messages. This helps make conversations feel more natural.
+        <CardDescription className="text-gray-400">
+          Configure how quickly the AI responds to customer messages.
         </CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-6">
         {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+          <Alert variant="destructive" className="bg-red-900/30 border-red-900/40">
+            <AlertDescription className="text-red-200">{error}</AlertDescription>
           </Alert>
         )}
         
         {success && (
-          <Alert>
-            <AlertDescription>Reply timing settings saved successfully!</AlertDescription>
+          <Alert className="bg-green-900/30 border-green-900/40">
+            <AlertDescription className="text-green-200">Reply timing settings saved successfully.</AlertDescription>
           </Alert>
         )}
 
@@ -255,12 +247,12 @@ const ReplyModeSelector = ({
   onChange: (value: string) => void; 
 }) => (
   <div className="space-y-3">
-    <Label htmlFor="reply-mode">Reply Timing Mode</Label>
+    <Label htmlFor="reply-mode" className="text-gray-300">Reply timing mode</Label>
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger>
+      <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
         <SelectValue placeholder="Select reply timing mode" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="bg-gray-900 border-gray-800 text-gray-100">
         {REPLY_TIMING_MODES.map((mode) => (
           <SelectItem key={mode.value} value={mode.value}>
             <div className="flex items-center gap-2">
@@ -269,7 +261,7 @@ const ReplyModeSelector = ({
               {mode.value === 'business_hours' && <Building className="h-4 w-4" />}
               <div>
                 <div className="font-medium">{mode.label}</div>
-                <div className="text-sm text-muted-foreground">{mode.description}</div>
+                <div className="text-sm text-gray-400">{mode.description}</div>
               </div>
             </div>
           </SelectItem>
@@ -287,7 +279,7 @@ const CustomDelaySettings = ({
   onChange: (field: keyof ReplyTimingSettings, value: string) => void; 
 }) => (
   <div className="space-y-3">
-    <Label htmlFor="custom-delay">Custom Delay (seconds)</Label>
+    <Label htmlFor="custom-delay" className="text-gray-300">Custom delay (seconds)</Label>
     <Input
       id="custom-delay"
       type="number"
@@ -296,9 +288,10 @@ const CustomDelaySettings = ({
       value={settings.reply_delay_seconds}
       onChange={(e) => onChange('reply_delay_seconds', e.target.value)}
       placeholder="30"
+      className="bg-gray-800 border-gray-700 text-gray-100"
     />
-    <p className="text-sm text-muted-foreground">
-      AI will wait this many seconds before responding (with random jitter)
+    <p className="text-sm text-gray-400">
+      The AI will wait this many seconds before responding (with random jitter).
     </p>
   </div>
 );
@@ -313,27 +306,29 @@ const BusinessHoursSettings = ({
   <div className="space-y-4">
     <div className="grid grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label htmlFor="business-start">Business Hours Start</Label>
+        <Label htmlFor="business-start" className="text-gray-300">Business hours start</Label>
         <Input
           id="business-start"
           type="time"
           value={settings.business_hours_start}
           onChange={(e) => onChange('business_hours_start', e.target.value)}
+          className="bg-gray-800 border-gray-700 text-gray-100"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="business-end">Business Hours End</Label>
+        <Label htmlFor="business-end" className="text-gray-300">Business hours end</Label>
         <Input
           id="business-end"
           type="time"
           value={settings.business_hours_end}
           onChange={(e) => onChange('business_hours_end', e.target.value)}
+          className="bg-gray-800 border-gray-700 text-gray-100"
         />
       </div>
     </div>
     
     <div className="space-y-2">
-      <Label htmlFor="business-delay">Delay During Business Hours (seconds)</Label>
+      <Label htmlFor="business-delay" className="text-gray-300">Delay during business hours (seconds)</Label>
       <Input
         id="business-delay"
         type="number"
@@ -342,9 +337,10 @@ const BusinessHoursSettings = ({
         value={settings.business_hours_delay_seconds}
         onChange={(e) => onChange('business_hours_delay_seconds', e.target.value)}
         placeholder="60"
+        className="bg-gray-800 border-gray-700 text-gray-100"
       />
-      <p className="text-sm text-muted-foreground">
-        Responses will be instant after hours, but delayed during business hours
+      <p className="text-sm text-gray-400">
+        Responses are instant after hours, delayed during business hours.
       </p>
     </div>
   </div>

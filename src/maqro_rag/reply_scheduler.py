@@ -1,4 +1,132 @@
 """
+Reply Scheduler for configurable reply timing.
+
+Decides whether to send immediately or after a delay based on dealership
+settings and message type. Includes random jitter for natural timing.
+"""
+import asyncio
+import logging
+import random
+from datetime import datetime, time
+from enum import Enum
+from typing import Any, Dict, Optional, Tuple
+
+
+logger = logging.getLogger(__name__)
+
+
+class ReplyTimingMode(Enum):
+    INSTANT = "instant"
+    CUSTOM_DELAY = "custom_delay"
+    BUSINESS_HOURS = "business_hours"
+
+
+class ReplyScheduler:
+    MAX_DELAY_SECONDS = 300
+    JITTER_RANGE = 15
+
+    def __init__(self) -> None:
+        self._transactional_patterns = self._init_transactional_patterns()
+
+    def _init_transactional_patterns(self) -> list[str]:
+        return [
+            # hours/location/contact
+            "hours", "open", "closed", "what time", "address", "location", "directions",
+            "phone", "number", "contact",
+            # inventory/pricing
+            "in stock", "available", "inventory", "stock", "do you have",
+            "price", "pricing", "how much", "cost",
+        ]
+
+    async def should_delay_reply(
+        self,
+        message: str,
+        dealership_settings: Dict[str, Any],
+        current_time: Optional[datetime] = None,
+    ) -> Tuple[bool, float, str]:
+        now = current_time or datetime.now()
+
+        if self._is_transactional(message):
+            return False, 0.0, "Transactional query - instant reply"
+
+        mode = str(dealership_settings.get("reply_timing_mode", ReplyTimingMode.INSTANT.value))
+        delay = float(dealership_settings.get("reply_delay_seconds", 30))
+        bh_start = str(dealership_settings.get("business_hours_start", "09:00"))
+        bh_end = str(dealership_settings.get("business_hours_end", "17:00"))
+        bh_delay = float(dealership_settings.get("business_hours_delay_seconds", 60))
+
+        if mode == ReplyTimingMode.INSTANT.value:
+            return False, 0.0, "Instant reply mode"
+
+        if mode == ReplyTimingMode.CUSTOM_DELAY.value:
+            return True, self._with_jitter(delay), f"Custom delay - {int(delay)}s + jitter"
+
+        if mode == ReplyTimingMode.BUSINESS_HOURS.value:
+            if self._is_business_hours(now, bh_start, bh_end):
+                return True, self._with_jitter(bh_delay), f"Business hours delay - {int(bh_delay)}s + jitter"
+            return False, 0.0, "After hours - instant reply"
+
+        logger.warning("Unknown reply_timing_mode '%s' - defaulting to instant", mode)
+        return False, 0.0, "Unknown mode - instant reply"
+
+    def _is_transactional(self, message: str) -> bool:
+        msg = message.lower()
+        return any(p in msg for p in self._transactional_patterns)
+
+    def _with_jitter(self, base: float) -> float:
+        jitter = random.uniform(-self.JITTER_RANGE, self.JITTER_RANGE)
+        return max(0.0, min(self.MAX_DELAY_SECONDS, base + jitter))
+
+    def _is_business_hours(self, now: datetime, start_str: str, end_str: str) -> bool:
+        try:
+            sh, sm = map(int, start_str.split(":"))
+            eh, em = map(int, end_str.split(":"))
+            start_t, end_t = time(sh, sm), time(eh, em)
+            cur = now.time()
+            if start_t <= end_t:
+                return start_t <= cur <= end_t
+            # overnight window
+            return cur >= start_t or cur <= end_t
+        except Exception as e:
+            logger.error("Business hours parse error: %s", e)
+            return True
+
+    async def schedule_reply(
+        self,
+        message: str,
+        dealership_settings: Dict[str, Any],
+        send_callback,
+        current_time: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        try:
+            should_delay, delay_s, reason = await self.should_delay_reply(message, dealership_settings, current_time)
+            if not should_delay:
+                await send_callback()
+                return {"success": True, "delayed": False, "delay_seconds": 0.0, "reason": reason}
+
+            async def delayed():
+                await asyncio.sleep(delay_s)
+                await send_callback()
+
+            task = asyncio.create_task(delayed())
+            return {"success": True, "delayed": True, "delay_seconds": delay_s, "reason": reason, "task": task}
+        except Exception as e:
+            logger.error("Schedule error: %s", e)
+            return {"success": False, "delayed": False, "delay_seconds": 0.0, "error": str(e)}
+
+    def default_settings(self) -> Dict[str, Any]:
+        return {
+            "reply_timing_mode": ReplyTimingMode.INSTANT.value,
+            "reply_delay_seconds": 30,
+            "business_hours_start": "09:00",
+            "business_hours_end": "17:00",
+            "business_hours_delay_seconds": 60,
+        }
+
+
+reply_scheduler = ReplyScheduler()
+
+"""
 Reply Scheduler for Maqro RAG system.
 
 This module provides configurable reply timing to make AI responses feel more natural

@@ -1285,30 +1285,69 @@ Focus on: {edit_instructions}"""
                 message=response_text,
                 sender="agent"
             )
-            
-            # Send AI response to customer
+
+            # If timing context provided, schedule via reply scheduler
+            if customer_message and dealership_id:
+                try:
+                    settings = await self._get_dealership_reply_settings(session, dealership_id)
+                    from maqro_rag.reply_scheduler import reply_scheduler
+
+                    async def send_callback():
+                        if message_source == "whatsapp":
+                            from ..services.whatsapp_service import whatsapp_service
+                            return await whatsapp_service.send_message(customer_phone, response_text)
+                        else:
+                            from ..services.sms_service import sms_service
+                            return await sms_service.send_sms(customer_phone, response_text)
+
+                    schedule_result = await reply_scheduler.schedule_reply(
+                        message=customer_message,
+                        dealership_settings=settings,
+                        send_callback=send_callback,
+                    )
+
+                    if schedule_result.get("success"):
+                        if schedule_result.get("delayed"):
+                            logger.info(
+                                f"Scheduled reply in {schedule_result['delay_seconds']:.1f}s for {customer_phone}"
+                            )
+                            return {
+                                "success": True,
+                                "message": "Response scheduled for delivery",
+                                "lead_id": str(lead.id),
+                                "response_sent": False,
+                                "scheduled": True,
+                                "delay_seconds": schedule_result["delay_seconds"],
+                                "reason": schedule_result.get("reason", ""),
+                            }
+                        else:
+                            logger.info(f"Sent AI response immediately to {customer_phone}")
+                            return {
+                                "success": True,
+                                "message": "Message processed and response sent directly to customer",
+                                "lead_id": str(lead.id),
+                                "response_sent": True,
+                                "sent_directly": True,
+                            }
+                except Exception as e:
+                    logger.warning(f"Reply timing failed, sending immediately: {e}")
+
+            # Fallback: immediate send
             if message_source == "whatsapp":
                 from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    customer_phone,
-                    response_text
-                )
+                send_result = await whatsapp_service.send_message(customer_phone, response_text)
             else:
                 from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    customer_phone,
-                    response_text
-                )
-            
+                send_result = await sms_service.send_sms(customer_phone, response_text)
+
             if send_result["success"]:
                 logger.info(f"Sent AI response directly to customer {customer_phone}")
-                
                 return {
                     "success": True,
                     "message": "Message processed and response sent directly to customer",
                     "lead_id": str(lead.id),
                     "response_sent": True,
-                    "sent_directly": True
+                    "sent_directly": True,
                 }
             else:
                 logger.error(f"Failed to send AI response: {send_result['error']}")
@@ -1318,7 +1357,7 @@ Focus on: {edit_instructions}"""
                     "message": "Message processed but response failed to send",
                     "lead_id": str(lead.id),
                     "response_sent": False,
-                    "error": send_result["error"]
+                    "error": send_result["error"],
                 }
                 
         except Exception as e:
