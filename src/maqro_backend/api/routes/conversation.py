@@ -32,8 +32,8 @@ logger.info("Initialized Database RAG system for conversation API")
 # Default agent config (fallback only)
 default_agent_config = AgentConfig(
     tone="friendly",
-    dealership_name="our dealership", 
-    persona_blurb="friendly, persuasive car salesperson"
+    dealership_name="our dealership",
+    agent_name="Maqro"
 )
 
 async def get_dynamic_agent_config(db: AsyncSession, user_id: str) -> AgentConfig:
@@ -66,7 +66,7 @@ async def get_dynamic_agent_config(db: AsyncSession, user_id: str) -> AgentConfi
         return AgentConfig(
             tone=persona_config["tone"],
             dealership_name=dealership_name,
-            persona_blurb=persona_config["blurb"]
+            agent_name="Maqro"
         )
     except Exception as e:
         logger.warning(f"Failed to get dynamic agent config for user {user_id}, using default: {str(e)}")
@@ -265,7 +265,7 @@ async def generate_rag_response(
     try:
         # Get dynamic agent config based on user/dealership settings
         dynamic_agent_config = await get_dynamic_agent_config(db, user_id)
-        prompt_builder = PromptBuilder(dynamic_agent_config)
+        prompt_builder = PromptBuilder()
         
         if retrieved_cars and len(retrieved_cars) > 0:
             # Use grounded prompt with retrieved vehicles
@@ -276,8 +276,9 @@ async def generate_rag_response(
             )
         else:
             # Use generic prompt for fallback
-            prompt = prompt_builder.build_generic_prompt(
-                user_message=customer_message,
+            prompt = prompt_builder.build_full_prompt(
+                query=customer_message,
+                context="",
                 agent_config=dynamic_agent_config
             )
         

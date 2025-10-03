@@ -392,10 +392,10 @@ async def generate_contextual_ai_response(
         agent_config = AgentConfig(
             tone=persona_config["tone"],
             dealership_name=dealership_name or "our dealership",
-            persona_blurb=persona_config["blurb"]
+            agent_name="Maqro"
         )
         
-        prompt_builder = PromptBuilder(agent_config)
+        prompt_builder = PromptBuilder()
         
         if vehicles and len(vehicles) > 0:
             # Use grounded prompt with retrieved vehicles
@@ -407,10 +407,10 @@ async def generate_contextual_ai_response(
             )
         else:
             # Use generic prompt for fallback
-            prompt = prompt_builder.build_generic_prompt(
-                user_message=last_message,
-                agent_config=agent_config,
-                conversation_history=conversations
+            prompt = prompt_builder.build_full_prompt(
+                query=last_message,
+                context="",
+                agent_config=agent_config
             )
         
         # Generate response using OpenAI LLM

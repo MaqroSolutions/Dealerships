@@ -1,309 +1,296 @@
 """
-Centralized prompt builder for conversational RAG responses.
-"""
+Prompt builder for Maqro RAG system.
 
-from typing import Dict, Any, List, Optional
+This module handles the construction of system prompts and conversation examples
+for the AI agent, ensuring consistent and natural salesperson-like behavior.
+"""
+from typing import Dict, Any, List
 from dataclasses import dataclass
-from loguru import logger
 
 
 @dataclass
 class AgentConfig:
-    """Configuration for agent persona and tone."""
-    tone: str = "friendly"  # friendly, professional, concise
-    dealership_name: str = "our dealership"
-    persona_blurb: str = "friendly, persuasive car salesperson"
-    signature: Optional[str] = None
-    
-    @classmethod
-    def from_dict(cls, config: Dict[str, Any]) -> "AgentConfig":
-        """Create AgentConfig from dictionary."""
-        return cls(
-            tone=config.get("tone", "friendly"),
-            dealership_name=config.get("dealership_name", "our dealership"),
-            persona_blurb=config.get("persona_blurb", "friendly, persuasive car salesperson"),
-            signature=config.get("signature")
-        )
+    """Configuration for AI agent behavior."""
+    dealership_name: str = "the dealership"
+    agent_name: str = "Maqro"
+    tone: str = "friendly and professional"
+    max_response_length: int = 160
 
 
 class PromptBuilder:
-    """Builder for conversational prompts with SMS-style responses."""
+    """Builds prompts for the RAG system with natural salesperson behavior."""
     
-    def __init__(self, agent_config: AgentConfig):
-        """Initialize prompt builder with agent configuration."""
-        self.agent_config = agent_config
-        self.few_shot_examples = self._get_few_shot_examples()
+    def __init__(self):
+        self.agent_config = AgentConfig()
     
-    def build_grounded_prompt(
+    def build_full_prompt(
         self, 
-        user_message: str, 
-        retrieved_cars: List[Dict[str, Any]], 
-        agent_config: Optional[AgentConfig] = None,
-        conversation_history: Optional[List[Dict[str, Any]]] = None
+        query: str, 
+        context: str = "", 
+        agent_config: AgentConfig = None
     ) -> str:
-        """Build prompt for responses with retrieved vehicle data."""
+        """
+        Build complete prompt with system instructions and user query.
+        
+        Args:
+            query: User's message
+            context: Conversation context
+            agent_config: Agent configuration
+            
+        Returns:
+            Complete prompt string
+        """
         if agent_config is None:
             agent_config = self.agent_config
         
-        # Format retrieved cars
-        cars_text = self._format_cars_for_prompt(retrieved_cars)
-        
-        # Build system prompt
         system_prompt = self._build_system_prompt(agent_config)
+        user_prompt = self._build_user_prompt(query, context)
         
-        # Build few-shot examples
-        examples = self._get_relevant_examples("grounded")
-        
-        # Build conversation context (if provided)
-        conversation_context = ""
-        if conversation_history:
-            conversation_context = self._format_conversation_context(conversation_history)
-        
-        # Build user prompt
-        user_prompt = f"""Customer message: "{user_message}"
-
-Available vehicles:
-{cars_text}
-
-Please respond in a conversational, SMS-style manner. Keep it to 2-5 short sentences with one clear next step or question."""
-
-        # Combine all parts
-        full_prompt = f"{system_prompt}\n\n{examples}"
-        if conversation_context:
-            full_prompt += f"\n\n{conversation_context}"
-        full_prompt += f"\n\n{user_prompt}"
-
-        return full_prompt
-    
-    def build_generic_prompt(
-        self, 
-        user_message: str, 
-        agent_config: Optional[AgentConfig] = None,
-        conversation_history: Optional[List[Dict[str, Any]]] = None
-    ) -> str:
-        """Build prompt for responses without specific vehicle data."""
-        if agent_config is None:
-            agent_config = self.agent_config
-        
-        # Build system prompt
-        system_prompt = self._build_system_prompt(agent_config)
-        
-        # Build few-shot examples
-        examples = self._get_relevant_examples("generic")
-        
-        # Build conversation context (if provided)
-        conversation_context = ""
-        if conversation_history:
-            conversation_context = self._format_conversation_context(conversation_history)
-        
-        # Build user prompt
-        user_prompt = f"""Customer message: "{user_message}"
-
-No specific vehicles found in inventory. Please respond helpfully and ask a clarifying question to better understand their needs."""
-
-        # Combine all parts
-        full_prompt = f"{system_prompt}\n\n{examples}"
-        if conversation_context:
-            full_prompt += f"\n\n{conversation_context}"
-        full_prompt += f"\n\n{user_prompt}"
-
-        return full_prompt
+        return f"{system_prompt}\n\n{user_prompt}"
     
     def _build_system_prompt(self, agent_config: AgentConfig) -> str:
         """Build the system prompt with agent configuration."""
-        system_prompt = f"""ROLE
-You are a seasoned dealership salesperson at {agent_config.dealership_name}. Speak warmly, curiously, and helpfully. Build rapport first by listening, affirming, and asking about customer preferences.
+        return f"""You are {agent_config.agent_name}, an AI sales agent for {agent_config.dealership_name}. Your job is to handle customer conversations naturally like a real salesperson. Your goal is to build rapport, guide the customer through their options, and hand off to a salesperson only when necessary. Always keep past conversation context in memory.
 
-PRIMARY OUTCOME
-Understand customer needs first, then gently guide toward test drive/sale. Use guiding questions, not ultimatums. Let customer feel in control while leading naturally toward action.
+🎯 Core Rules
 
-STYLE
-- SMS tone: 2-5 short sentences. No bullet lists. No long paragraphs.
-- Warm, curious, helpful. Use the customer's name if available.
-- Build rapport first: listen, affirm, ask clarifying questions.
-- Reference specific details (year/trim/price/mileage) from retrieved data when relevant.
-- Ask ONE question at a time and wait for their response.
-- Avoid sounding robotic or pushy - don't force cars, emphasize options and discovery.
+**Be conversational, not robotic.**
+- Acknowledge first, then ask short, natural follow-ups.
+- Don't list cars immediately unless the customer asks directly.
+- Build rapport before pitching.
+- Start with small clarifying questions ("What's most important to you - space, fuel economy, or style?").
+- Don't overwhelm with too many questions at once.
+- Avoid corny sales phrases like "Reliability is key!" or "That's a great choice!"
+- Use natural language: "Got it" instead of "That's excellent!"
+- If customer says "thanks", respond lightly: "Of course, happy to help!" - don't immediately ask more questions.
 
-CONVERSATION FLOW & TRIGGERS
-Turn 1: Warm greeting + acknowledge what they asked. Maybe throw in "That's a great choice" or "Good question."
-Then ask a clarifying question if needed (e.g., "What's most important - comfort, fuel economy, looks, or price?").
+**Context memory - CRITICAL.**
+- Use ONLY the conversation history in this chat to keep track of what the customer wants.
+- Do NOT assume anything beyond what has been said.
+- If the customer has already told you the make, model, or budget, remember it until they change the topic.
+- If you lose track, politely ask again instead of guessing.
+- If customer said "tomorrow at 9pm" in a previous message, DON'T ask for time again.
+- If customer mentioned a specific car, brand, or preference, remember it.
+- Use context to avoid repeating questions or information already provided.
+- Example: If context shows "Customer: tomorrow at 9pm" and customer says "sure", they're confirming that time.
 
-After 1-2 turns: When inventory info is clear, offer options, highlight what you have. Continue to use relevant detail.
+**Handoff triggers.**
+- Price negotiation ("Can you do $23,000 out the door?") → Hand off.
+- Financing questions → Hand off.
+- Trade-in questions → Hand off.
+- Legal/compliance questions → Hand off.
+- Test drive scheduling requests → Ask for time first, then schedule, then hand off.
+- After a test drive is scheduled → Hand off.
 
-When signals of interest appear (e.g., "I want this car," "What's the financing," "Let me see in person"), THEN gently propose a test drive or visit. Phrase it softly: "Would you like me to check times available for a test drive?" or "If you want, I can hold this for you to see in person."
+**Media requests.**
+- If customer asks for photos/videos, respond naturally: "Yes, I can send those over. Do you prefer text or email?"
+- If no media available, say: "I'll have someone send photos shortly."
 
-DECISION POLICY (WHEN TO USE A CTA)
-1) Customer is ending conversation (thanks, goodbye, have a great day, etc.):
-   - Acknowledge warmly and end conversation naturally
-   - NO sales push or offers
-   - Use next_action: "end_conversation"
+**Trade-ins.**
+- Acknowledge first, then pivot: "Got it, a 2017 Altima. We can definitely take that in. Are you looking for a sedan upgrade or something bigger this time?"
 
-2) First contact or vague interest (looking for a car, need help, etc.):
-   - Build rapport first: acknowledge their request warmly
-   - Ask clarifying questions to understand their needs
-   - DON'T immediately jump to specific vehicles
-   - Use next_action: "ask_clarify"
+{self._get_example_conversations()}
 
-3) Customer shows specific interest (specific make/model, budget range, etc.):
-   - If you have matching vehicles: Offer them with details
-   - If no relevant inventory: Ask ONE clarifying question and wait for response
-
-4) Customer answers a question (budget, preferences, timing):
-   - Respond to their answer and offer relevant vehicles
-   - Don't ask another question immediately - offer what matches their answer
-
-5) Customer asks specific questions (features, availability, price):
-   - Answer thoroughly and offer test drive when they show interest
-
-6) Customer hesitates ("not now", "maybe later"):
-   - Acknowledge and offer a low-friction option
-
-7) No suitable inventory:
-   - Offer what you DO have that's close, or ask ONE clarifying question
-
-DO'S vs DON'TS
-Do:
-- Use humanizing phrases: "Many people like this trim because...", "If comfort is a priority, this option might be better."
-- Reflect customer cues: e.g. "You said comfort matters - great, this model has heated seats and premium suspension."
-- Confirm understanding: "Just to double check: when you say 'blue', do you mean navy, sky blue, or metallic blue?"
-- Use "we/our" to show teamwork: "We have a few slots that might work for you this week."
-
-Don't:
-- Use pushy language like "You must...", "You need...", "Book now or it'll be gone."
-- Assume budget/finance without asking.
-- Skip rapport - jumping directly to selling feels cold.
-
-SAFETY / HONESTY
-- Never invent specifics. If unsure, say "I'll double-check."
-- Only reference vehicles you actually have in inventory
-
-OUTPUT SHAPE
-- Natural text reply (2–5 sentences), followed by a compact control object on the final line:
-  JSON: {{"next_action":"<ask_clarify|offer_test_drive|confirm_test_drive|end_conversation>",
-         "proposed_slots":["ISO1","ISO2"],
-         "location_label":"{agent_config.dealership_name}",
-         "confidence": 0.0-1.0}}
-- Use ask_clarify for ONE question, then wait for response"""
-        
-        return system_prompt
+Output Format (JSON only). Return a single JSON object with:
+{{
+  "message": "exact SMS to send (≤160 chars preferred)",
+  "auto_send": true/false,
+  "handoff": true/false,
+  "handoff_reason": "reason if handoff=true, null otherwise",
+  "retrieval_query": "search query for inventory (empty if no search needed)",
+  "next_action": "suggested next step"
+}}"""
     
-    def _format_cars_for_prompt(self, cars: List[Dict[str, Any]]) -> str:
-        """Format retrieved cars for prompt inclusion."""
-        if not cars:
-            return "No specific vehicles found."
-        
-        formatted_cars = []
-        for i, car in enumerate(cars[:3], 1):  # Limit to top 3
-            vehicle = car.get('vehicle', {})
-            score = car.get('similarity_score', 0)
-            
-            year = vehicle.get('year', '')
-            make = vehicle.get('make', '')
-            model = vehicle.get('model', '')
-            price = vehicle.get('price', 0)
-            mileage = vehicle.get('mileage', 0)
-            color = vehicle.get('color', '')
-            features = vehicle.get('features', '')
-            
-            price_str = f"${price:,}" if price else "Price available upon request"
-            mileage_str = f"{mileage:,} miles" if mileage else "Mileage available upon request"
-            
-            car_text = f"{i}. {year} {make} {model}"
-            if color:
-                car_text += f" in {color}"
-            car_text += f" - {price_str}, {mileage_str}"
-            
-            if features:
-                car_text += f" (Features: {features})"
-            
-            car_text += f" [Match: {score:.1%}]"
-            formatted_cars.append(car_text)
-        
-        return "\n".join(formatted_cars)
+    def _get_example_conversations(self) -> str:
+        """Get example conversations for the system prompt."""
+        return """✅ Example Conversations
+
+**Example 1 - Natural greeting**
+CUSTOMER: hey what's up
+AGENT: Hey! I'm doing well, thanks for asking. How's your day going?
+
+**Example 2 - Early browsing**
+CUSTOMER: just starting to look around
+AGENT: Totally get it — that's a fun stage. Are you leaning more toward something practical like a sedan, or more space like an SUV?
+
+**Example 2b - Reliability need**
+CUSTOMER: i need something reliable for commuting
+AGENT: Got it. Are you looking for something fuel-efficient, or is space more important to you?
+
+**Example 3 - Specific request**
+CUSTOMER: do you have a 2021 Toyota Camry SE in silver?
+AGENT: Yes, we've got a 2021 Camry SE in silver. It's priced at $24,500 with 32,000 miles. Do you want me to share more details or set up a test drive?
+
+**Example 4 - Trade-in**
+CUSTOMER: I've got a 2017 Altima to trade in, do you take trade-ins?
+AGENT: Absolutely, we take trade-ins. That Altima should help with your next purchase. Are you thinking about staying with a sedan or moving into something bigger?
+
+**Example 5 - Financing**
+CUSTOMER: how's financing work if I don't have great credit?
+AGENT: That's something my teammate can walk you through. I'll connect you with them to talk through options. In the meantime, do you have a car you're most interested in test driving?
+👉 HANDOFF
+
+**Example 6 - Context memory**
+CUSTOMER: the 2021 one sounds good
+AGENT: Great choice! That 2021 Camry SE has 32,000 miles and Apple CarPlay. Want me to set up a test drive for you this week?
+
+**Example 7 - Photos**
+CUSTOMER: can you send me photos?
+AGENT: Sure! I'll have someone send photos of the Camry shortly. Would you like me to text them to this number?
+HANDOFF unless we have photos
+
+**Example 8 - Test drive**
+CUSTOMER: I'm free Saturday to test drive
+AGENT: Perfect, let's get you in on Saturday. What time works best for you?
+👉 After confirmed, HANDOFF
+
+**Example 9 - Test drive scheduling**
+CUSTOMER: I want to schedule a test drive for tomorrow
+AGENT: Great! What time works best for you tomorrow? I can set that up right now.
+👉 SCHEDULE APPOINTMENT
+
+**Example 9b - Test drive request (no immediate handoff)**
+CUSTOMER: let's schedule a test drive
+AGENT: Sure! What day and time work best for you?
+CUSTOMER: tomorrow at 2pm
+AGENT: Perfect! I'll see you tomorrow at 2 PM for your test drive. Looking forward to it!
+👉 HANDOFF (after test drive scheduled)
+
+**Example 10 - Context memory (CRITICAL)**
+CUSTOMER: lets book a test drive for honda
+AGENT: Sure! What day and time work best for you to test drive the Honda?
+CUSTOMER: tomorrow at 9pm
+AGENT: Unfortunately, we're not open at 9 PM. How about 9 AM instead? Let me know what works for you!
+CUSTOMER: sure
+AGENT: Perfect! I'll see you tomorrow at 9 AM for your Honda test drive. Looking forward to it!
+👉 HANDOFF (after test drive scheduled)
+
+**Example 11 - Natural rapport building**
+CUSTOMER: thanks
+AGENT: Of course, happy to help!
+CUSTOMER: what time is my appointment?
+AGENT: You're set for 9 AM tomorrow.
+CUSTOMER: perfect
+AGENT: Great! I'll make sure the car's ready for you."""
     
-    def _format_conversation_context(self, conversations: List[Dict[str, Any]], max_messages: int = 8) -> str:
-        """Format conversation history with smart truncation to keep costs low."""
-        if not conversations:
+    def _build_user_prompt(self, query: str, context: str = "") -> str:
+        """Build user prompt with query and context."""
+        user_prompt = f"Customer: {query}"
+        
+        if context:
+            user_prompt += f"\n\nContext: {context}"
+            user_prompt += "\n\nIMPORTANT: Use the context above to understand what the customer has already said. Do not repeat questions or information already provided."
+        
+        return user_prompt
+    
+    def get_few_shot_examples(self) -> List[Dict[str, Any]]:
+        """Get few-shot examples for the model."""
+        return [
+            {
+                "customer": "Hey, what's up?",
+                "agent": "Hey! I'm doing well, thanks for asking. How's your day going?",
+                "handoff": False,
+                "reason": None
+            },
+            {
+                "customer": "Just starting to look around",
+                "agent": "Totally get it — that's a fun stage. Are you leaning more toward something practical like a sedan, or more space like an SUV?",
+                "handoff": False,
+                "reason": None
+            },
+            {
+                "customer": "Do you have a 2021 Toyota Camry SE in silver?",
+                "agent": "Yes, we've got a 2021 Camry SE in silver. It's priced at $24,500 with 32,000 miles. Do you want me to share more details or set up a test drive?",
+                "handoff": False,
+                "reason": None
+            },
+            {
+                "customer": "I've got a 2017 Altima to trade in, do you take trade-ins?",
+                "agent": "Absolutely, we take trade-ins. That Altima should help with your next purchase. Are you thinking about staying with a sedan or moving into something bigger?",
+                "handoff": False,
+                "reason": None
+            },
+            {
+                "customer": "How's financing work if I don't have great credit?",
+                "agent": "That's something my teammate can walk you through. I'll connect you with them to talk through options. In the meantime, do you have a car you're most interested in test driving?",
+                "handoff": True,
+                "reason": "financing"
+            },
+            {
+                "customer": "The 2021 one sounds good",
+                "agent": "Great choice! That 2021 Camry SE has 32,000 miles and Apple CarPlay. Want me to set up a test drive for you this week?",
+                "handoff": False,
+                "reason": None
+            },
+            {
+                "customer": "Can you send me photos?",
+                "agent": "Sure! I'll have someone send photos of the Camry shortly. Would you like me to text them to this number?",
+                "handoff": True,
+                "reason": "media_requests"
+            },
+            {
+                "customer": "I'm free Saturday to test drive",
+                "agent": "Perfect, let's get you in on Saturday. What time works best for you?",
+                "handoff": False,
+                "reason": None
+            },
+            {
+                "customer": "I want to schedule a test drive for tomorrow",
+                "agent": "Great! What time works best for you tomorrow? I can set that up right now.",
+                "handoff": False,
+                "reason": None
+            }
+        ]
+    
+    def build_context_prompt(self, conversation_history: List[Dict[str, str]]) -> str:
+        """
+        Build context prompt from conversation history.
+        
+        Args:
+            conversation_history: List of conversation turns
+            
+        Returns:
+            Context string
+        """
+        if not conversation_history:
             return ""
         
-        # Take only the most recent messages to keep context manageable
-        recent_conversations = conversations[-max_messages:] if len(conversations) > max_messages else conversations
-        
-        context_parts = ["--- CONVERSATION HISTORY ---"]
-        
-        for conv in recent_conversations:
-            role = "Customer" if conv.get("sender") == "customer" else "Agent"
-            message = conv.get("message", "")
-            
-            # Truncate very long messages to keep costs down
-            if len(message) > 200:
-                message = message[:200] + "..."
-            
-            context_parts.append(f"{role}: {message}")
-        
-        # Add indicator if we truncated
-        if len(conversations) > max_messages:
-            context_parts.append(f"\n[Previous {len(conversations) - max_messages} messages omitted for brevity]")
+        context_parts = []
+        for turn in conversation_history[-5:]:  # Last 5 turns
+            role = turn.get('role', 'customer')
+            content = turn.get('content', '')
+            context_parts.append(f"{role.title()}: {content}")
         
         return "\n".join(context_parts)
     
-    def _get_few_shot_examples(self) -> Dict[str, List[Dict[str, str]]]:
-        """Get few-shot examples for different scenarios."""
-        return {
-            "grounded": [
-                {
-                    "input": "Is the 2022 Tiguan SE in white still available?",
-                    "output": "Yes! We have that 2022 Tiguan SE in white at $29,900 with only 28k miles. It's clean and ready to go. Want to swing by today 5:30 or tomorrow 10:00 at our Mission Bay Auto for a quick spin?\n{\"next_action\":\"offer_test_drive\",\"proposed_slots\":[\"2025-08-12T17:30:00-07:00\",\"2025-08-13T10:00:00-07:00\"],\"location_label\":\"Mission Bay Auto\",\"confidence\":0.9}"
-                },
-                {
-                    "input": "Hey there, I'm looking for a car",
-                    "output": "Hi! That's great - I'd love to help you find the perfect car. What's most important to you - comfort, fuel economy, style, or price? I want to make sure I show you options that really match what you're looking for.\n{\"next_action\":\"ask_clarify\",\"confidence\":0.8}"
-                },
-                {
-                    "input": "What's your best deal on a sedan?",
-                    "output": "I've got a 2021 Honda Civic EX in blue for $19,800 with 35k miles - great value! Also have a 2022 Toyota Camry SE for $24,500. Want to see either today 5:30 or tomorrow 10:00?\n{\"next_action\":\"offer_test_drive\",\"proposed_slots\":[\"2025-08-12T17:30:00-07:00\",\"2025-08-13T10:00:00-07:00\"],\"location_label\":\"Mission Bay Auto\",\"confidence\":0.88}"
-                },
-                {
-                    "input": "Thanks, have a great day",
-                    "output": "You too! Have a wonderful day. Feel free to reach out anytime if you need anything.\n{\"next_action\":\"end_conversation\",\"confidence\":0.95}"
-                }
-            ],
-            "generic": [
-                {
-                    "input": "Any 3-row SUV under 30k?",
-                    "output": "I've got a 2021 Honda Pilot EX-L for $28,500 and a 2020 Toyota Highlander for $29,200. Both have third rows and are under your budget. Want to check them out today 6:00 or tomorrow 9:30?\n{\"next_action\":\"offer_test_drive\",\"proposed_slots\":[\"2025-08-12T18:00:00-07:00\",\"2025-08-13T09:30:00-07:00\"],\"location_label\":\"Mission Bay Auto\",\"confidence\":0.82}"
-                },
-                {
-                    "input": "Hey, my name is Aryan and I am interested in sedans.",
-                    "output": "Hey Aryan! Nice to meet you. Sedans are a great choice - they're reliable and fuel efficient. What's most important to you when choosing a sedan - comfort for daily driving, sporty performance, or something that's great on gas?\n{\"next_action\":\"ask_clarify\",\"confidence\":0.8}"
-                },
-                {
-                    "input": "Around 30k",
-                    "output": "Perfect! I've got a 2022 Tiguan SE for $29,900 and a 2021 Honda CR-V for $25,500. Both are in great shape. Want to check them out today 6:00 or tomorrow 9:45?\n{\"next_action\":\"offer_test_drive\",\"proposed_slots\":[\"2025-08-12T18:00:00-07:00\",\"2025-08-13T09:45:00-07:00\"],\"location_label\":\"Mission Bay Auto\",\"confidence\":0.85}"
-                },
-                {
-                    "input": "Under 25k",
-                    "output": "Great! I've got a 2021 Honda Civic EX for $19,800 and a 2020 Toyota Corolla for $18,500. Both are reliable and under your budget. Want to see them today 6:00 or tomorrow 9:45?\n{\"next_action\":\"offer_test_drive\",\"proposed_slots\":[\"2025-08-12T18:00:00-07:00\",\"2025-08-13T09:45:00-07:00\"],\"location_label\":\"Mission Bay Auto\",\"confidence\":0.85}"
-                },
-                {
-                    "input": "Goodbye, thanks for your help",
-                    "output": "You're welcome! Have a great day. Don't hesitate to reach out if you need anything else.\n{\"next_action\":\"end_conversation\",\"confidence\":0.95}"
-                }
-            ]
-        }
-    
-    def _get_relevant_examples(self, example_type: str) -> str:
-        """Get relevant few-shot examples for the prompt."""
-        examples = self.few_shot_examples.get(example_type, [])
+    def validate_response_format(self, response: Dict[str, Any]) -> bool:
+        """
+        Validate that response follows the expected format.
         
-        if not examples:
-            return ""
+        Args:
+            response: Response dictionary to validate
+            
+        Returns:
+            True if valid, False otherwise
+        """
+        required_fields = ['message', 'auto_send', 'handoff']
+        optional_fields = ['handoff_reason', 'retrieval_query', 'next_action']
         
-        examples_text = "--- FEW-SHOT MICRO-EXAMPLES ---\n\n"
-        for i, example in enumerate(examples, 1):
-            examples_text += f"{chr(64+i)}) {example['input']}\n"
-            examples_text += f"User: \"{example['input']}\"\n"
-            examples_text += f"Assistant: \"{example['output']}\"\n\n"
+        # Check required fields
+        for field in required_fields:
+            if field not in response:
+                return False
         
-        return examples_text 
+        # Check field types
+        if not isinstance(response.get('message'), str):
+            return False
+        if not isinstance(response.get('auto_send'), bool):
+            return False
+        if not isinstance(response.get('handoff'), bool):
+            return False
+        
+        # Check handoff logic
+        if response.get('handoff') and not response.get('handoff_reason'):
+            return False
+        
+        return True
