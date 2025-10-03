@@ -41,14 +41,11 @@ class SettingDefinition(Base):
     """Setting definitions and metadata"""
     __tablename__ = "setting_definitions"
 
-    key = Column(Text, primary_key=True)
-    data_type = Column(Text, nullable=False)
+    setting_key = Column(Text, primary_key=True)
+    scope = Column(Text, nullable=False)
     description = Column(Text)
-    default_value = Column(JSON)
-    allowed_values = Column(JSON)
-    is_dealership_level = Column(Boolean, default=True)
-    is_user_level = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    default_value = Column(JSON, nullable=False)
+    is_sensitive = Column(Boolean, default=False)
 
     # Relationships
     dealership_settings = relationship("DealershipSetting", back_populates="definition")

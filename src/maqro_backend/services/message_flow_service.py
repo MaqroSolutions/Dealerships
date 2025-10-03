@@ -767,7 +767,9 @@ Focus on: {edit_instructions}"""
                     lead=lead,
                     response_text=handoff_message,
                     customer_phone=from_phone,
-                    message_source=message_source
+                    message_source=message_source,
+                    customer_message=message_text,
+                    dealership_id=dealership_id
                 )
                 
                 # Notify assigned salesperson about handoff
@@ -794,7 +796,9 @@ Focus on: {edit_instructions}"""
                     lead=lead,
                     response_text=rag_response["response_text"],
                     customer_phone=from_phone,
-                    message_source=message_source
+                    message_source=message_source,
+                    customer_message=message_text,
+                    dealership_id=dealership_id
                 )
                 
                 return direct_response_result
@@ -1299,9 +1303,11 @@ Focus on: {edit_instructions}"""
         lead: Any,
         response_text: str,
         customer_phone: str,
-        message_source: str
+        message_source: str,
+        customer_message: str = None,
+        dealership_id: str = None
     ) -> Dict[str, Any]:
-        """Send RAG response directly to customer (no assigned salesperson)"""
+        """Send RAG response directly to customer with optional reply timing"""
         try:
             # Save AI response to database
             await create_conversation(
@@ -1311,6 +1317,182 @@ Focus on: {edit_instructions}"""
                 sender="agent"
             )
             
+            # If we have customer message and dealership_id, check reply timing settings
+            if customer_message and dealership_id:
+                return await self._send_with_reply_timing(
+                    session=session,
+                    lead=lead,
+                    response_text=response_text,
+                    customer_phone=customer_phone,
+                    message_source=message_source,
+                    customer_message=customer_message,
+                    dealership_id=dealership_id
+                )
+            else:
+                # Send immediately (fallback for existing calls)
+                return await self._send_immediate_response(
+                    session=session,
+                    lead=lead,
+                    response_text=response_text,
+                    customer_phone=customer_phone,
+                    message_source=message_source
+                )
+                
+        except Exception as e:
+            logger.error(f"Error sending direct response: {e}")
+            return {
+                "success": False,
+                "error": "Direct response error",
+                "message": "Sorry, there was an error sending the response to the customer."
+            }
+    
+    async def _send_with_reply_timing(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        response_text: str,
+        customer_phone: str,
+        message_source: str,
+        customer_message: str,
+        dealership_id: str
+    ) -> Dict[str, Any]:
+        """Send response with reply timing logic"""
+        try:
+            # Get dealership settings and create scheduler
+            dealership_settings = await self._get_dealership_reply_settings(
+                session=session,
+                dealership_id=dealership_id
+            )
+            
+            # Create send callback
+            send_callback = self._create_send_callback(
+                session, lead, response_text, customer_phone, message_source
+            )
+            
+            # Schedule the reply
+            schedule_result = await self._schedule_reply_with_timing(
+                customer_message, dealership_settings, send_callback
+            )
+            
+            return self._process_schedule_result(schedule_result, lead.id)
+                
+        except Exception as e:
+            logger.error(f"Error in reply timing: {e}")
+            return await self._fallback_to_immediate_send(
+                session, lead, response_text, customer_phone, message_source
+            )
+    
+    def _create_send_callback(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        response_text: str,
+        customer_phone: str,
+        message_source: str
+    ):
+        """Create send callback for reply scheduler"""
+        async def send_callback():
+            return await self._send_immediate_response(
+                session=session,
+                lead=lead,
+                response_text=response_text,
+                customer_phone=customer_phone,
+                message_source=message_source
+            )
+        return send_callback
+    
+    async def _schedule_reply_with_timing(
+        self,
+        customer_message: str,
+        dealership_settings: Dict[str, Any],
+        send_callback
+    ) -> Dict[str, Any]:
+        """Schedule reply using reply timing logic"""
+        from maqro_rag.reply_scheduler import reply_scheduler
+        
+        return await reply_scheduler.schedule_reply(
+            message=customer_message,
+            dealership_settings=dealership_settings,
+            send_callback=send_callback
+        )
+    
+    def _process_schedule_result(
+        self, 
+        schedule_result: Dict[str, Any], 
+        lead_id: Any
+    ) -> Dict[str, Any]:
+        """Process the result from reply scheduling"""
+        if not schedule_result["success"]:
+            logger.error(f"Failed to schedule reply: {schedule_result.get('error', 'Unknown error')}")
+            return self._create_error_result(lead_id, schedule_result.get('error', 'Scheduling failed'))
+        
+        if schedule_result["delayed"]:
+            return self._create_delayed_result(schedule_result, lead_id)
+        else:
+            return self._create_immediate_result(schedule_result, lead_id)
+    
+    def _create_delayed_result(self, schedule_result: Dict[str, Any], lead_id: Any) -> Dict[str, Any]:
+        """Create result for delayed reply"""
+        logger.info(f"Reply scheduled with {schedule_result['delay_seconds']:.1f}s delay: {schedule_result['reason']}")
+        return {
+            "success": True,
+            "message": f"Response scheduled with {schedule_result['delay_seconds']:.1f}s delay",
+            "lead_id": str(lead_id),
+            "response_sent": False,  # Not sent yet, just scheduled
+            "scheduled": True,
+            "delay_seconds": schedule_result["delay_seconds"],
+            "reason": schedule_result["reason"]
+        }
+    
+    def _create_immediate_result(self, schedule_result: Dict[str, Any], lead_id: Any) -> Dict[str, Any]:
+        """Create result for immediate reply"""
+        logger.info(f"Reply sent immediately: {schedule_result['reason']}")
+        return {
+            "success": True,
+            "message": "Response sent immediately to customer",
+            "lead_id": str(lead_id),
+            "response_sent": True,
+            "scheduled": False,
+            "reason": schedule_result["reason"]
+        }
+    
+    def _create_error_result(self, lead_id: Any, error_message: str) -> Dict[str, Any]:
+        """Create error result"""
+        return {
+            "success": False,
+            "error": error_message,
+            "lead_id": str(lead_id),
+            "response_sent": False,
+            "scheduled": False
+        }
+    
+    async def _fallback_to_immediate_send(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        response_text: str,
+        customer_phone: str,
+        message_source: str
+    ) -> Dict[str, Any]:
+        """Fallback to immediate send when reply timing fails"""
+        return await self._send_immediate_response(
+            session=session,
+            lead=lead,
+            response_text=response_text,
+            customer_phone=customer_phone,
+            message_source=message_source
+        )
+    
+    async def _send_immediate_response(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        response_text: str,
+        customer_phone: str,
+        message_source: str
+    ) -> Dict[str, Any]:
+        """Send response immediately without delay"""
+        try:
             # Send AI response to customer
             if message_source == "whatsapp":
                 from ..services.whatsapp_service import whatsapp_service
@@ -1347,12 +1529,68 @@ Focus on: {edit_instructions}"""
                 }
                 
         except Exception as e:
-            logger.error(f"Error sending direct response: {e}")
+            logger.error(f"Error sending immediate response: {e}")
             return {
                 "success": False,
-                "error": "Direct response error",
+                "error": "Immediate response error",
                 "message": "Sorry, there was an error sending the response to the customer."
             }
+    
+    async def _get_dealership_reply_settings(
+        self,
+        session: AsyncSession,
+        dealership_id: str
+    ) -> Dict[str, Any]:
+        """Get dealership reply timing settings"""
+        try:
+            dealership_settings = await self._fetch_dealership_settings(session, dealership_id)
+            reply_settings = self._extract_reply_timing_settings(dealership_settings)
+            
+            if not reply_settings:
+                return self._get_default_reply_settings(dealership_id)
+            
+            return reply_settings
+            
+        except Exception as e:
+            logger.error(f"Error getting dealership reply settings: {e}")
+            return self._get_default_reply_settings(dealership_id)
+    
+    async def _fetch_dealership_settings(
+        self, 
+        session: AsyncSession, 
+        dealership_id: str
+    ) -> List[Any]:
+        """Fetch all dealership settings from database"""
+        from ..services.settings_service import SettingsService
+        
+        return await SettingsService.get_dealership_settings(
+            db=session,
+            dealership_id=dealership_id
+        )
+    
+    def _extract_reply_timing_settings(self, dealership_settings: List[Any]) -> Dict[str, Any]:
+        """Extract reply timing settings from dealership settings"""
+        reply_setting_keys = {
+            "reply_timing_mode",
+            "reply_delay_seconds", 
+            "business_hours_start",
+            "business_hours_end",
+            "business_hours_delay_seconds"
+        }
+        
+        settings = {}
+        for setting in dealership_settings:
+            if setting.setting_key in reply_setting_keys:
+                settings[setting.setting_key] = setting.setting_value
+        
+        return settings
+    
+    def _get_default_reply_settings(self, dealership_id: str) -> Dict[str, Any]:
+        """Get default reply settings when none are configured"""
+        from maqro_rag.reply_scheduler import reply_scheduler
+        
+        logger.info(f"No reply timing settings found for dealership {dealership_id}, using defaults")
+        return reply_scheduler.get_default_settings()
 
 
 # Global instance
