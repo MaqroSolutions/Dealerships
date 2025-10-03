@@ -197,6 +197,11 @@ class WhatsAppService:
             contacts = value.get("contacts", [])
             metadata = value.get("metadata", {})
             
+            # Check if this is a status update (delivery, read, etc.) - ignore these
+            if "statuses" in value:
+                logger.debug("Ignoring status update webhook")
+                return None
+            
             if not messages:
                 logger.info("No messages in webhook payload")
                 return None
