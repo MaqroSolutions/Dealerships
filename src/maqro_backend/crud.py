@@ -412,12 +412,15 @@ async def bulk_create_inventory_items(
 
 
 async def get_inventory_count(*, session: AsyncSession, dealership_id: str) -> int:
-    """Get the total count of inventory items for a dealership."""
+    """Get the count of ACTIVE inventory items for a dealership."""
     try:
         dealership_uuid = uuid.UUID(dealership_id)
         result = await session.execute(
             select(func.count(Inventory.id))
-            .where(Inventory.dealership_id == dealership_uuid)
+            .where(
+                Inventory.dealership_id == dealership_uuid,
+                Inventory.status == 'active'
+            )
         )
         return result.scalar_one()
     except (ValueError, TypeError):
