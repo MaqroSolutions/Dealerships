@@ -314,6 +314,9 @@ class EnhancedRAGService:
             signals = ConversationStateManager.extract_signals(memory.slots, memory.turns[-5:])
             state_info = self.state_manager.next(signals)
             
+            # Check appointment status early
+            has_appointment = memory.has_appointment()
+            
             # Check if customer is asking about existing appointment
             if has_appointment and self._is_appointment_question(query):
                 appointment_summary = memory.get_appointment_summary()
@@ -330,7 +333,6 @@ class EnhancedRAGService:
                 retrieval_score = sum(v.get('similarity_score', 0) for v in vehicles) / len(vehicles)
             
             # Check for handoff triggers (pass appointment status)
-            has_appointment = memory.has_appointment()
             should_handoff, handoff_reason, handoff_reasoning = self.handoff_router.should_handoff(
                 query=query,
                 response_text=response_text,
