@@ -597,9 +597,9 @@ class EnhancedRAGService:
         else:
             # Use PromptBuilder for generic response with conversation history
             prompt = self.prompt_builder.build_full_prompt(
-                user_message=query,
-                agent_config=agent_config,
-                conversation_history=conversation_history
+                query=query,
+                context=context,
+                agent_config=agent_config
             )
         
         # Generate response using OpenAI (or fallback to template-based)
