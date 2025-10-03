@@ -32,8 +32,8 @@ logger.info("Initialized Database RAG system for conversation API")
 # Default agent config (fallback only)
 default_agent_config = AgentConfig(
     tone="friendly",
-    dealership_name="our dealership", 
-    persona_blurb="friendly, persuasive car salesperson"
+    dealership_name="our dealership",
+    agent_name="Maqro"
 )
 
 async def get_dynamic_agent_config(db: AsyncSession, user_id: str) -> AgentConfig:
@@ -66,7 +66,7 @@ async def get_dynamic_agent_config(db: AsyncSession, user_id: str) -> AgentConfi
         return AgentConfig(
             tone=persona_config["tone"],
             dealership_name=dealership_name,
-            persona_blurb=persona_config["blurb"]
+            agent_name="Maqro"
         )
     except Exception as e:
         logger.warning(f"Failed to get dynamic agent config for user {user_id}, using default: {str(e)}")

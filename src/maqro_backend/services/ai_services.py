@@ -392,7 +392,7 @@ async def generate_contextual_ai_response(
         agent_config = AgentConfig(
             tone=persona_config["tone"],
             dealership_name=dealership_name or "our dealership",
-            persona_blurb=persona_config["blurb"]
+            agent_name="Maqro"
         )
         
         prompt_builder = PromptBuilder(agent_config)

@@ -130,7 +130,7 @@ class EnhancedRAGService:
         default_agent_config = AgentConfig(
             tone="friendly",
             dealership_name="our dealership",
-            persona_blurb="friendly, persuasive car salesperson"
+            agent_name="Maqro"
         )
         self.prompt_builder = PromptBuilder(default_agent_config)
         
@@ -667,25 +667,21 @@ class EnhancedRAGService:
         elif context.conversation_length > 8:
             tone = "concise"
         
-        # Customize persona based on intent and conversation stage
-        persona_blurb = "warm, genuine car salesperson focused on building trust"
-        
-        # Adjust persona based on conversation stage and intent
+        # Customize tone based on intent and conversation stage
         if context.intent == "test_drive":
-            persona_blurb = "enthusiastic car sales expert focused on getting you behind the wheel"
+            tone = "enthusiastic and helpful"
         elif context.intent == "financing":
-            persona_blurb = "helpful car sales expert who makes financing simple and transparent"
+            tone = "helpful and transparent"
         elif context.intent == "pricing":
-            persona_blurb = "honest car sales expert focused on finding you the best value"
+            tone = "honest and value-focused"
         elif context.conversation_length > 5:
             # Later in conversation - more direct about next steps
-            persona_blurb = "focused car sales expert ready to help you make a decision"
+            tone = "focused and decisive"
         
         return AgentConfig(
             tone=tone,
             dealership_name=dealership_name or "our dealership",
-            persona_blurb=persona_blurb,
-            signature=f"- Your {persona_blurb}" if lead_name else None
+            agent_name="Maqro"
         )
 
     def _apply_rapport_layer(self, response_text: str, state: ConversationState) -> str:
