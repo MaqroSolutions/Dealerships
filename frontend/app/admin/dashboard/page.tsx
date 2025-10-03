@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,9 +13,47 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useUserRole } from "@/hooks/use-user-role"
+import { inventoryApi } from "@/lib/inventory-api"
+import { getLeadStats } from "@/lib/leads-api"
+import { getDealershipProfile } from "@/lib/user-profile-api"
 
 function AdminDashboardContent() {
   const { role, full_name, loading } = useUserRole()
+  const [leadTotal, setLeadTotal] = useState<number | null>(null)
+  const [activeInventory, setActiveInventory] = useState<number | null>(null)
+  const [activeSalespeople, setActiveSalespeople] = useState<number | null>(null)
+  const [refreshing, setRefreshing] = useState<boolean>(false)
+
+  useEffect(() => {
+    let timer: number | undefined
+    async function fetchStats() {
+      try {
+        setRefreshing(true)
+        const [leadStats, inventoryCount, team] = await Promise.all([
+          getLeadStats().catch(() => ({ total: 0, by_status: {} } as any)),
+          inventoryApi.getInventoryCount().catch(() => 0),
+          getDealershipProfile().catch(() => [] as any[]),
+        ])
+        setLeadTotal(typeof leadStats?.total === 'number' ? leadStats.total : 0)
+        setActiveInventory(typeof inventoryCount === 'number' ? inventoryCount : 0)
+        const salespeopleCount = Array.isArray(team)
+          ? team.filter((u: any) => (u?.role || '').toLowerCase() === 'salesperson').length
+          : 0
+        setActiveSalespeople(salespeopleCount)
+      } finally {
+        setRefreshing(false)
+      }
+    }
+
+    if (!loading) {
+      fetchStats()
+      // Light polling for live update
+      timer = window.setInterval(fetchStats, 30000)
+    }
+    return () => {
+      if (timer) window.clearInterval(timer)
+    }
+  }, [loading])
 
   if (loading) {
     return (
@@ -48,8 +86,8 @@ function AdminDashboardContent() {
             <MessageSquare className="h-4 w-4 text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-100">1,234</div>
-            <p className="text-xs text-green-400">+12% from last month</p>
+            <div className="text-2xl font-bold text-gray-100">{leadTotal ?? '—'}</div>
+            <p className="text-xs text-gray-400">{refreshing ? 'Updating…' : 'Live'}</p>
           </CardContent>
         </Card>
 
@@ -59,8 +97,8 @@ function AdminDashboardContent() {
             <Users className="h-4 w-4 text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-100">8</div>
-            <p className="text-xs text-gray-400">Managing leads</p>
+            <div className="text-2xl font-bold text-gray-100">{activeSalespeople ?? '—'}</div>
+            <p className="text-xs text-gray-400">Salespeople in team</p>
           </CardContent>
         </Card>
 
@@ -70,8 +108,8 @@ function AdminDashboardContent() {
             <Car className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-100">156</div>
-            <p className="text-xs text-gray-400">Vehicles available</p>
+            <div className="text-2xl font-bold text-gray-100">{activeInventory ?? '—'}</div>
+            <p className="text-xs text-gray-400">Active vehicles</p>
           </CardContent>
         </Card>
 
