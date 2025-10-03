@@ -47,6 +47,16 @@ export default function ConversationDetail({ params }: { params: Promise<{ id: s
     fetchData()
   }, [resolvedParams.id])
 
+  // Poll for new messages every 3 seconds
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      const conversations = await getConversations(resolvedParams.id)
+      setMessageList(conversations)
+    }, 3000)
+
+    return () => clearInterval(pollInterval)
+  }, [resolvedParams.id])
+
   // Scroll to bottom on initial load and new messages  
   useEffect(() => {
     if (messagesContainerRef.current && messageList.length > 0) {
