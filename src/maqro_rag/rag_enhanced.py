@@ -585,14 +585,14 @@ class EnhancedRAGService:
         
         # Customize agent config based on context and dealership name
         agent_config = self._get_agent_config_from_context(context, lead_name, dealership_name)
-        
+
         # Build context string with vehicle information if available
-        context_string = context
+        context_string = ""
         if vehicles:
             vehicle_info = "\n\nAvailable vehicles:\n"
             for i, vehicle in enumerate(vehicles[:3], 1):
                 vehicle_info += f"{i}. {vehicle.get('year', '')} {vehicle.get('make', '')} {vehicle.get('model', '')} - ${vehicle.get('price', 'N/A')}\n"
-            context_string = context + vehicle_info
+            context_string = vehicle_info
         
         # Use PromptBuilder for response with context
         prompt = self.prompt_builder.build_full_prompt(
