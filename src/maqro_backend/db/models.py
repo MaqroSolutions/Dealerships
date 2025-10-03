@@ -57,7 +57,7 @@ class DealershipSetting(Base):
     __tablename__ = "dealership_settings"
 
     dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), primary_key=True)
-    setting_key = Column(Text, ForeignKey("setting_definitions.key"), primary_key=True)
+    setting_key = Column(Text, ForeignKey("setting_definitions.setting_key"), primary_key=True)
     setting_value = Column(JSON, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -73,7 +73,7 @@ class UserSetting(Base):
     __tablename__ = "user_settings"
 
     user_id = Column(UUID(as_uuid=True), primary_key=True)
-    setting_key = Column(Text, ForeignKey("setting_definitions.key"), primary_key=True)
+    setting_key = Column(Text, ForeignKey("setting_definitions.setting_key"), primary_key=True)
     setting_value = Column(JSON, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
