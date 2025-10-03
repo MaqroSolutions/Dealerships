@@ -265,7 +265,7 @@ async def generate_rag_response(
     try:
         # Get dynamic agent config based on user/dealership settings
         dynamic_agent_config = await get_dynamic_agent_config(db, user_id)
-        prompt_builder = PromptBuilder(dynamic_agent_config)
+        prompt_builder = PromptBuilder()
         
         if retrieved_cars and len(retrieved_cars) > 0:
             # Use grounded prompt with retrieved vehicles

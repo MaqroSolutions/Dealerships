@@ -126,13 +126,8 @@ class EnhancedRAGService:
         self.rapport = RapportLibrary()
         self.calendar_service = CalendarBookingService()
         
-        # Initialize PromptBuilder with default agent config
-        default_agent_config = AgentConfig(
-            tone="friendly",
-            dealership_name="our dealership",
-            agent_name="Maqro"
-        )
-        self.prompt_builder = PromptBuilder(default_agent_config)
+        # Initialize PromptBuilder (it creates its own AgentConfig internally)
+        self.prompt_builder = PromptBuilder()
         
         logger.info("Initialized EnhancedRAGService with state manager, memory, and rapport library")
     

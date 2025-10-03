@@ -17,6 +17,8 @@ from .memory import MemoryStore, ConversationMemory
 from .rapport import RapportLibrary
 from .entity_parser import EntityParser, VehicleQuery
 from .prompt_builder import PromptBuilder, AgentConfig
+from .handoff_router import HandoffRouter
+from .calendar_service import CalendarBookingService
 
 __all__ = [
     "Config",
@@ -39,4 +41,6 @@ __all__ = [
     "MemoryStore",
     "ConversationMemory",
     "RapportLibrary",
+    "HandoffRouter",
+    "CalendarBookingService",
 ] 

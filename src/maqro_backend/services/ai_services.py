@@ -395,7 +395,7 @@ async def generate_contextual_ai_response(
             agent_name="Maqro"
         )
         
-        prompt_builder = PromptBuilder(agent_config)
+        prompt_builder = PromptBuilder()
         
         if vehicles and len(vehicles) > 0:
             # Use grounded prompt with retrieved vehicles
