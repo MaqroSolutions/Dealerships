@@ -276,7 +276,7 @@ async def generate_rag_response(
             )
         else:
             # Use generic prompt for fallback
-            prompt = prompt_builder.build_generic_prompt(
+            prompt = prompt_builder.build_full_prompt(
                 user_message=customer_message,
                 agent_config=dynamic_agent_config
             )

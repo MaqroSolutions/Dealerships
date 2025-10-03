@@ -448,7 +448,9 @@ Generate a response that prioritizes the edit instructions:"""
                 enhanced_prompt,
                 vehicles,
                 all_conversations,
-                "Customer"  # Generic name for context
+                "Customer",  # Generic name for context
+                None,  # dealership_name
+                str(pending_approval.lead_id)  # lead_id
             )
             
             new_response_text = enhanced_response['response_text']
@@ -485,7 +487,9 @@ Focus on: {edit_instructions}"""
                     stronger_prompt,
                     vehicles_retry,
                     all_conversations,
-                    "Customer"
+                    "Customer",
+                    None,  # dealership_name
+                    str(pending_approval.lead_id)  # lead_id
                 )
                 
                 new_response_text = enhanced_response_retry['response_text']

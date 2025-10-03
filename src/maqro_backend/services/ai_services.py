@@ -407,7 +407,7 @@ async def generate_contextual_ai_response(
             )
         else:
             # Use generic prompt for fallback
-            prompt = prompt_builder.build_generic_prompt(
+            prompt = prompt_builder.build_full_prompt(
                 user_message=last_message,
                 agent_config=agent_config,
                 conversation_history=conversations
