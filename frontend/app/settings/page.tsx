@@ -337,18 +337,9 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Reply Timing Settings (Dealership-level) */}
+          {/* Reply Timing Settings (Dealership-level) - render component directly to avoid duplicate title */}
           {((userRole === "owner" || userRole === "manager") && (userDealershipId || profile.dealershipId)) && (
-            <Card className="bg-gray-900/50 border-gray-800">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-100">
-                  Reply Timing Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ReplyTimingSettings dealershipId={(userDealershipId || profile.dealershipId) as string} />
-              </CardContent>
-            </Card>
+            <ReplyTimingSettings dealershipId={(userDealershipId || profile.dealershipId) as string} />
           )}
         </div>
 

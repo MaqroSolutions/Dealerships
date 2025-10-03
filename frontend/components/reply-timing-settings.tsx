@@ -162,11 +162,7 @@ export function ReplyTimingSettings({ dealershipId, onSave }: ReplyTimingSetting
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {error && (
-          <Alert variant="destructive" className="bg-red-900/30 border-red-900/40">
-            <AlertDescription className="text-red-200">{error}</AlertDescription>
-          </Alert>
-        )}
+        {/* Temporarily hide load error UI */}
         
         {success && (
           <Alert className="bg-green-900/30 border-green-900/40">
@@ -249,8 +245,8 @@ const ReplyModeSelector = ({
   <div className="space-y-3">
     <Label htmlFor="reply-mode" className="text-gray-300">Reply timing mode</Label>
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
-        <SelectValue placeholder="Select reply timing mode" />
+      <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100 justify-start">
+        <SelectValue placeholder="Select reply timing mode" className="text-left" />
       </SelectTrigger>
       <SelectContent className="bg-gray-900 border-gray-800 text-gray-100">
         {REPLY_TIMING_MODES.map((mode) => (
