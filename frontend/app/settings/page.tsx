@@ -11,12 +11,14 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { User, Bell, Shield, Database, Mail, Phone, SettingsIcon, Eye, EyeOff } from "lucide-react"
 import { ReplyTimingSettings } from "@/components/reply-timing-settings"
+import { useUserRole } from "@/hooks/use-user-role"
 import { getMyProfile, updateMyProfile} from "@/lib/user-profile-api"
 import { changePassword } from "@/lib/auth-api"
 import { useAuth } from "@/components/auth/auth-provider"
 import { toast } from "sonner"
 
 export default function Settings() {
+  const { role: userRole, dealership_id: userDealershipId } = useUserRole()
   const { user } = useAuth()
   const [notifications, setNotifications] = useState({
     email: true,
@@ -336,7 +338,7 @@ export default function Settings() {
           </Card>
 
           {/* Reply Timing Settings (Dealership-level) */}
-          {(profile.role === "owner" || profile.role === "manager") && profile.dealershipId && (
+          {((userRole === "owner" || userRole === "manager") && (userDealershipId || profile.dealershipId)) && (
             <Card className="bg-gray-900/50 border-gray-800">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-gray-100">
@@ -344,7 +346,7 @@ export default function Settings() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ReplyTimingSettings dealershipId={profile.dealershipId} />
+                <ReplyTimingSettings dealershipId={(userDealershipId || profile.dealershipId) as string} />
               </CardContent>
             </Card>
           )}
