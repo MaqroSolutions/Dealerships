@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { User, Bell, Shield, Database, Mail, Phone, SettingsIcon, Eye, EyeOff } from "lucide-react"
+import { ReplyTimingSettings } from "@/components/reply-timing-settings"
 import { getMyProfile, updateMyProfile} from "@/lib/user-profile-api"
 import { changePassword } from "@/lib/auth-api"
 import { useAuth } from "@/components/auth/auth-provider"
@@ -29,6 +30,7 @@ export default function Settings() {
     phone: "",
     role: "",
     timezone: "America/New_York",
+    dealershipId: "",
   })
 
   const [passwordForm, setPasswordForm] = useState({
@@ -58,6 +60,7 @@ export default function Settings() {
           phone: profileData.phone ?? "",
           role: profileData.role,
           timezone: profileData.timezone,
+          dealershipId: profileData.dealership_id ?? "",
         })
       } catch (error) {
         console.error('Error loading profile:', error)
@@ -331,6 +334,20 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Reply Timing Settings (Dealership-level) */}
+          {(profile.role === "owner" || profile.role === "manager") && profile.dealershipId && (
+            <Card className="bg-gray-900/50 border-gray-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-gray-100">
+                  Reply Timing Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ReplyTimingSettings dealershipId={profile.dealershipId} />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Security & Account */}
