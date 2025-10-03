@@ -9,8 +9,6 @@ import {
   Car, 
   MessageSquare, 
   Settings, 
-  Plus,
-  Building2,
   DollarSign
 } from "lucide-react"
 import Link from "next/link"
@@ -157,56 +155,7 @@ function AdminDashboardContent() {
         </Card>
       </div>
 
-      {/* Team Management Preview */}
-      <Card className="bg-gray-900/70 border-gray-800">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-gray-100">Team Management</CardTitle>
-              <CardDescription className="text-gray-400">
-                Manage your sales team and invite new members
-              </CardDescription>
-            </div>
-            <Button asChild className="bg-green-600 hover:bg-green-700">
-              <Link href="/admin/team/invite">
-                <Plus className="w-4 h-4 mr-2" />
-                Invite Member
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold">JD</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-200">John Doe</p>
-                <p className="text-xs text-gray-400">Salesperson</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-              <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold">SJ</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-200">Sarah Johnson</p>
-                <p className="text-xs text-gray-400">Salesperson</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold">MJ</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-200">Mike Johnson</p>
-                <p className="text-xs text-gray-400">Manager</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Team Management Preview removed per request */}
     </div>
   )
 }
