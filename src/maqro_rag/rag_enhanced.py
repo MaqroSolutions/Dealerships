@@ -617,7 +617,21 @@ class EnhancedRAGService:
         import re
         
         if not raw_response:
-            return raw_response
+            return ""
+        
+        # First, try to parse the entire response as JSON
+        try:
+            response_data = json.loads(raw_response.strip())
+            if isinstance(response_data, dict) and 'message' in response_data:
+                message = response_data['message']
+                if message and message.strip():
+                    return message.strip()
+                else:
+                    # If message is empty, return a fallback
+                    return "Hi there! How can I help you today?"
+        except json.JSONDecodeError:
+            # Not valid JSON, continue with text parsing
+            pass
         
         # Look for JSON control object at the end of the response
         # Pattern: text followed by JSON on the last line
