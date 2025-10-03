@@ -126,10 +126,14 @@ async def whatsapp_webhook(
         
         from_phone = parsed_message.get("from_phone")
         message_text = parsed_message.get("message_text")
+        message_id = parsed_message.get("message_id")
         
         if not from_phone or not message_text:
             logger.error("Missing required message data")
             return {"status": "error", "message": "Missing required message data"}
+        
+        # TODO: Add message deduplication here using message_id
+        # For now, we'll rely on the status filtering above
         
         # Normalize phone number
         normalized_phone = whatsapp_service.normalize_phone_number(from_phone)
