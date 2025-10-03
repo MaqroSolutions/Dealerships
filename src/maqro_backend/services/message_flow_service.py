@@ -294,9 +294,9 @@ class MessageFlowService:
     ) -> Dict[str, Any]:
         """Approve and send the generated response to the customer"""
         try:
-            # Send via Telnyx
-            from ..services.telnyx_service import telnyx_service
-            send_result = await telnyx_service.send_sms(
+            # Send via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
                 pending_approval.customer_phone,
                 pending_approval.generated_response
             )
@@ -523,9 +523,9 @@ Focus on: {edit_instructions}"""
                 f"• 'FORCE [your message]' to send your custom message directly"
             )
             
-            # Send approval message to salesperson
-            from ..services.telnyx_service import telnyx_service
-            send_result = await telnyx_service.send_sms(
+            # Send approval message to salesperson via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
                 salesperson_profile.phone,
                 approval_message
             )
@@ -623,9 +623,9 @@ Focus on: {edit_instructions}"""
                     "message": "Please provide a message to send. Example: 'FORCE Hi John, I'll call you in 5 minutes to discuss the Toyota Camry.'"
                 }
             
-            # Send custom message to customer
-            from ..services.telnyx_service import telnyx_service
-            send_result = await telnyx_service.send_sms(
+            # Send custom message to customer via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
                 pending_approval.customer_phone,
                 custom_message
             )
@@ -908,9 +908,9 @@ Focus on: {edit_instructions}"""
                 f"💡 The customer received an automatic response. You can follow up if needed."
             )
             
-            # Send notification to salesperson
-            from ..services.telnyx_service import telnyx_service
-            send_result = await telnyx_service.send_sms(
+            # Send notification to salesperson via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
                 assigned_user.phone,
                 notification_message
             )
@@ -972,9 +972,9 @@ Focus on: {edit_instructions}"""
                 f"• 'FORCE [your message]' to send your own message directly"
             )
             
-            # Send approval message to salesperson
-            from ..services.telnyx_service import telnyx_service
-            send_result = await telnyx_service.send_sms(
+            # Send approval message to salesperson via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
                 assigned_user.phone,
                 verification_message
             )
@@ -1028,9 +1028,9 @@ Focus on: {edit_instructions}"""
                 sender="agent"
             )
             
-            # Send AI response to customer
-            from ..services.telnyx_service import telnyx_service
-            send_result = await telnyx_service.send_sms(
+            # Send AI response to customer via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
                 customer_phone,
                 response_text
             )
