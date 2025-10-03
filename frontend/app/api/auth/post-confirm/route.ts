@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       // User already has profile, redirect based on role
       const redirect = existingProfile.role === 'owner' || existingProfile.role === 'manager' 
         ? '/admin/dashboard' 
-        : '/app/leads'
+        : '/leads'
       
       return NextResponse.json({
         success: true,
@@ -193,7 +193,7 @@ async function handleSalesSignup(
 
     return NextResponse.json({
       success: true,
-      redirect: '/app/leads',
+      redirect: '/leads',
       message: 'Account setup completed successfully'
     })
 

@@ -39,6 +39,15 @@ export async function GET(request: Request) {
       if (session?.user) {
         console.log('✅ Email confirmed, user logged in:', session.user.id);
         
+        // Check if this is a password recovery flow
+        const isPasswordRecovery = requestUrl.searchParams.get('type') === 'recovery' || 
+                                 requestUrl.hash.includes('type=recovery');
+        
+        if (isPasswordRecovery) {
+          console.log('🔐 Password recovery detected, redirecting to reset password page');
+          return NextResponse.redirect(new URL('/reset-password?type=recovery', requestUrl.origin));
+        }
+        
         // Check if user has a profile
         const { data: profile } = await supabase
           .from('user_profiles')
@@ -52,7 +61,7 @@ export async function GET(request: Request) {
           if (profile.role === 'owner' || profile.role === 'admin' || profile.role === 'manager') {
             return NextResponse.redirect(new URL('/admin/dashboard', requestUrl.origin));
           } else {
-            return NextResponse.redirect(new URL('/app/leads', requestUrl.origin));
+            return NextResponse.redirect(new URL('/leads', requestUrl.origin));
           }
         } else {
           // No profile yet, handle post-confirmation setup directly
@@ -140,7 +149,7 @@ export async function GET(request: Request) {
               });
 
               console.log('✅ Sales signup completed via backend, redirecting to leads dashboard');
-              return NextResponse.redirect(new URL('/app/leads', requestUrl.origin));
+              return NextResponse.redirect(new URL('/leads', requestUrl.origin));
             } catch (e) {
               console.error('❌ Error completing sales signup via backend:', e);
               return NextResponse.redirect(new URL('/login?error=setup_failed', requestUrl.origin));

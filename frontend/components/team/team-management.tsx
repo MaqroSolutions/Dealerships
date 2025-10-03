@@ -35,10 +35,11 @@ import {
   Plus
 } from "lucide-react"
 import { toast } from "sonner"
-import { RoleBasedAuthAPI, InviteData, UserRole } from "@/lib/auth/role-based-auth"
+import { RoleBasedAuthAPI, InviteData, UserRole, useRoleBasedAuth } from "@/lib/auth/role-based-auth"
 import { getDealershipProfile } from "@/lib/user-profile-api"
 import type { UserProfile } from "@/lib/supabase"
 import { getAuthenticatedApi } from "@/lib/api-client"
+import { PremiumSpinner } from "@/components/ui/premium-spinner"
 
 interface TeamMember extends UserProfile {
   role: string
@@ -48,6 +49,7 @@ interface TeamManagementState {
   teamMembers: TeamMember[]
   invites: InviteData[]
   loading: boolean
+  inviteLoading: boolean
   inviteDialogOpen: boolean
   inviteForm: {
     email: string
@@ -56,10 +58,12 @@ interface TeamManagementState {
 }
 
 export function TeamManagement() {
+  const { user: currentUser } = useRoleBasedAuth()
   const [state, setState] = useState<TeamManagementState>({
     teamMembers: [],
     invites: [],
     loading: true,
+    inviteLoading: false,
     inviteDialogOpen: false,
     inviteForm: {
       email: '',
@@ -103,6 +107,9 @@ export function TeamManagement() {
   const handleCreateInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Prevent multiple submissions
+    if (state.inviteLoading) return
+    
     console.log('🚀 handleCreateInvite called!')
     console.log('📧 Current state:', state)
     console.log('📧 Form data:', state.inviteForm)
@@ -124,6 +131,9 @@ export function TeamManagement() {
     
     console.log('✅ Form validation passed, proceeding with invite creation')
     
+    // Set loading state
+    setState(prev => ({ ...prev, inviteLoading: true }))
+    
     try {
       console.log('Creating invite with data:', state.inviteForm)
       const result = await RoleBasedAuthAPI.createInvite(state.inviteForm)
@@ -142,30 +152,44 @@ export function TeamManagement() {
         setState(prev => ({
           ...prev,
           inviteDialogOpen: false,
+          inviteLoading: false,
           inviteForm: { email: '', role_name: 'salesperson' }
         }))
         loadTeamData() // Refresh the data
       } else {
         console.error('Invite creation failed:', result.error)
+        setState(prev => ({ ...prev, inviteLoading: false }))
         toast.error(result.error || 'Failed to create invite')
       }
     } catch (error: any) {
       console.error('Invite creation error:', error)
+      setState(prev => ({ ...prev, inviteLoading: false }))
       toast.error(error.message || 'Failed to create invite')
     }
   }
 
   const handleCancelInvite = async (inviteId: string) => {
     try {
+      setState(prev => ({
+        ...prev,
+        invites: prev.invites.map(invite => 
+          invite.id === inviteId 
+            ? { ...invite, status: 'cancelled' as const }
+            : invite
+        )
+      }))
+      
       const result = await RoleBasedAuthAPI.cancelInvite(inviteId)
       
       if (result.success) {
         toast.success('Invite cancelled')
-        loadTeamData() // Refresh the data
       } else {
+        loadTeamData()
         toast.error(result.error || 'Failed to cancel invite')
       }
     } catch (error: any) {
+      // Revert optimistic update on error
+      loadTeamData()
       toast.error(error.message || 'Failed to cancel invite')
     }
   }
@@ -228,6 +252,20 @@ export function TeamManagement() {
 
   const pendingInvites = state.invites.filter(invite => invite.status === 'pending')
   const recentInvites = state.invites.filter(invite => invite.status !== 'pending')
+  
+  // Sort team members: owners first, then current user, then others
+  const sortedTeamMembers = [...state.teamMembers].sort((a, b) => {
+    // Owners first
+    if (a.role === 'owner' && b.role !== 'owner') return -1
+    if (b.role === 'owner' && a.role !== 'owner') return 1
+    
+    // Current user next (among non-owners)
+    if (a.user_id === currentUser?.id && b.user_id !== currentUser?.id) return -1
+    if (b.user_id === currentUser?.id && a.user_id !== currentUser?.id) return 1
+    
+    // Alphabetical by name
+    return a.full_name.localeCompare(b.full_name)
+  })
 
   if (state.loading) {
     return (
@@ -317,8 +355,19 @@ export function TeamManagement() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  Send Invite
+                <Button 
+                  type="submit" 
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={state.inviteLoading}
+                >
+                  {state.inviteLoading ? (
+                    <div className="flex items-center gap-2">
+                      <PremiumSpinner size="sm" />
+                      Sending...
+                    </div>
+                  ) : (
+                    "Send Invite"
+                  )}
                 </Button>
               </div>
             </form>
@@ -328,9 +377,10 @@ export function TeamManagement() {
 
       {/* Team Members */}
       <TeamMembersSection 
-        teamMembers={state.teamMembers} 
+        teamMembers={sortedTeamMembers} 
         getRoleBadgeColor={getRoleBadgeColor} 
         onRemoveMember={handleRemoveMember}
+        currentUserId={currentUser?.id}
       />
 
       {/* Pending Invites */}
@@ -357,11 +407,13 @@ export function TeamManagement() {
 function TeamMembersSection({ 
   teamMembers, 
   getRoleBadgeColor,
-  onRemoveMember
+  onRemoveMember,
+  currentUserId
 }: { 
   teamMembers: TeamMember[]
   getRoleBadgeColor: (role: string) => string
   onRemoveMember: (userId: string) => void
+  currentUserId?: string
 }) {
   return (
     <Card className="bg-gray-900/70 border-gray-800">
@@ -379,6 +431,7 @@ function TeamMembersSection({
               member={member} 
               getRoleBadgeColor={getRoleBadgeColor}
               onRemoveMember={onRemoveMember}
+              isCurrentUser={member.user_id === currentUserId}
             />
           ))}
           {teamMembers.length === 0 && <EmptyTeamState />}
@@ -391,11 +444,13 @@ function TeamMembersSection({
 function TeamMemberCard({ 
   member, 
   getRoleBadgeColor,
-  onRemoveMember
+  onRemoveMember,
+  isCurrentUser
 }: { 
   member: TeamMember
   getRoleBadgeColor: (role: string) => string
   onRemoveMember: (userId: string) => void
+  isCurrentUser: boolean
 }) {
   return (
     <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
@@ -406,7 +461,12 @@ function TeamMemberCard({
           </span>
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-200">{member.full_name}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-gray-200">{member.full_name}</p>
+            {isCurrentUser && (
+              <span className="text-xs text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded">You</span>
+            )}
+          </div>
           <p className="text-xs text-gray-400">{member.phone || ''}</p>
         </div>
       </div>
@@ -414,15 +474,17 @@ function TeamMemberCard({
         <Badge className={getRoleBadgeColor(member.role)}>
           {member.role}
         </Badge>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-          onClick={() => onRemoveMember(member.user_id)}
-          aria-label="Remove user"
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+        {!isCurrentUser && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            onClick={() => onRemoveMember(member.user_id)}
+            aria-label="Remove user"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
       </div>
     </div>
   )

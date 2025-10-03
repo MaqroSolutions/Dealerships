@@ -30,7 +30,7 @@ class SettingsService:
     async def get_setting_definition(db: AsyncSession, key: str) -> Optional[SettingDefinition]:
         """Get a setting definition by key"""
         result = await db.execute(
-            select(SettingDefinition).where(SettingDefinition.key == key)
+            select(SettingDefinition).where(SettingDefinition.setting_key == key)
         )
         return result.scalar_one_or_none()
 
@@ -268,16 +268,26 @@ class SettingsService:
     async def _validate_setting_value(definition: SettingDefinition, value: Any) -> None:
         """Validate a setting value against its definition"""
         
-        # Type validation
-        if definition.data_type == "boolean" and not isinstance(value, bool):
-            raise ValueError(f"Setting {definition.key} must be a boolean")
-        elif definition.data_type == "number" and not isinstance(value, (int, float)):
-            raise ValueError(f"Setting {definition.key} must be a number")
-        elif definition.data_type == "string" and not isinstance(value, str):
-            raise ValueError(f"Setting {definition.key} must be a string")
+        # Basic validation - ensure value is not None
+        if value is None:
+            raise ValueError(f"Setting {definition.setting_key} cannot be None")
         
-        # Allowed values validation
-        if definition.allowed_values and value not in definition.allowed_values:
-            raise ValueError(
-                f"Setting {definition.key} must be one of: {definition.allowed_values}"
-            )
+        # For reply timing settings, add specific validation
+        if definition.setting_key == "reply_timing_mode":
+            valid_modes = ["instant", "custom_delay", "business_hours"]
+            if value not in valid_modes:
+                raise ValueError(f"reply_timing_mode must be one of: {valid_modes}")
+        
+        elif definition.setting_key in ["reply_delay_seconds", "business_hours_delay_seconds"]:
+            if not isinstance(value, (int, float)) or value < 0 or value > 300:
+                raise ValueError(f"{definition.setting_key} must be a number between 0 and 300")
+        
+        elif definition.setting_key in ["business_hours_start", "business_hours_end"]:
+            if not isinstance(value, str):
+                raise ValueError(f"{definition.setting_key} must be a string in HH:MM format")
+            # Basic format validation
+            try:
+                from datetime import time
+                time.fromisoformat(value)
+            except ValueError:
+                raise ValueError(f"{definition.setting_key} must be in HH:MM format")

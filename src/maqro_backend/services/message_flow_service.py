@@ -8,8 +8,9 @@ This service implements the new flow where:
 4. Salesperson messages are processed for lead creation and inventory updates
 """
 import logging
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from datetime import datetime
 import pytz
 
@@ -293,19 +294,12 @@ class MessageFlowService:
     ) -> Dict[str, Any]:
         """Approve and send the generated response to the customer"""
         try:
-            # Import the appropriate service based on message source
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    pending_approval.customer_phone,
-                    pending_approval.generated_response
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    pending_approval.customer_phone,
-                    pending_approval.generated_response
-                )
+            # Send via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
+                pending_approval.customer_phone,
+                pending_approval.generated_response
+            )
             
             if send_result["success"]:
                 # Update approval status
@@ -447,7 +441,9 @@ Generate a response that prioritizes the edit instructions:"""
                 enhanced_prompt,
                 vehicles,
                 all_conversations,
-                "Customer"  # Generic name for context
+                "Customer",  # Generic name for context
+                None,  # dealership_name
+                str(pending_approval.lead_id)  # lead_id
             )
             
             new_response_text = enhanced_response['response_text']
@@ -484,7 +480,9 @@ Focus on: {edit_instructions}"""
                     stronger_prompt,
                     vehicles_retry,
                     all_conversations,
-                    "Customer"
+                    "Customer",
+                    None,  # dealership_name
+                    str(pending_approval.lead_id)  # lead_id
                 )
                 
                 new_response_text = enhanced_response_retry['response_text']
@@ -529,19 +527,12 @@ Focus on: {edit_instructions}"""
                 f"• 'FORCE [your message]' to send your custom message directly"
             )
             
-            # Send approval message to salesperson
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    salesperson_profile.phone,
-                    approval_message
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    salesperson_profile.phone,
-                    approval_message
-                )
+            # Send approval message to salesperson via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
+                salesperson_profile.phone,
+                approval_message
+            )
             
             if send_result["success"]:
                 logger.info(f"Created new pending approval {new_pending_approval.id} with edited response")
@@ -636,19 +627,12 @@ Focus on: {edit_instructions}"""
                     "message": "Please provide a message to send. Example: 'FORCE Hi John, I'll call you in 5 minutes to discuss the Toyota Camry.'"
                 }
             
-            # Send custom message to customer
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    pending_approval.customer_phone,
-                    custom_message
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    pending_approval.customer_phone,
-                    custom_message
-                )
+            # Send custom message to customer via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
+                pending_approval.customer_phone,
+                custom_message
+            )
             
             if send_result["success"]:
                 # Update approval status
@@ -746,30 +730,57 @@ Focus on: {edit_instructions}"""
             if not rag_response["success"]:
                 return rag_response
             
-            # Always send automatic response to customer
-            direct_response_result = await self._send_direct_response(
-                session=session,
-                lead=lead,
-                response_text=rag_response["response_text"],
-                customer_phone=from_phone,
-                message_source=message_source
-            )
+            # Implement handoff routing
+            should_handoff = rag_response.get("should_handoff", False)
+            handoff_reason = rag_response.get("handoff_reason", "")
+            handoff_reasoning = rag_response.get("handoff_reasoning", "")
             
-            # If lead has an assigned salesperson, also notify them (but don't wait for approval)
-            if lead.assigned_user_id:
-                try:
-                    await self._notify_assigned_salesperson(
-                        session=session,
-                        lead=lead,
-                        customer_message=message_text,
-                        generated_response=rag_response["response_text"],
-                        customer_phone=from_phone,
-                        message_source=message_source
-                    )
-                except Exception as e:
-                    logger.warning(f"Failed to notify assigned salesperson: {e}")
-            
-            return direct_response_result
+            if should_handoff:
+                # Handoff to salesperson
+                logger.info(f"Handing off to salesperson for lead {lead.id}: reason='{handoff_reason}', reasoning='{handoff_reasoning}'")
+                
+                # Send handoff message
+                handoff_message = "That's something my teammate can help with, let me connect you."
+                direct_response_result = await self._send_direct_response(
+                    session=session,
+                    lead=lead,
+                    response_text=handoff_message,
+                    customer_phone=from_phone,
+                    message_source=message_source,
+                    customer_message=message_text,
+                    dealership_id=dealership_id
+                )
+                
+                # Notify assigned salesperson about handoff
+                if lead.assigned_user_id:
+                    try:
+                        await self._notify_assigned_salesperson_handoff(
+                            session=session,
+                            lead=lead,
+                            customer_message=message_text,
+                            handoff_reason=handoff_reason,
+                            customer_phone=from_phone,
+                            message_source=message_source
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to notify assigned salesperson about handoff: {e}")
+                
+                return direct_response_result
+            else:
+                # Auto-send regular responses
+                logger.info(f"Auto-sending response for lead {lead.id}: no handoff triggers detected")
+                
+                direct_response_result = await self._send_direct_response(
+                    session=session,
+                    lead=lead,
+                    response_text=rag_response["response_text"],
+                    customer_phone=from_phone,
+                    message_source=message_source,
+                    customer_message=message_text,
+                    dealership_id=dealership_id
+                )
+                
+                return direct_response_result
                 
         except Exception as e:
             logger.error(f"Error handling customer message: {e}")
@@ -816,14 +827,13 @@ Focus on: {edit_instructions}"""
             source=message_source.title(),
             message=message_text
         )
-        
-        # Use default user ID for testing (you can make this configurable)
-        default_user_id = "d245e4bb-91ae-4ec4-ad0f-18307b38daa6"
-        
+
+        # Don't assign a user initially - leads from SMS can be unassigned
+        # They will be assigned later by dealership staff
         lead = await create_lead(
             session=session,
             lead_in=lead_data,
-            user_id=default_user_id,
+            user_id=None,  # No assigned user for SMS leads initially
             dealership_id=dealership_id
         )
         
@@ -867,10 +877,15 @@ Focus on: {edit_instructions}"""
             )
             
             # Get actual dealership name
-            dealership_query = text("SELECT name FROM dealerships WHERE id = :dealership_id")
-            dealership_result = await session.execute(dealership_query, {"dealership_id": dealership_id})
-            dealership = dealership_result.fetchone()
-            dealership_name = dealership.name if dealership else "our dealership"
+            dealership_name = "our dealership"  # Default fallback
+            try:
+                dealership_query = text("SELECT name FROM dealerships WHERE id = :dealership_id")
+                dealership_result = await session.execute(dealership_query, {"dealership_id": dealership_id})
+                dealership = dealership_result.fetchone()
+                if dealership and dealership.name:
+                    dealership_name = dealership.name
+            except Exception as e:
+                logger.warning(f"Could not fetch dealership name: {e}")
             
             # Generate enhanced AI response with actual dealership name
             enhanced_response = enhanced_rag_service.generate_enhanced_response(
@@ -878,13 +893,27 @@ Focus on: {edit_instructions}"""
                 vehicles,
                 all_conversations,
                 lead.name,
-                dealership_name
+                dealership_name,
+                lead_id=str(lead.id)
             )
+            
+            # Extract handoff routing information
+            should_handoff = enhanced_response.get('should_handoff', False)
+            handoff_reason = enhanced_response.get('handoff_reason', '')
+            handoff_reasoning = enhanced_response.get('handoff_reasoning', '')
+            retrieval_score = enhanced_response.get('retrieval_score', 0.0)
+            
+            # Log handoff routing decision
+            logger.info(f"Handoff routing for lead {lead.id}: handoff={should_handoff}, reason='{handoff_reason}', reasoning='{handoff_reasoning}', retrieval_score={retrieval_score:.2f}")
             
             return {
                 "success": True,
                 "response_text": enhanced_response['response_text'],
-                "vehicles_found": len(vehicles)
+                "vehicles_found": len(vehicles),
+                "should_handoff": should_handoff,
+                "handoff_reason": handoff_reason,
+                "handoff_reasoning": handoff_reasoning,
+                "retrieval_score": retrieval_score
             }
             
         except Exception as e:
@@ -895,6 +924,217 @@ Focus on: {edit_instructions}"""
                 "message": "Sorry, there was an error generating a response. Please try again."
             }
     
+    async def _notify_assigned_salesperson_auto_sent(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        customer_message: str,
+        generated_response: str,
+        customer_phone: str,
+        message_source: str,
+        confidence_score: float,
+        routing_reasoning: str
+    ) -> None:
+        """Notify assigned salesperson about auto-sent response"""
+        try:
+            # Get the assigned user's phone number
+            assigned_user = await get_user_profile_by_user_id(
+                session=session,
+                user_id=str(lead.assigned_user_id)
+            )
+            
+            if not assigned_user or not assigned_user.phone:
+                logger.warning(f"Assigned user {lead.assigned_user_id} not found or has no phone number")
+                return
+            
+            # Send notification message to salesperson
+            notification_message = (
+                f"📱 Customer interaction from {lead.name} ({customer_phone}):\n\n"
+                f"Customer: {customer_message}\n\n"
+                f"🤖 AI Response Auto-Sent: {generated_response}\n\n"
+                f"📊 Confidence: {confidence_score:.1%} - {routing_reasoning}\n\n"
+                f"💡 The customer received an automatic response. You can follow up if needed."
+            )
+            
+            # Send notification to salesperson
+            if message_source == "whatsapp":
+                from ..services.whatsapp_service import whatsapp_service
+                send_result = await whatsapp_service.send_message(
+                    assigned_user.phone,
+                    notification_message
+                )
+            else:
+                from ..services.sms_service import sms_service
+                send_result = await sms_service.send_sms(
+                    assigned_user.phone,
+                    notification_message
+                )
+            
+            if send_result["success"]:
+                logger.info(f"Sent auto-sent notification to salesperson {assigned_user.phone}")
+            else:
+                logger.error(f"Failed to send auto-sent notification: {send_result['error']}")
+                
+        except Exception as e:
+            logger.error(f"Error notifying assigned salesperson about auto-sent response: {e}")
+
+    async def _create_pending_approval(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        customer_message: str,
+        generated_response: str,
+        customer_phone: str,
+        message_source: str,
+        confidence_score: float,
+        routing_reasoning: str,
+        dealership_id: str
+    ) -> Dict[str, Any]:
+        """Create pending approval for human review"""
+        try:
+            # Get the assigned user for this lead
+            assigned_user_id = lead.assigned_user_id
+            
+            if not assigned_user_id:
+                # If no assigned user, we need to find one or assign one
+                # For now, we'll create a generic approval that can be handled by any salesperson
+                logger.warning(f"No assigned user for lead {lead.id}, creating generic approval")
+                assigned_user_id = None
+            
+            # Create pending approval
+            approval = await create_pending_approval(
+                session=session,
+                lead_id=str(lead.id),
+                user_id=str(assigned_user_id) if assigned_user_id else str(lead.assigned_user_id) if lead.assigned_user_id else "00000000-0000-0000-0000-000000000000",  # Fallback UUID
+                customer_message=customer_message,
+                generated_response=generated_response,
+                customer_phone=customer_phone,
+                dealership_id=dealership_id
+            )
+            
+            # Send notification to assigned salesperson if available
+            if assigned_user_id:
+                try:
+                    await self._notify_assigned_salesperson_draft(
+                        session=session,
+                        lead=lead,
+                        customer_message=customer_message,
+                        generated_response=generated_response,
+                        customer_phone=customer_phone,
+                        message_source=message_source,
+                        confidence_score=confidence_score,
+                        routing_reasoning=routing_reasoning
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to notify assigned salesperson about draft: {e}")
+            
+            return {
+                "success": True,
+                "message": "Response drafted for human review",
+                "approval_id": str(approval.id),
+                "confidence_score": confidence_score,
+                "routing_reasoning": routing_reasoning,
+                "needs_approval": True
+            }
+            
+        except Exception as e:
+            logger.error(f"Error creating pending approval: {e}")
+            return {
+                "success": False,
+                "error": "Failed to create approval",
+                "message": "Sorry, there was an error processing your message. Please try again."
+            }
+
+    async def _notify_assigned_salesperson_draft(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        customer_message: str,
+        generated_response: str,
+        customer_phone: str,
+        message_source: str,
+        confidence_score: float,
+        routing_reasoning: str
+    ) -> None:
+        """Notify assigned salesperson about drafted response"""
+        try:
+            # Get the assigned user's phone number
+            assigned_user = await get_user_profile_by_user_id(
+                session=session,
+                user_id=str(lead.assigned_user_id)
+            )
+            
+            if not assigned_user or not assigned_user.phone:
+                logger.warning(f"Assigned user {lead.assigned_user_id} not found or has no phone number")
+                return
+            
+            # Send notification message to salesperson
+            notification_message = (
+                f"📱 Customer message from {lead.name} ({customer_phone}):\n\n"
+                f"Customer: {customer_message}\n\n"
+                f"🤖 Drafted Response: {generated_response}\n\n"
+                f"📊 Confidence: {confidence_score:.1%} - {routing_reasoning}\n\n"
+                f"⚠️ This response needs your approval before sending to the customer.\n"
+                f"Reply YES to send, NO to reject, or EDIT to modify."
+            )
+            
+            # Send notification to salesperson
+            if message_source == "whatsapp":
+                from ..services.whatsapp_service import whatsapp_service
+                send_result = await whatsapp_service.send_message(
+                    assigned_user.phone,
+                    notification_message
+                )
+            else:
+                from ..services.sms_service import sms_service
+                send_result = await sms_service.send_sms(
+                    assigned_user.phone,
+                    notification_message
+                )
+            
+            if send_result["success"]:
+                logger.info(f"Sent draft notification to salesperson {assigned_user.phone}")
+            else:
+                logger.error(f"Failed to send draft notification: {send_result['error']}")
+                
+        except Exception as e:
+            logger.error(f"Error notifying assigned salesperson about draft: {e}")
+
+    async def _notify_assigned_salesperson_handoff(
+        self,
+        session: AsyncSession,
+        lead: Any,
+        customer_message: str,
+        handoff_reason: str,
+        customer_phone: str,
+        message_source: str
+    ) -> None:
+        """Notify assigned salesperson about handoff"""
+        try:
+            # Get the assigned user's phone number
+            assigned_user = await get_user_profile_by_user_id(
+                session=session,
+                user_id=str(lead.assigned_user_id)
+            )
+            
+            if not assigned_user or not assigned_user.phone:
+                logger.warning(f"Assigned user {lead.assigned_user_id} not found or has no phone number")
+                return
+            
+            # Send notification about handoff
+            notification_message = f"Customer handoff needed for lead {lead.id}. Reason: {handoff_reason}. Customer message: {customer_message}"
+            
+            await self.sms_service.send_sms(
+                to_phone=assigned_user.phone,
+                message=notification_message
+            )
+            
+            logger.info(f"Notified salesperson {assigned_user.phone} about handoff for lead {lead.id}")
+            
+        except Exception as e:
+            logger.error(f"Error notifying assigned salesperson about handoff: {e}")
+            raise
+
     async def _notify_assigned_salesperson(
         self,
         session: AsyncSession,
@@ -924,19 +1164,12 @@ Focus on: {edit_instructions}"""
                 f"💡 The customer received an automatic response. You can follow up if needed."
             )
             
-            # Send notification to salesperson
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    assigned_user.phone,
-                    notification_message
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    assigned_user.phone,
-                    notification_message
-                )
+            # Send notification to salesperson via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
+                assigned_user.phone,
+                notification_message
+            )
             
             if send_result["success"]:
                 logger.info(f"Notified assigned salesperson {lead.assigned_user_id} about customer interaction")
@@ -995,19 +1228,12 @@ Focus on: {edit_instructions}"""
                 f"• 'FORCE [your message]' to send your own message directly"
             )
             
-            # Send approval message to salesperson
-            if message_source == "whatsapp":
-                from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    assigned_user.phone,
-                    verification_message
-                )
-            else:
-                from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    assigned_user.phone,
-                    verification_message
-                )
+            # Send approval message to salesperson via Vonage (temporary until Telnyx 10DLC registered)
+            from ..services.sms_service import sms_service
+            send_result = await sms_service.send_sms(
+                assigned_user.phone,
+                verification_message
+            )
             
             if send_result["success"]:
                 logger.info(f"Created pending approval {pending_approval.id} and sent to user {lead.assigned_user_id}")
@@ -1046,9 +1272,11 @@ Focus on: {edit_instructions}"""
         lead: Any,
         response_text: str,
         customer_phone: str,
-        message_source: str
+        message_source: str,
+        customer_message: str = None,
+        dealership_id: str = None
     ) -> Dict[str, Any]:
-        """Send RAG response directly to customer (no assigned salesperson)"""
+        """Send RAG response directly to customer with optional reply timing"""
         try:
             # Save AI response to database
             await create_conversation(
@@ -1057,30 +1285,69 @@ Focus on: {edit_instructions}"""
                 message=response_text,
                 sender="agent"
             )
-            
-            # Send AI response to customer
+
+            # If timing context provided, schedule via reply scheduler
+            if customer_message and dealership_id:
+                try:
+                    settings = await self._get_dealership_reply_settings(session, dealership_id)
+                    from maqro_rag.reply_scheduler import reply_scheduler
+
+                    async def send_callback():
+                        if message_source == "whatsapp":
+                            from ..services.whatsapp_service import whatsapp_service
+                            return await whatsapp_service.send_message(customer_phone, response_text)
+                        else:
+                            from ..services.sms_service import sms_service
+                            return await sms_service.send_sms(customer_phone, response_text)
+
+                    schedule_result = await reply_scheduler.schedule_reply(
+                        message=customer_message,
+                        dealership_settings=settings,
+                        send_callback=send_callback,
+                    )
+
+                    if schedule_result.get("success"):
+                        if schedule_result.get("delayed"):
+                            logger.info(
+                                f"Scheduled reply in {schedule_result['delay_seconds']:.1f}s for {customer_phone}"
+                            )
+                            return {
+                                "success": True,
+                                "message": "Response scheduled for delivery",
+                                "lead_id": str(lead.id),
+                                "response_sent": False,
+                                "scheduled": True,
+                                "delay_seconds": schedule_result["delay_seconds"],
+                                "reason": schedule_result.get("reason", ""),
+                            }
+                        else:
+                            logger.info(f"Sent AI response immediately to {customer_phone}")
+                            return {
+                                "success": True,
+                                "message": "Message processed and response sent directly to customer",
+                                "lead_id": str(lead.id),
+                                "response_sent": True,
+                                "sent_directly": True,
+                            }
+                except Exception as e:
+                    logger.warning(f"Reply timing failed, sending immediately: {e}")
+
+            # Fallback: immediate send
             if message_source == "whatsapp":
                 from ..services.whatsapp_service import whatsapp_service
-                send_result = await whatsapp_service.send_message(
-                    customer_phone,
-                    response_text
-                )
+                send_result = await whatsapp_service.send_message(customer_phone, response_text)
             else:
                 from ..services.sms_service import sms_service
-                send_result = await sms_service.send_sms(
-                    customer_phone,
-                    response_text
-                )
-            
+                send_result = await sms_service.send_sms(customer_phone, response_text)
+
             if send_result["success"]:
                 logger.info(f"Sent AI response directly to customer {customer_phone}")
-                
                 return {
                     "success": True,
                     "message": "Message processed and response sent directly to customer",
                     "lead_id": str(lead.id),
                     "response_sent": True,
-                    "sent_directly": True
+                    "sent_directly": True,
                 }
             else:
                 logger.error(f"Failed to send AI response: {send_result['error']}")
@@ -1090,16 +1357,72 @@ Focus on: {edit_instructions}"""
                     "message": "Message processed but response failed to send",
                     "lead_id": str(lead.id),
                     "response_sent": False,
-                    "error": send_result["error"]
+                    "error": send_result["error"],
                 }
                 
         except Exception as e:
-            logger.error(f"Error sending direct response: {e}")
+            logger.error(f"Error sending immediate response: {e}")
             return {
                 "success": False,
-                "error": "Direct response error",
+                "error": "Immediate response error",
                 "message": "Sorry, there was an error sending the response to the customer."
             }
+    
+    async def _get_dealership_reply_settings(
+        self,
+        session: AsyncSession,
+        dealership_id: str
+    ) -> Dict[str, Any]:
+        """Get dealership reply timing settings"""
+        try:
+            dealership_settings = await self._fetch_dealership_settings(session, dealership_id)
+            reply_settings = self._extract_reply_timing_settings(dealership_settings)
+            
+            if not reply_settings:
+                return self._get_default_reply_settings(dealership_id)
+            
+            return reply_settings
+            
+        except Exception as e:
+            logger.error(f"Error getting dealership reply settings: {e}")
+            return self._get_default_reply_settings(dealership_id)
+    
+    async def _fetch_dealership_settings(
+        self, 
+        session: AsyncSession, 
+        dealership_id: str
+    ) -> List[Any]:
+        """Fetch all dealership settings from database"""
+        from ..services.settings_service import SettingsService
+        
+        return await SettingsService.get_dealership_settings(
+            db=session,
+            dealership_id=dealership_id
+        )
+    
+    def _extract_reply_timing_settings(self, dealership_settings: List[Any]) -> Dict[str, Any]:
+        """Extract reply timing settings from dealership settings"""
+        reply_setting_keys = {
+            "reply_timing_mode",
+            "reply_delay_seconds", 
+            "business_hours_start",
+            "business_hours_end",
+            "business_hours_delay_seconds"
+        }
+        
+        settings = {}
+        for setting in dealership_settings:
+            if setting.setting_key in reply_setting_keys:
+                settings[setting.setting_key] = setting.setting_value
+        
+        return settings
+    
+    def _get_default_reply_settings(self, dealership_id: str) -> Dict[str, Any]:
+        """Get default reply settings when none are configured"""
+        from maqro_rag.reply_scheduler import reply_scheduler
+        
+        logger.info(f"No reply timing settings found for dealership {dealership_id}, using defaults")
+        return reply_scheduler.get_default_settings()
 
 
 # Global instance

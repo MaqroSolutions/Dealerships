@@ -33,99 +33,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    console.log('AuthProvider: Starting auth check...');
-    
-    // Set a timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
-      console.log('AuthProvider: Timeout reached, setting loading to false');
-      setLoading(false);
-    }, 1000); // Reduced timeout to 1 second
+    // Define public routes that don't require authentication
+    const publicRoutes = [
+      '/',
+      '/login',
+      '/signup',
+      '/confirm-email',
+      '/setup-complete',
+      '/test-signup',
+      '/test',
+      '/forgot-password',
+      '/reset-password'
+    ];
+    const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/");
 
     // Check if we have a session
     const getSession = async () => {
       try {
-        console.log('AuthProvider: Getting session...');
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('AuthProvider: Session result:', session ? 'User found' : 'No user');
         setUser(session?.user || null);
         setLoading(false);
         
-        // Define public routes that don't require authentication
-        const publicRoutes = [
-          '/',
-          '/login',
-          '/signup',
-          '/confirm-email',
-          '/setup-complete',
-          '/test-signup',
-          '/test'
-        ]
-        const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/");
-        
-        // If no user and not on public route, redirect to root
+        // Only redirect if we're on a protected route and have no user
         if (!session?.user && !isPublicRoute) {
-          console.log('AuthProvider: Redirecting to root');
           router.push("/");
+          return;
         }
         
-        // If user is authenticated, check role-based routing
-        if (session?.user) {
-          // Don't redirect if on setup-complete or confirm-email pages
-          if (pathname === "/setup-complete" || pathname === "/confirm-email") {
-            return;
-          }
-          
-          // Import and use the role-based routing logic
-          import('@/hooks/use-user-role').then(async ({ useUserRole }) => {
-            try {
-              // Get user profile to determine role
-              const response = await fetch('/api/user-profiles/me', {
-                headers: {
-                  'Authorization': `Bearer ${session.access_token}`
-                }
-              });
-              
-              if (response.ok) {
-                const profile = await response.json();
-                const userRole = profile.role;
-                
-                // Role-based routing logic
-                if (userRole === 'owner' || userRole === 'manager') {
-                  // Admin users should be in admin routes
-                  if (pathname === "/" || pathname.startsWith("/app/")) {
-                    console.log('AuthProvider: Redirecting admin to admin dashboard');
-                    router.push("/admin/dashboard");
-                  }
-                } else if (userRole === 'salesperson') {
-                  // Salesperson users should be in app routes
-                  if (pathname === "/" || pathname.startsWith("/admin/")) {
-                    console.log('AuthProvider: Redirecting salesperson to app');
-                    router.push("/app/leads");
-                  }
-                }
-              } else {
-                // No profile found, user needs to complete setup
-                if (pathname !== "/setup-complete") {
-                  console.log('AuthProvider: No profile found, redirecting to setup-complete');
-                  router.push("/setup-complete");
-                }
-              }
-            } catch (error) {
-              console.error('AuthProvider: Error checking user role:', error);
-              // If there's an error checking profile, redirect to setup-complete
-              if (pathname !== "/setup-complete") {
-                router.push("/setup-complete");
-              }
-            }
-          });
+        // If user is authenticated and on login/signup, redirect appropriately
+        if (session?.user && (pathname === "/login" || pathname === "/signup")) {
+          router.push("/");
+          return;
         }
+        
       } catch (error) {
         console.error('AuthProvider: Error getting session:', error);
         setLoading(false);
-        // If there's an error with Supabase, redirect to root
-        if (pathname !== "/") {
-          router.push("/");
-        }
       }
     };
     
@@ -133,9 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth state changes
     try {
-      console.log('AuthProvider: Setting up auth listener...');
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log('AuthProvider: Auth state change:', event, session ? 'User found' : 'No user');
         setUser(session?.user || null);
         setLoading(false);
 
@@ -144,29 +85,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           router.push("/");
         } else if (event === "SIGNED_IN" && 
                   (pathname === "/login" || pathname === "/signup")) {
-          // Check if user has profile, if not redirect to setup-complete
-          if (session?.user) {
-            // Check for pending signup data
-            const pendingSignup = localStorage.getItem('pendingSignup');
-            if (pendingSignup) {
-              router.push("/setup-complete");
-            } else {
-              router.push("/");
-            }
-          }
+          router.push("/");
         }
       });
 
       // Cleanup subscription
       return () => {
-        console.log('AuthProvider: Cleaning up...');
         subscription.unsubscribe();
-        clearTimeout(timeout);
       };
     } catch (error) {
       console.error('AuthProvider: Error setting up auth listener:', error);
       setLoading(false);
-      clearTimeout(timeout);
     }
   }, [pathname, router]);
 

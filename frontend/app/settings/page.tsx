@@ -10,12 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { User, Bell, Shield, Database, Mail, Phone, SettingsIcon, Eye, EyeOff } from "lucide-react"
+import { ReplyTimingSettings } from "@/components/reply-timing-settings"
+import { useUserRole } from "@/hooks/use-user-role"
 import { getMyProfile, updateMyProfile} from "@/lib/user-profile-api"
 import { changePassword } from "@/lib/auth-api"
 import { useAuth } from "@/components/auth/auth-provider"
 import { toast } from "sonner"
 
 export default function Settings() {
+  const { role: userRole, dealership_id: userDealershipId } = useUserRole()
   const { user } = useAuth()
   const [notifications, setNotifications] = useState({
     email: true,
@@ -29,6 +32,7 @@ export default function Settings() {
     phone: "",
     role: "",
     timezone: "America/New_York",
+    dealershipId: "",
   })
 
   const [passwordForm, setPasswordForm] = useState({
@@ -58,6 +62,7 @@ export default function Settings() {
           phone: profileData.phone ?? "",
           role: profileData.role,
           timezone: profileData.timezone,
+          dealershipId: profileData.dealership_id ?? "",
         })
       } catch (error) {
         console.error('Error loading profile:', error)
@@ -331,6 +336,11 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Reply Timing Settings (Dealership-level) - render component directly to avoid duplicate title */}
+          {((userRole === "owner" || userRole === "manager") && (userDealershipId || profile.dealershipId)) && (
+            <ReplyTimingSettings dealershipId={(userDealershipId || profile.dealershipId) as string} />
+          )}
         </div>
 
         {/* Security & Account */}

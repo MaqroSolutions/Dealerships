@@ -41,14 +41,11 @@ class SettingDefinition(Base):
     """Setting definitions and metadata"""
     __tablename__ = "setting_definitions"
 
-    key = Column(Text, primary_key=True)
-    data_type = Column(Text, nullable=False)
+    setting_key = Column(Text, primary_key=True)
+    scope = Column(Text, nullable=False)
     description = Column(Text)
-    default_value = Column(JSON)
-    allowed_values = Column(JSON)
-    is_dealership_level = Column(Boolean, default=True)
-    is_user_level = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    default_value = Column(JSON, nullable=False)
+    is_sensitive = Column(Boolean, default=False)
 
     # Relationships
     dealership_settings = relationship("DealershipSetting", back_populates="definition")
@@ -60,7 +57,7 @@ class DealershipSetting(Base):
     __tablename__ = "dealership_settings"
 
     dealership_id = Column(UUID(as_uuid=True), ForeignKey("dealerships.id"), primary_key=True)
-    setting_key = Column(Text, ForeignKey("setting_definitions.key"), primary_key=True)
+    setting_key = Column(Text, ForeignKey("setting_definitions.setting_key"), primary_key=True)
     setting_value = Column(JSON, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -76,7 +73,7 @@ class UserSetting(Base):
     __tablename__ = "user_settings"
 
     user_id = Column(UUID(as_uuid=True), primary_key=True)
-    setting_key = Column(Text, ForeignKey("setting_definitions.key"), primary_key=True)
+    setting_key = Column(Text, ForeignKey("setting_definitions.setting_key"), primary_key=True)
     setting_value = Column(JSON, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -187,7 +184,8 @@ class Dealership(Base):
     user_roles = relationship("UserRole", back_populates="dealership")
     dealership_settings = relationship("DealershipSetting", back_populates="dealership")
     invites = relationship("Invite", back_populates="dealership")
-    dealership_subscriptions = relationship("DealershipSubscription", back_populates="dealership")
+    dealership_subscriptions = relationship("DealershipSubscription", back_populates="dealership", foreign_keys="[DealershipSubscription.dealership_id]")
+    current_subscription = relationship("DealershipSubscription", foreign_keys="[Dealership.current_subscription_id]")
 
 
 class PendingApproval(Base):
@@ -265,7 +263,7 @@ class DealershipSubscription(Base):
     canceled_at = Column(DateTime(timezone=True))
 
     # Relationships
-    dealership = relationship("Dealership", back_populates="dealership_subscriptions")
+    dealership = relationship("Dealership", back_populates="dealership_subscriptions", foreign_keys="[DealershipSubscription.dealership_id]")
     subscription_plan = relationship("SubscriptionPlan", back_populates="dealership_subscriptions")
     subscription_events = relationship("SubscriptionEvent", back_populates="dealership_subscription")
 

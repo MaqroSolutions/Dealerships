@@ -56,3 +56,8 @@ export async function getLeadStats(): Promise<{
     by_status: Record<string, number>;
   }>('/leads/stats');
 }
+
+export async function getDealershipLeadCount(): Promise<number> {
+  const stats = await getLeadStats();
+  return stats.total;
+}

@@ -1,25 +1,66 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { 
-  MessageSquare, 
-  Phone, 
-  Mail, 
+import {
+  MessageSquare,
+  Phone,
+  Mail,
   Calendar,
   Search,
   Filter,
-  Plus
+  Plus,
+  RefreshCw
 } from "lucide-react"
 import { useUserRole } from "@/hooks/use-user-role"
+import { getMyLeads } from "@/lib/leads-api"
+import type { Lead } from "@/lib/supabase"
+import { AddLeadDialog } from "@/components/add-lead-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 function LeadsContent() {
-  const { full_name, loading } = useUserRole()
+  const router = useRouter()
+  const { full_name, loading: userLoading } = useUserRole()
+  const { toast } = useToast()
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
-  if (loading) {
+  const fetchLeads = async () => {
+    try {
+      setError(null)
+      const data = await getMyLeads()
+      setLeads(data)
+    } catch (err) {
+      console.error("Error fetching leads:", err)
+      setError(err instanceof Error ? err.message : "Failed to load leads")
+      toast({
+        title: "Error",
+        description: "Failed to load leads. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchLeads()
+  }, [])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchLeads()
+  }
+
+  if (userLoading || loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-gray-400">Loading leads...</div>
@@ -27,39 +68,17 @@ function LeadsContent() {
     )
   }
 
-  // Mock data for demonstration
-  const leads = [
-    {
-      id: '1',
-      name: 'John Smith',
-      email: 'john.smith@email.com',
-      phone: '+1 (555) 123-4567',
-      car_interest: '2023 Toyota Camry',
-      status: 'hot',
-      last_contact_at: '2024-01-20T10:30:00Z',
-      message: 'Interested in the Camry, looking to test drive this weekend.'
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      email: 'sarah.j@email.com',
-      phone: '+1 (555) 987-6543',
-      car_interest: '2024 Honda CR-V',
-      status: 'warm',
-      last_contact_at: '2024-01-19T14:15:00Z',
-      message: 'Considering the CR-V for family use, needs more info on financing.'
-    },
-    {
-      id: '3',
-      name: 'Mike Davis',
-      email: 'mike.davis@email.com',
-      phone: '+1 (555) 456-7890',
-      car_interest: '2023 Ford F-150',
-      status: 'new',
-      last_contact_at: '2024-01-20T09:00:00Z',
-      message: 'New inquiry about the F-150, interested in towing capacity.'
-    }
-  ]
+  if (error && leads.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="text-red-400">{error}</div>
+        <Button onClick={handleRefresh} variant="outline" className="border-gray-700">
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Retry
+        </Button>
+      </div>
+    )
+  }
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -97,11 +116,32 @@ function LeadsContent() {
             Welcome back, {full_name}. Manage your assigned leads and follow up with prospects.
           </p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Lead
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="border-gray-700 text-gray-300"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button
+            onClick={() => setIsAddDialogOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Lead
+          </Button>
+        </div>
       </div>
+
+      {/* Add Lead Dialog */}
+      <AddLeadDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onSuccess={fetchLeads}
+      />
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -218,17 +258,14 @@ function LeadsContent() {
                   </div>
                 </div>
                 
-                <div className="flex flex-col space-y-2 ml-4">
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <div className="ml-4">
+                  <Button
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => router.push(`/conversations/${lead.id}`)}
+                  >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Message
-                  </Button>
-                  <Button size="sm" variant="outline" className="border-gray-700 text-gray-300">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Call
-                  </Button>
-                  <Button size="sm" variant="outline" className="border-gray-700 text-gray-300">
-                    View Details
                   </Button>
                 </div>
               </div>
@@ -244,7 +281,10 @@ function LeadsContent() {
               <p className="text-gray-400 mb-4">
                 You'll see your assigned leads here once they're assigned to you by your manager.
               </p>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button
+                onClick={() => setIsAddDialogOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Your First Lead
               </Button>

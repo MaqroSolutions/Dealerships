@@ -1,24 +1,59 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { 
   Users, 
   Car, 
-  TrendingUp, 
   MessageSquare, 
   Settings, 
-  Plus,
-  Building2,
   DollarSign
 } from "lucide-react"
 import Link from "next/link"
 import { useUserRole } from "@/hooks/use-user-role"
+import { inventoryApi } from "@/lib/inventory-api"
+import { getLeadStats } from "@/lib/leads-api"
+import { getDealershipProfile } from "@/lib/user-profile-api"
 
 function AdminDashboardContent() {
   const { role, full_name, loading } = useUserRole()
+  const [leadTotal, setLeadTotal] = useState<number | null>(null)
+  const [activeInventory, setActiveInventory] = useState<number | null>(null)
+  const [activeSalespeople, setActiveSalespeople] = useState<number | null>(null)
+  const [refreshing, setRefreshing] = useState<boolean>(false)
+
+  useEffect(() => {
+    let timer: number | undefined
+    async function fetchStats() {
+      try {
+        setRefreshing(true)
+        const [leadStats, inventoryCount, team] = await Promise.all([
+          getLeadStats().catch(() => ({ total: 0, by_status: {} } as any)),
+          inventoryApi.getInventoryCount().catch(() => 0),
+          getDealershipProfile().catch(() => [] as any[]),
+        ])
+        setLeadTotal(typeof leadStats?.total === 'number' ? leadStats.total : 0)
+        setActiveInventory(typeof inventoryCount === 'number' ? inventoryCount : 0)
+        const salespeopleCount = Array.isArray(team)
+          ? team.filter((u: any) => (u?.role || '').toLowerCase() === 'salesperson').length
+          : 0
+        setActiveSalespeople(salespeopleCount)
+      } finally {
+        setRefreshing(false)
+      }
+    }
+
+    if (!loading) {
+      fetchStats()
+      // Light polling for live update
+      timer = window.setInterval(fetchStats, 30000)
+    }
+    return () => {
+      if (timer) window.clearInterval(timer)
+    }
+  }, [loading])
 
   if (loading) {
     return (
@@ -33,7 +68,7 @@ function AdminDashboardContent() {
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-100">Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-100">Admin Home</h1>
           <p className="text-gray-400 mt-2">
             Welcome back, {full_name}. You're managing your dealership as a {role}.
           </p>
@@ -51,8 +86,8 @@ function AdminDashboardContent() {
             <MessageSquare className="h-4 w-4 text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-100">1,234</div>
-            <p className="text-xs text-green-400">+12% from last month</p>
+            <div className="text-2xl font-bold text-gray-100">{leadTotal ?? '—'}</div>
+            <p className="text-xs text-gray-400">{refreshing ? 'Updating…' : 'Live'}</p>
           </CardContent>
         </Card>
 
@@ -62,8 +97,8 @@ function AdminDashboardContent() {
             <Users className="h-4 w-4 text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-100">8</div>
-            <p className="text-xs text-gray-400">Managing leads</p>
+            <div className="text-2xl font-bold text-gray-100">{activeSalespeople ?? '—'}</div>
+            <p className="text-xs text-gray-400">Salespeople in team</p>
           </CardContent>
         </Card>
 
@@ -73,8 +108,8 @@ function AdminDashboardContent() {
             <Car className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-100">156</div>
-            <p className="text-xs text-gray-400">Vehicles available</p>
+            <div className="text-2xl font-bold text-gray-100">{activeInventory ?? '—'}</div>
+            <p className="text-xs text-gray-400">Active vehicles</p>
           </CardContent>
         </Card>
 
@@ -111,12 +146,6 @@ function AdminDashboardContent() {
                 <Link href="/admin/inventory">
                   <Car className="w-4 h-4 mr-2" />
                   View Inventory
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/admin/analytics">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Analytics
                 </Link>
               </Button>
               <Button asChild variant="outline">
@@ -164,56 +193,7 @@ function AdminDashboardContent() {
         </Card>
       </div>
 
-      {/* Team Management Preview */}
-      <Card className="bg-gray-900/70 border-gray-800">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-gray-100">Team Management</CardTitle>
-              <CardDescription className="text-gray-400">
-                Manage your sales team and invite new members
-              </CardDescription>
-            </div>
-            <Button asChild className="bg-green-600 hover:bg-green-700">
-              <Link href="/admin/team/invite">
-                <Plus className="w-4 h-4 mr-2" />
-                Invite Member
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold">JD</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-200">John Doe</p>
-                <p className="text-xs text-gray-400">Salesperson</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-              <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold">SJ</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-200">Sarah Johnson</p>
-                <p className="text-xs text-gray-400">Salesperson</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold">MJ</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-200">Mike Johnson</p>
-                <p className="text-xs text-gray-400">Manager</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Team Management Preview removed per request */}
     </div>
   )
 }
