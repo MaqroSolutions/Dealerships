@@ -8,7 +8,7 @@ This service implements the new flow where:
 4. Salesperson messages are processed for lead creation and inventory updates
 """
 import logging
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from datetime import datetime
