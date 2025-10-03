@@ -50,11 +50,10 @@ class HandoffRouter:
                 'appointment set', 'test drive booked'
             ],
             'test_drive_scheduling': [
-                'test drive', 'testdrive', 'schedule', 'appointment', 'book', 'reserve',
-                'come in', 'visit', 'see the car', 'drive the car', 'try it out',
-                'when can i', 'what time', 'available', 'free', 'tomorrow', 'today',
-                'this week', 'next week', 'morning', 'afternoon', 'evening',
-                'set up', 'arrange', 'plan', 'coordinate'
+                # Only trigger after time is confirmed, not on initial request
+                'test drive scheduled', 'appointment booked', 'coming in',
+                'see you at', 'meeting with', 'scheduled for', 'booked for',
+                'appointment set', 'test drive booked'
             ],
             'test_drive_time_confirmed': [
                 '2pm', '3pm', '4pm', '10am', '11am', 'morning', 'afternoon', 'evening',
@@ -85,7 +84,7 @@ class HandoffRouter:
             'trade_in': "That's something my teammate can help with, let me connect you.",
             'pricing': "That's something my teammate can help with, let me connect you.",
             'appointment_scheduled': "Perfect! I'll connect you with a salesperson who can help with the details.",
-            'test_drive_scheduling': "Great! What time works best for you? I can set that up right now.",
+            'test_drive_scheduling': "Perfect! I'll see you then! Looking forward to your test drive.",
             'test_drive_time_confirmed': "Perfect! I'll see you then! Looking forward to your test drive.",
             'legal_compliance': "That's something my teammate can help with, let me connect you.",
             'media_requests': "I'll have someone send photos shortly. Would you like me to text them to this number?",

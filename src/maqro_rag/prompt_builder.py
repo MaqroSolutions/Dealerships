@@ -42,7 +42,7 @@ class PromptBuilder:
         """
         if agent_config is None:
             agent_config = self.agent_config
-            
+        
         system_prompt = self._build_system_prompt(agent_config)
         user_prompt = self._build_user_prompt(query, context)
         
@@ -79,6 +79,7 @@ class PromptBuilder:
 - Financing questions → Hand off.
 - Trade-in questions → Hand off.
 - Legal/compliance questions → Hand off.
+- Test drive scheduling requests → Ask for time first, then schedule, then hand off.
 - After a test drive is scheduled → Hand off.
 
 **Media requests.**
@@ -147,6 +148,13 @@ AGENT: Perfect, let's get you in on Saturday. What time works best for you?
 CUSTOMER: I want to schedule a test drive for tomorrow
 AGENT: Great! What time works best for you tomorrow? I can set that up right now.
 👉 SCHEDULE APPOINTMENT
+
+**Example 9b - Test drive request (no immediate handoff)**
+CUSTOMER: let's schedule a test drive
+AGENT: Sure! What day and time work best for you?
+CUSTOMER: tomorrow at 2pm
+AGENT: Perfect! I'll see you tomorrow at 2 PM for your test drive. Looking forward to it!
+👉 HANDOFF (after test drive scheduled)
 
 **Example 10 - Context memory (CRITICAL)**
 CUSTOMER: lets book a test drive for honda
