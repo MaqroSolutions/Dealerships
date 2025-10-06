@@ -84,7 +84,8 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
           '/test-signup',
           '/test',
           '/forgot-password',
-          '/reset-password'
+          '/reset-password',
+          '/sms-policy'
         ]
         const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/")
         
