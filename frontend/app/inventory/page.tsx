@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Edit, Trash2, Car } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Car, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,11 +13,13 @@ import { type Inventory } from '@/lib/supabase';
 import { INVENTORY_STATUS, UI } from '@/lib/constants';
 import { useToast } from '@/components/ui/use-toast';
 import { PremiumSpinner } from '@/components/ui/premium-spinner';
+import MarketcheckInventoryFetcher from '@/components/marketcheck-inventory-fetcher';
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<Inventory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showMarketcheckFetcher, setShowMarketcheckFetcher] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -97,15 +99,30 @@ export default function InventoryPage() {
             <h2 className="text-3xl font-bold text-gray-100 mb-2">Inventory Management</h2>
             <p className="text-gray-400 text-lg">Manage your vehicle inventory for AI-powered responses</p>
           </div>
-          <Button 
-            onClick={() => router.push('/inventory/upload')} 
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" />
-            Upload Inventory
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button 
+              onClick={() => setShowMarketcheckFetcher(!showMarketcheckFetcher)}
+              variant="outline"
+              className="flex items-center gap-2 border-gray-600 text-gray-300 hover:bg-gray-800"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Fetch External Inventory
+            </Button>
+            <Button 
+              onClick={() => router.push('/inventory/upload')} 
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              Upload Inventory
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Marketcheck Inventory Fetcher */}
+      {showMarketcheckFetcher && (
+        <MarketcheckInventoryFetcher />
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

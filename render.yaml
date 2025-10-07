@@ -26,6 +26,8 @@ services:
         sync: false
       - key: COHERE_API_KEY
         sync: false
+      - key: MARKETCHECK_API_KEY
+        sync: false
       - key: EMBEDDING_PROVIDER
         value: openai
       - key: EMBEDDING_MODEL

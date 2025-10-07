@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     telnyx_webhook_secret: Optional[str] = None
 
     # Resend Email Configuration
-    resend_api_key: str
+    resend_api_key: Optional[str] = None
 
     rag_config_path: str = "config.yaml"
     rag_index_name: str = "vehicle_index"

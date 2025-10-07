@@ -36,6 +36,36 @@ export type CreateInventoryData = {
   status?: 'active' | 'sold' | 'pending';
 };
 
+export type MarketcheckVehicle = {
+  id?: string;
+  make: string;
+  model: string;
+  year: number;
+  price?: string;
+  mileage?: number;
+  description?: string;
+  features?: string;
+  condition?: string;
+  stock_number?: string;
+  images?: string[];
+  vin?: string;
+  body_type?: string;
+  fuel_type?: string;
+  transmission?: string;
+  drivetrain?: string;
+  engine?: string;
+  exterior_color?: string;
+  interior_color?: string;
+};
+
+export type FetchInventoryRequest = {
+  street?: string;
+  city: string;
+  state: string;
+  zip: string;
+  dealer_name?: string;
+};
+
 export const inventoryApi = {
   async getInventory(): Promise<Inventory[]> {
     const api = await getAuthenticatedApi();
@@ -106,5 +136,10 @@ export const inventoryApi = {
   async getInventoryCount(): Promise<number> {
     const api = await getAuthenticatedApi();
     return api.get<number>('/inventory/count');
+  },
+
+  async fetchMarketcheckInventory(request: FetchInventoryRequest): Promise<MarketcheckVehicle[]> {
+    const api = await getAuthenticatedApi();
+    return api.post<MarketcheckVehicle[]>('/inventory/fetch-marketcheck', request);
   },
 };

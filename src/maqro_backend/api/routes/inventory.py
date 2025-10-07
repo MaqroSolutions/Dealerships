@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 import pandas as pd
 from io import BytesIO
 import re
@@ -21,6 +21,8 @@ from maqro_backend.crud import (
     ensure_embeddings_for_dealership
 )
 from maqro_backend.services.background_tasks import queue_embedding_task
+from maqro_backend.services.marketcheck_service import marketcheck_service, DealerAddress, MarketcheckVehicle
+from pydantic import BaseModel
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +32,15 @@ logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
+
+
+class FetchInventoryRequest(BaseModel):
+    """Request model for fetching inventory from Marketcheck"""
+    street: Optional[str] = None
+    city: str
+    state: str
+    zip: str
+    dealer_name: Optional[str] = None
 
 
 @router.post("/inventory", response_model=InventoryResponse)
@@ -341,4 +352,47 @@ async def get_inventory_count_for_dealership(
     """
     count = await get_inventory_count(session=db, dealership_id=dealership_id)
     return count
+
+
+@router.post("/inventory/fetch-marketcheck", response_model=List[MarketcheckVehicle])
+async def fetch_marketcheck_inventory(
+    request: FetchInventoryRequest,
+    dealership_id: str = Depends(get_user_dealership_id)
+):
+    """
+    Fetch active inventory from Marketcheck API for a dealership by address.
+    
+    This endpoint:
+    1. Takes a dealership address
+    2. Finds the dealer ID using Marketcheck's dealer lookup API
+    3. Fetches their active inventory
+    4. Returns the inventory data
+    
+    Headers required:
+    - Authorization: Bearer <JWT token>
+    """
+    try:
+        logger.info(f"Fetching Marketcheck inventory for address: {request.city}, {request.state} {request.zip}")
+        
+        # Create address object
+        address = DealerAddress(
+            street=request.street,
+            city=request.city,
+            state=request.state,
+            zip=request.zip,
+            dealer_name=request.dealer_name
+        )
+        
+        # Fetch inventory from Marketcheck
+        inventory = await marketcheck_service.fetch_inventory_by_address(address)
+        
+        logger.info(f"Successfully fetched {len(inventory)} vehicles from Marketcheck")
+        return inventory
+        
+    except Exception as e:
+        logger.error(f"Error fetching Marketcheck inventory: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch inventory from Marketcheck: {str(e)}"
+        )
     

@@ -37,6 +37,7 @@ Make sure your repository contains:
 **API Keys:**
 - `OPENAI_API_KEY` - Your OpenAI API key
 - `COHERE_API_KEY` - Your Cohere API key (optional)
+- `MARKETCHECK_API_KEY` - Your Marketcheck API key for fetching external inventory
 
 **Application Configuration:**
 - `EMBEDDING_PROVIDER` - Set to "openai" (default)
@@ -105,6 +106,7 @@ After deployment, your API will be available at:
 | `SUPABASE_DBNAME` | Database name | Yes* | - |
 | `OPENAI_API_KEY` | OpenAI API key | Yes | - |
 | `COHERE_API_KEY` | Cohere API key | No | - |
+| `MARKETCHECK_API_KEY` | Marketcheck API key | No | For external inventory fetching |
 | `EMBEDDING_PROVIDER` | Embedding provider | No | openai |
 | `EMBEDDING_MODEL` | Embedding model | No | text-embedding-3-small |
 | `VECTOR_STORE_TYPE` | Vector store type | No | pgvector |
