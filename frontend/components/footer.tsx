@@ -20,7 +20,7 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="text-gray-400 text-xs max-w-3xl">
+          <div className="text-gray-400 text-xs max-w-3xl flex gap-4">
             <a
               href="/sms-policy"
               target="_blank"
@@ -28,6 +28,14 @@ export function Footer() {
               className="hover:text-gray-300 transition-colors underline"
             >
               SMS Policy
+            </a>
+            <a
+              href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-gray-300 transition-colors underline"
+            >
+              Privacy Policy
             </a>
           </div>
         </div>
