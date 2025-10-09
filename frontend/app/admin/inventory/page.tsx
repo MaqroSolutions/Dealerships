@@ -399,18 +399,18 @@ export default function AdminInventoryPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 bg-white">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-gray-900/50 to-gray-800/30 rounded-xl p-8 border border-gray-800">
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 shadow-md">
       <div className="flex items-center justify-between">
         <div>
-            <h2 className="text-3xl font-bold text-gray-100 mb-2">Inventory Management</h2>
-            <p className="text-gray-400 text-lg">Admin dashboard for comprehensive inventory control</p>
+            <h2 className="text-4xl font-bold text-black mb-2">Inventory Management</h2>
+            <p className="text-gray-700 text-lg">Admin dashboard for comprehensive inventory control</p>
         </div>
         <div className="flex space-x-2">
             <Button 
               variant="outline" 
-              className="border-gray-700 text-gray-300"
+              className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl"
               onClick={() => {
                 toast({
                   title: "Export feature",
@@ -423,25 +423,25 @@ export default function AdminInventoryPage() {
           </Button>
                          <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
                <DialogTrigger asChild>
-                 <Button variant="outline" className="border-gray-700 text-gray-300">
+                 <Button variant="outline" className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl">
                    <Upload className="w-4 h-4 mr-2" />
                    Bulk Upload
                  </Button>
                </DialogTrigger>
-               <DialogContent className="max-w-2xl bg-gray-900 border-gray-800">
+               <DialogContent className="max-w-2xl bg-white border-amber-200 rounded-2xl shadow-md">
                  <DialogHeader>
-                   <DialogTitle className="text-gray-100">Bulk Upload Inventory</DialogTitle>
-                   <DialogDescription className="text-gray-400">
+                   <DialogTitle className="text-black">Bulk Upload Inventory</DialogTitle>
+                   <DialogDescription className="text-gray-700">
                      Upload a CSV or Excel file with your vehicle inventory
                    </DialogDescription>
                  </DialogHeader>
                  <div className="space-y-4">
-                   <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center">
+                   <div className="border-2 border-dashed border-amber-200 rounded-xl p-6 text-center">
                      <Upload className="mx-auto h-8 w-8 text-gray-500 mb-2" />
-                     <p className="text-gray-300 mb-2">
+                     <p className="text-gray-800 mb-2">
                        {uploadFile ? uploadFile.name : 'Drag and drop your file here'}
                      </p>
-                     <p className="text-sm text-gray-400">or click to browse</p>
+                     <p className="text-sm text-gray-600">or click to browse</p>
                      <input
                        type="file"
                        accept=".csv,.xlsx,.xls"
@@ -453,23 +453,23 @@ export default function AdminInventoryPage() {
                        }}
                      />
                      <label htmlFor="bulk-upload">
-                       <Button asChild className="mt-2 bg-blue-600 hover:bg-blue-700">
+                       <Button asChild className="mt-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl">
                          <span>Choose File</span>
                        </Button>
                      </label>
                    </div>
                    {uploadFile && (
-                     <div className="bg-gray-800/50 p-3 rounded-lg">
-                       <p className="text-sm text-gray-300">
+                     <div className="bg-white border border-amber-200 p-3 rounded-xl shadow-sm">
+                       <p className="text-sm text-gray-700">
                          File selected: <span className="font-medium">{uploadFile.name}</span>
                        </p>
-                       <p className="text-xs text-gray-400 mt-1">
+                       <p className="text-xs text-gray-600 mt-1">
                          Size: {(uploadFile.size / 1024).toFixed(1)} KB
                        </p>
                      </div>
                    )}
                    <div className="flex justify-end space-x-2">
-                     <Button variant="outline" onClick={() => {
+                     <Button variant="outline" className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl" onClick={() => {
                        setIsUploadModalOpen(false);
                        setUploadFile(null);
                      }}>
@@ -478,7 +478,7 @@ export default function AdminInventoryPage() {
                      <Button 
                        onClick={handleBulkUpload}
                        disabled={!uploadFile || isUploading}
-                       className="bg-blue-600 hover:bg-blue-700"
+                       className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl"
                      >
                        {isUploading ? (
                          <>
@@ -500,63 +500,63 @@ export default function AdminInventoryPage() {
                     resetForm();
                     setIsAddModalOpen(true);
                   }}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                  className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl"
                 >
                   <Plus className="h-4 w-4" />
             Add Vehicle
           </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl bg-gray-900 border-gray-800">
+              <DialogContent className="max-w-2xl bg-white border-amber-200 rounded-2xl shadow-md">
                 <DialogHeader>
-                  <DialogTitle className="text-gray-100">Add New Vehicle</DialogTitle>
-                  <DialogDescription className="text-gray-400">
+                  <DialogTitle className="text-black">Add New Vehicle</DialogTitle>
+                  <DialogDescription className="text-gray-700">
                     Add a new vehicle to your inventory
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="make" className="text-gray-300">Make *</Label>
+                      <Label htmlFor="make" className="text-gray-700 font-medium">Make *</Label>
                       <Input
                         id="make"
                         value={formData.make}
                         onChange={(e) => setFormData({...formData, make: e.target.value})}
-                        className="bg-gray-800 border-gray-700 text-gray-100"
+                        className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                         placeholder="Toyota"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="model" className="text-gray-300">Model *</Label>
+                      <Label htmlFor="model" className="text-gray-700 font-medium">Model *</Label>
                       <Input
                         id="model"
                         value={formData.model}
                         onChange={(e) => setFormData({...formData, model: e.target.value})}
-                        className="bg-gray-800 border-gray-700 text-gray-100"
+                        className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                         placeholder="Camry"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="year" className="text-gray-300">Year *</Label>
+                      <Label htmlFor="year" className="text-gray-700 font-medium">Year *</Label>
                       <Input
                         id="year"
                         type="number"
                         value={formData.year}
                         onChange={(e) => setFormData({...formData, year: parseInt(e.target.value)})}
-                        className="bg-gray-800 border-gray-700 text-gray-100"
+                        className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                         min="1900"
                         max={new Date().getFullYear() + 1}
                       />
                     </div>
                                          <div>
-                       <Label htmlFor="price" className="text-gray-300">Price *</Label>
+                       <Label htmlFor="price" className="text-gray-700 font-medium">Price *</Label>
                        <Input
                          id="price"
                          type="number"
                          value={formData.price}
                          onChange={(e) => setFormData({...formData, price: e.target.value})}
-                         className="bg-gray-800 border-gray-700 text-gray-100"
+                         className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                          min="0"
                          placeholder="25000"
                        />
@@ -564,24 +564,24 @@ export default function AdminInventoryPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="mileage" className="text-gray-300">Mileage</Label>
+                      <Label htmlFor="mileage" className="text-gray-700 font-medium">Mileage</Label>
                       <Input
                         id="mileage"
                         type="number"
                         value={formData.mileage || ''}
                         onChange={(e) => setFormData({...formData, mileage: e.target.value ? parseInt(e.target.value) : undefined})}
-                        className="bg-gray-800 border-gray-700 text-gray-100"
+                        className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                         min="0"
                         placeholder="15000"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="condition" className="text-gray-300">Condition</Label>
+                      <Label htmlFor="condition" className="text-gray-700 font-medium">Condition</Label>
                       <Select value={formData.condition} onValueChange={(value) => setFormData({...formData, condition: value})}>
-                        <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
+                        <SelectTrigger className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200">
                           <SelectValue placeholder="Select condition" />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-700">
+                        <SelectContent className="bg-white/95 backdrop-blur-sm border-amber-200 rounded-xl">
                           <SelectItem value="excellent">Excellent</SelectItem>
                           <SelectItem value="good">Good</SelectItem>
                           <SelectItem value="fair">Fair</SelectItem>
@@ -591,23 +591,23 @@ export default function AdminInventoryPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="stock_number" className="text-gray-300">Stock Number</Label>
+                    <Label htmlFor="stock_number" className="text-gray-700 font-medium">Stock Number</Label>
                     <Input
                       id="stock_number"
                       value={formData.stock_number || ''}
                       onChange={(e) => setFormData({...formData, stock_number: e.target.value.toUpperCase()})}
-                      className="bg-gray-800 border-gray-700 text-gray-100"
+                      className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                       placeholder="STK-1234"
                       maxLength={32}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="status" className="text-gray-300">Status</Label>
+                    <Label htmlFor="status" className="text-gray-700 font-medium">Status</Label>
                     <Select value={formData.status} onValueChange={(value: 'active' | 'sold' | 'pending') => setFormData({...formData, status: value})}>
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
+                      <SelectTrigger className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700">
+                      <SelectContent className="bg-white/95 backdrop-blur-sm border-amber-200 rounded-xl">
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="sold">Sold</SelectItem>
                         <SelectItem value="pending">Pending</SelectItem>
@@ -615,35 +615,35 @@ export default function AdminInventoryPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="description" className="text-gray-300">Description</Label>
+                    <Label htmlFor="description" className="text-gray-700 font-medium">Description</Label>
                     <Textarea
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      className="bg-gray-800 border-gray-700 text-gray-100"
+                      className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                       placeholder="Vehicle description..."
                       rows={3}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="features" className="text-gray-300">Features</Label>
+                    <Label htmlFor="features" className="text-gray-700 font-medium">Features</Label>
                     <Textarea
                       id="features"
                       value={formData.features}
                       onChange={(e) => setFormData({...formData, features: e.target.value})}
-                      className="bg-gray-800 border-gray-700 text-gray-100"
+                      className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                       placeholder="Key features, separated by commas..."
                       rows={2}
                     />
                   </div>
                   <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
+                    <Button variant="outline" className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl" onClick={() => setIsAddModalOpen(false)}>
                       Cancel
                     </Button>
                     <Button 
                       onClick={handleAddVehicle}
                       disabled={isSubmitting}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl"
                     >
                       {isSubmitting ? 'Adding...' : 'Add Vehicle'}
                     </Button>
@@ -657,50 +657,50 @@ export default function AdminInventoryPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-gray-900/50 border-gray-800 hover:bg-gray-900/70 transition-all duration-300">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <Car className="h-6 w-6 text-blue-500" />
+              <Car className="h-5 w-5 text-gray-500" />
               <div>
-                <p className="text-sm text-gray-400">Total Vehicles</p>
-                <p className="text-2xl font-bold text-gray-100">{inventory.length}</p>
+                <p className="text-sm text-gray-700">Total Vehicles</p>
+                <p className="text-3xl font-bold text-black">{inventory.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-800 hover:bg-gray-900/70 transition-all duration-300">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
               <div>
-                <p className="text-sm text-gray-400">Active</p>
-                <p className="text-2xl font-bold text-gray-100">
+                <p className="text-sm text-gray-700">Active</p>
+                <p className="text-3xl font-bold text-black">
                   {inventory.filter(item => item.status === INVENTORY_STATUS.ACTIVE).length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-800 hover:bg-gray-900/70 transition-all duration-300">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-red-500 rounded-full"></div>
               <div>
-                <p className="text-sm text-gray-400">Sold</p>
-                <p className="text-2xl font-bold text-gray-100">
+                <p className="text-sm text-gray-700">Sold</p>
+                <p className="text-3xl font-bold text-black">
                   {inventory.filter(item => item.status === INVENTORY_STATUS.SOLD).length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-800 hover:bg-gray-900/70 transition-all duration-300">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
               <div>
-                <p className="text-sm text-gray-400">Pending</p>
-                <p className="text-2xl font-bold text-gray-100">
+                <p className="text-sm text-gray-700">Pending</p>
+                <p className="text-3xl font-bold text-black">
                   {inventory.filter(item => item.status === INVENTORY_STATUS.PENDING).length}
                 </p>
               </div>
@@ -710,10 +710,10 @@ export default function AdminInventoryPage() {
       </div>
 
       {/* Search and Table */}
-      <Card className="bg-gray-900/50 border-gray-800">
+      <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
         <CardHeader>
-          <CardTitle className="text-gray-100">Vehicle Inventory</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-black">Vehicle Inventory</CardTitle>
+          <CardDescription className="text-gray-700">
             {sortedInventory.length} of {inventory.length} vehicles
             {selectedItems.length > 0 && ` • ${selectedItems.length} selected`}
           </CardDescription>
@@ -726,12 +726,12 @@ export default function AdminInventoryPage() {
                 placeholder="Search by make, model, year, or stock number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-700 text-gray-100 placeholder:text-gray-500"
+                className="pl-10 bg-white/90 border-gray-300 text-black placeholder:text-gray-500 rounded-xl focus:border-amber-400 focus:ring-amber-200"
               />
             </div>
             <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
               <DialogTrigger asChild>
-            <Button variant="outline" className="border-gray-700 text-gray-300">
+            <Button variant="outline" className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl">
               <Filter className="w-4 h-4 mr-2" />
               Filter
                   {hasActiveFilters() && (
@@ -741,91 +741,91 @@ export default function AdminInventoryPage() {
                   )}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md bg-gray-900 border-gray-800">
+              <DialogContent className="max-w-md bg-white border-amber-200 rounded-2xl shadow-md">
                 <DialogHeader>
-                  <DialogTitle className="text-gray-100">Filter Inventory</DialogTitle>
-                  <DialogDescription className="text-gray-400">
+                  <DialogTitle className="text-black">Filter Inventory</DialogTitle>
+                  <DialogDescription className="text-gray-700">
                     Filter vehicles by various criteria
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="filter-status" className="text-gray-300">Status</Label>
-                                         <Select value={filters.status} onValueChange={(value) => setFilters({...filters, status: value})}>
-                       <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
-                         <SelectValue placeholder="All statuses" />
-                       </SelectTrigger>
-                       <SelectContent className="bg-gray-800 border-gray-700">
-                         <SelectItem value="all">All statuses</SelectItem>
-                         <SelectItem value="active">Active</SelectItem>
-                         <SelectItem value="sold">Sold</SelectItem>
-                         <SelectItem value="pending">Pending</SelectItem>
-                       </SelectContent>
-                     </Select>
+                    <Label htmlFor="filter-status" className="text-gray-700">Status</Label>
+                    <Select value={filters.status} onValueChange={(value) => setFilters({...filters, status: value})}>
+                      <SelectTrigger className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200">
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white/95 backdrop-blur-sm border-amber-200 rounded-xl">
+                        <SelectItem value="all">All statuses</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="sold">Sold</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
-                    <Label htmlFor="filter-condition" className="text-gray-300">Condition</Label>
-                                         <Select value={filters.condition} onValueChange={(value) => setFilters({...filters, condition: value})}>
-                       <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
-                         <SelectValue placeholder="All conditions" />
-                       </SelectTrigger>
-                       <SelectContent className="bg-gray-800 border-gray-700">
-                         <SelectItem value="all">All conditions</SelectItem>
-                         <SelectItem value="excellent">Excellent</SelectItem>
-                         <SelectItem value="good">Good</SelectItem>
-                         <SelectItem value="fair">Fair</SelectItem>
-                         <SelectItem value="poor">Poor</SelectItem>
-                       </SelectContent>
-                     </Select>
-                      </div>
+                    <Label htmlFor="filter-condition" className="text-gray-700">Condition</Label>
+                    <Select value={filters.condition} onValueChange={(value) => setFilters({...filters, condition: value})}>
+                      <SelectTrigger className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200">
+                        <SelectValue placeholder="All conditions" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white/95 backdrop-blur-sm border-amber-200 rounded-xl">
+                        <SelectItem value="all">All conditions</SelectItem>
+                        <SelectItem value="excellent">Excellent</SelectItem>
+                        <SelectItem value="good">Good</SelectItem>
+                        <SelectItem value="fair">Fair</SelectItem>
+                        <SelectItem value="poor">Poor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="min-price" className="text-gray-300">Min Price</Label>
+                      <Label htmlFor="min-price" className="text-gray-700">Min Price</Label>
                       <Input
                         id="min-price"
                         type="number"
                         value={filters.minPrice}
                         onChange={(e) => setFilters({...filters, minPrice: e.target.value})}
-                        className="bg-gray-800 border-gray-700 text-gray-100"
+                        className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                         placeholder="0"
                         min="0"
                       />
-                      </div>
+                    </div>
                     <div>
-                      <Label htmlFor="max-price" className="text-gray-300">Max Price</Label>
+                      <Label htmlFor="max-price" className="text-gray-700">Max Price</Label>
                       <Input
                         id="max-price"
                         type="number"
                         value={filters.maxPrice}
                         onChange={(e) => setFilters({...filters, maxPrice: e.target.value})}
-                        className="bg-gray-800 border-gray-700 text-gray-100"
+                        className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                         placeholder="100000"
                         min="0"
                       />
                     </div>
-                      </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="min-year" className="text-gray-300">Min Year</Label>
+                      <Label htmlFor="min-year" className="text-gray-700">Min Year</Label>
                       <Input
                         id="min-year"
                         type="number"
                         value={filters.minYear}
                         onChange={(e) => setFilters({...filters, minYear: e.target.value})}
-                        className="bg-gray-800 border-gray-700 text-gray-100"
+                        className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                         placeholder="1900"
                         min="1900"
                         max={new Date().getFullYear() + 1}
                       />
                     </div>
                     <div>
-                      <Label htmlFor="max-year" className="text-gray-300">Max Year</Label>
+                      <Label htmlFor="max-year" className="text-gray-700">Max Year</Label>
                       <Input
                         id="max-year"
                         type="number"
                         value={filters.maxYear}
                         onChange={(e) => setFilters({...filters, maxYear: e.target.value})}
-                        className="bg-gray-800 border-gray-700 text-gray-100"
+                        className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                         placeholder={new Date().getFullYear().toString()}
                         min="1900"
                         max={new Date().getFullYear() + 1}
@@ -833,10 +833,10 @@ export default function AdminInventoryPage() {
                     </div>
                   </div>
                   <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={clearFilters}>
+                    <Button variant="outline" onClick={clearFilters} className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl">
                       Clear Filters
                     </Button>
-                    <Button onClick={() => setIsFilterModalOpen(false)}>
+                    <Button onClick={() => setIsFilterModalOpen(false)} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl">
                       Apply Filters
                     </Button>
                   </div>
@@ -844,10 +844,10 @@ export default function AdminInventoryPage() {
               </DialogContent>
             </Dialog>
             <Select value={sortBy} onValueChange={(value: 'alphabetical' | 'price-high' | 'price-low') => setSortBy(value)}>
-              <SelectTrigger className="w-48 bg-gray-800 border-gray-700 text-gray-100">
+              <SelectTrigger className="w-48 bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200">
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectContent className="bg-white/95 backdrop-blur-sm border-amber-200 rounded-xl">
                 <SelectItem value="alphabetical">Alphabetical (A-Z)</SelectItem>
                 <SelectItem value="price-high">Price: High to Low</SelectItem>
                 <SelectItem value="price-low">Price: Low to High</SelectItem>
@@ -858,6 +858,7 @@ export default function AdminInventoryPage() {
                 variant="destructive" 
                 size="sm"
                 onClick={handleBulkDelete}
+                className="rounded-xl"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Selected ({selectedItems.length})
@@ -868,8 +869,8 @@ export default function AdminInventoryPage() {
           {sortedInventory.length === 0 ? (
             <div className="text-center py-12">
               <Car className="mx-auto h-12 w-12 text-gray-500 mb-4" />
-              <h4 className="text-lg font-semibold text-gray-300 mb-2">No vehicles found</h4>
-              <p className="text-gray-400 mb-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-2">No vehicles found</h4>
+              <p className="text-gray-600 mb-6">
                 {searchTerm ? 'Try adjusting your search terms' : 'Add your first vehicle to get started'}
               </p>
               {!searchTerm && (
@@ -878,39 +879,39 @@ export default function AdminInventoryPage() {
                     resetForm();
                     setIsAddModalOpen(true);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl"
                 >
                   Add Vehicle
                   </Button>
               )}
             </div>
           ) : (
-            <div className="border border-gray-800 rounded-lg overflow-hidden">
+            <div className="border border-amber-200 rounded-2xl overflow-hidden">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-gray-800 bg-gray-800/50">
-                    <TableHead className="text-gray-300 font-medium w-12">
+                  <TableRow className="border-amber-200 bg-amber-50/60">
+                    <TableHead className="text-gray-700 font-medium w-12">
                       <input
                         type="checkbox"
                         checked={selectedItems.length === sortedInventory.length && sortedInventory.length > 0}
                         onChange={handleSelectAll}
-                        className="rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 bg-white text-orange-600 focus:ring-orange-500"
                       />
                     </TableHead>
-                    <TableHead className="text-gray-300 font-medium">Vehicle</TableHead>
-                    <TableHead className="text-gray-300 font-medium">Stock #</TableHead>
-                    <TableHead className="text-gray-300 font-medium">Year</TableHead>
-                    <TableHead className="text-gray-300 font-medium">Price</TableHead>
-                    <TableHead className="text-gray-300 font-medium">Mileage</TableHead>
-                    <TableHead className="text-gray-300 font-medium">Status</TableHead>
-                    <TableHead className="text-gray-300 font-medium">Actions</TableHead>
+                    <TableHead className="text-gray-700 font-medium">Vehicle</TableHead>
+                    <TableHead className="text-gray-700 font-medium">Stock #</TableHead>
+                    <TableHead className="text-gray-700 font-medium">Year</TableHead>
+                    <TableHead className="text-gray-700 font-medium">Price</TableHead>
+                    <TableHead className="text-gray-700 font-medium">Mileage</TableHead>
+                    <TableHead className="text-gray-700 font-medium">Status</TableHead>
+                    <TableHead className="text-gray-700 font-medium">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sortedInventory.map((item, index) => (
                     <TableRow 
                       key={item.id} 
-                      className="border-gray-800 hover:bg-gray-800/50 transition-all duration-200"
+                      className="border-amber-200 hover:bg-amber-50/50 transition-all duration-200"
                       style={{ animationDelay: `${index * UI.ANIMATION_DELAY}ms` }}
                     >
                       <TableCell>
@@ -918,25 +919,25 @@ export default function AdminInventoryPage() {
                           type="checkbox"
                           checked={selectedItems.includes(item.id)}
                           onChange={() => handleSelectItem(item.id)}
-                          className="rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 bg-white text-orange-600 focus:ring-orange-500"
                         />
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium text-gray-100">{item.make} {item.model}</p>
+                          <p className="font-medium text-black">{item.make} {item.model}</p>
                           {item.description && (
-                            <p className="text-sm text-gray-400 truncate max-w-xs">
+                            <p className="text-sm text-gray-600 truncate max-w-xs">
                               {item.description}
                             </p>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-300">
+                      <TableCell className="text-gray-800">
                         {item.stock_number || '-'}
                       </TableCell>
-                      <TableCell className="text-gray-300">{item.year}</TableCell>
-                      <TableCell className="text-gray-300">${item.price.toLocaleString()}</TableCell>
-                      <TableCell className="text-gray-300">
+                      <TableCell className="text-gray-800">{item.year}</TableCell>
+                      <TableCell className="text-gray-800">${item.price.toLocaleString()}</TableCell>
+                      <TableCell className="text-gray-800">
                         {item.mileage ? item.mileage.toLocaleString() : '-'}
                       </TableCell>
                       <TableCell>
@@ -949,7 +950,7 @@ export default function AdminInventoryPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => openEditModal(item)}
-                          className="text-gray-400 hover:text-gray-300 hover:bg-gray-800"
+                          className="text-gray-600 hover:text-gray-800 hover:bg-amber-50 rounded-md"
                         >
                           <Edit className="h-4 w-4" />
                   </Button>
@@ -965,57 +966,57 @@ export default function AdminInventoryPage() {
 
       {/* Edit Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-2xl bg-gray-900 border-gray-800">
+        <DialogContent className="max-w-2xl bg-white border-amber-200 rounded-2xl shadow-md">
           <DialogHeader>
-            <DialogTitle className="text-gray-100">Edit Vehicle</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-black">Edit Vehicle</DialogTitle>
+            <DialogDescription className="text-gray-700">
               Update vehicle information
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="edit-make" className="text-gray-300">Make *</Label>
+                <Label htmlFor="edit-make" className="text-gray-700">Make *</Label>
                 <Input
                   id="edit-make"
                   value={formData.make}
                   onChange={(e) => setFormData({...formData, make: e.target.value})}
-                  className="bg-gray-800 border-gray-700 text-gray-100"
+                  className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                   placeholder="Toyota"
                 />
               </div>
               <div>
-                <Label htmlFor="edit-model" className="text-gray-300">Model *</Label>
+                <Label htmlFor="edit-model" className="text-gray-700">Model *</Label>
                 <Input
                   id="edit-model"
                   value={formData.model}
                   onChange={(e) => setFormData({...formData, model: e.target.value})}
-                  className="bg-gray-800 border-gray-700 text-gray-100"
+                  className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                   placeholder="Camry"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="edit-year" className="text-gray-300">Year *</Label>
+                <Label htmlFor="edit-year" className="text-gray-700">Year *</Label>
                 <Input
                   id="edit-year"
                   type="number"
                   value={formData.year}
                   onChange={(e) => setFormData({...formData, year: parseInt(e.target.value)})}
-                  className="bg-gray-800 border-gray-700 text-gray-100"
+                  className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                   min="1900"
                   max={new Date().getFullYear() + 1}
                 />
               </div>
                              <div>
-                 <Label htmlFor="edit-price" className="text-gray-300">Price *</Label>
+                <Label htmlFor="edit-price" className="text-gray-700">Price *</Label>
                  <Input
                    id="edit-price"
                    type="number"
                    value={formData.price}
                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                   className="bg-gray-800 border-gray-700 text-gray-100"
+                  className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                    min="0"
                    placeholder="25000"
                  />
@@ -1023,24 +1024,24 @@ export default function AdminInventoryPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="edit-mileage" className="text-gray-300">Mileage</Label>
+                <Label htmlFor="edit-mileage" className="text-gray-700">Mileage</Label>
                 <Input
                   id="edit-mileage"
                   type="number"
                   value={formData.mileage || ''}
                   onChange={(e) => setFormData({...formData, mileage: e.target.value ? parseInt(e.target.value) : undefined})}
-                  className="bg-gray-800 border-gray-700 text-gray-100"
+                  className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                   min="0"
                   placeholder="15000"
                 />
                 </div>
               <div>
-                <Label htmlFor="edit-condition" className="text-gray-300">Condition</Label>
+                <Label htmlFor="edit-condition" className="text-gray-700">Condition</Label>
                 <Select value={formData.condition} onValueChange={(value) => setFormData({...formData, condition: value})}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
+                  <SelectTrigger className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200">
                     <SelectValue placeholder="Select condition" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectContent className="bg-white/95 backdrop-blur-sm border-amber-200 rounded-xl">
                     <SelectItem value="excellent">Excellent</SelectItem>
                     <SelectItem value="good">Good</SelectItem>
                     <SelectItem value="fair">Fair</SelectItem>
@@ -1050,23 +1051,23 @@ export default function AdminInventoryPage() {
               </div>
             </div>
             <div>
-              <Label htmlFor="edit-stock_number" className="text-gray-300">Stock Number</Label>
+              <Label htmlFor="edit-stock_number" className="text-gray-700">Stock Number</Label>
               <Input
                 id="edit-stock_number"
                 value={formData.stock_number || ''}
                 onChange={(e) => setFormData({...formData, stock_number: e.target.value.toUpperCase()})}
-                className="bg-gray-800 border-gray-700 text-gray-100"
+                className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                 placeholder="STK-1234"
                 maxLength={32}
               />
             </div>
             <div>
-              <Label htmlFor="edit-status" className="text-gray-300">Status</Label>
+              <Label htmlFor="edit-status" className="text-gray-700">Status</Label>
               <Select value={formData.status} onValueChange={(value: 'active' | 'sold' | 'pending') => setFormData({...formData, status: value})}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
+                <SelectTrigger className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectContent className="bg-white/95 backdrop-blur-sm border-amber-200 rounded-xl">
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="sold">Sold</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
@@ -1074,35 +1075,35 @@ export default function AdminInventoryPage() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="edit-description" className="text-gray-300">Description</Label>
+              <Label htmlFor="edit-description" className="text-gray-700">Description</Label>
               <Textarea
                 id="edit-description"
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="bg-gray-800 border-gray-700 text-gray-100"
+                className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                 placeholder="Vehicle description..."
                 rows={3}
               />
             </div>
             <div>
-              <Label htmlFor="edit-features" className="text-gray-300">Features</Label>
+              <Label htmlFor="edit-features" className="text-gray-700">Features</Label>
               <Textarea
                 id="edit-features"
                 value={formData.features}
                 onChange={(e) => setFormData({...formData, features: e.target.value})}
-                className="bg-gray-800 border-gray-700 text-gray-100"
+                className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                 placeholder="Key features, separated by commas..."
                 rows={2}
               />
             </div>
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl">
                 Cancel
               </Button>
               <Button 
                 onClick={handleEditVehicle}
                 disabled={isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl"
               >
                 {isSubmitting ? 'Updating...' : 'Update Vehicle'}
               </Button>
