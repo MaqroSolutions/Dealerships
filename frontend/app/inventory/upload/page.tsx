@@ -123,18 +123,18 @@ export default function InventoryUploadPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 bg-white">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-gray-900/50 to-gray-800/30 rounded-xl p-8 border border-gray-800">
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 border border-amber-200">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-gray-100 mb-2">Upload Inventory</h2>
-            <p className="text-gray-400 text-lg">Upload your vehicle inventory to personalize AI responses</p>
+            <h2 className="text-4xl font-bold text-black mb-2">Upload Inventory</h2>
+            <p className="text-gray-700 text-lg">Upload your vehicle inventory to personalize AI responses</p>
           </div>
           <Button 
             variant="outline" 
             onClick={() => router.push('/inventory')}
-            className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl"
           >
             Back to Inventory
           </Button>
@@ -142,30 +142,30 @@ export default function InventoryUploadPage() {
       </div>
 
       {/* File Upload Section */}
-      <Card className="bg-gray-900/50 border-gray-800">
+      <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
         <CardHeader>
-          <CardTitle className="text-gray-100">Upload Inventory File</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-black text-2xl">Upload Inventory File</CardTitle>
+          <CardDescription className="text-gray-700">
             Upload a CSV or Excel file with your vehicle inventory. 
             Supported columns: make, model, year, price, mileage, description, features
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
               isDragOver 
-                ? 'border-blue-500 bg-blue-500/10' 
-                : 'border-gray-700 hover:border-gray-600'
+                ? 'border-amber-400 bg-amber-50' 
+                : 'border-amber-200 hover:border-amber-300'
             }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
             <Upload className="mx-auto h-12 w-12 text-gray-500 mb-4" />
-            <p className="text-lg font-medium text-gray-100 mb-2">
+            <p className="text-lg font-medium text-black mb-2">
               {file ? file.name : 'Drag and drop your file here'}
             </p>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 mb-4">
               or click to browse
             </p>
             <input
@@ -179,7 +179,7 @@ export default function InventoryUploadPage() {
               id="file-upload"
             />
             <label htmlFor="file-upload">
-              <Button asChild className="bg-blue-600 hover:bg-blue-700">
+              <Button asChild className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl">
                 <span>Choose File</span>
               </Button>
             </label>
@@ -189,10 +189,10 @@ export default function InventoryUploadPage() {
 
       {/* Upload Actions - Always show when file is selected */}
       {file && (
-        <Card className="bg-gray-900/50 border-gray-800">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
           <CardHeader>
-            <CardTitle className="text-gray-100">Ready to Upload</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-black">Ready to Upload</CardTitle>
+            <CardDescription className="text-gray-700">
               File selected: {file.name} 
               {previewData.length > 0 && ` (${previewData.length} vehicles detected)`}
             </CardDescription>
@@ -202,7 +202,7 @@ export default function InventoryUploadPage() {
               <Button 
                 onClick={handleUpload} 
                 disabled={isUploading}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl"
               >
                 {isUploading ? (
                   <>
@@ -216,7 +216,7 @@ export default function InventoryUploadPage() {
                   </>
                 )}
               </Button>
-              <Button variant="outline" onClick={resetUpload} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              <Button variant="outline" onClick={resetUpload} className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl">
                 Reset
               </Button>
             </div>
@@ -226,13 +226,13 @@ export default function InventoryUploadPage() {
 
       {/* Preview Section - Optional */}
       {previewData.length > 0 && (
-        <Card className="bg-gray-900/50 border-gray-800">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-gray-100">
+            <CardTitle className="flex items-center gap-2 text-black">
               <FileText className="h-5 w-5" />
               Preview ({previewData.length} vehicles)
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-gray-700">
               Review your data before uploading
             </CardDescription>
           </CardHeader>
@@ -240,26 +240,26 @@ export default function InventoryUploadPage() {
             <ScrollArea className="h-96">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-gray-800">
-                    <TableHead className="text-gray-300">Make</TableHead>
-                    <TableHead className="text-gray-300">Model</TableHead>
-                    <TableHead className="text-gray-300">Year</TableHead>
-                    <TableHead className="text-gray-300">Price</TableHead>
-                    <TableHead className="text-gray-300">Mileage</TableHead>
-                    <TableHead className="text-gray-300">Description</TableHead>
+                  <TableRow className="border-amber-200 bg-amber-50/40">
+                    <TableHead className="text-gray-700">Make</TableHead>
+                    <TableHead className="text-gray-700">Model</TableHead>
+                    <TableHead className="text-gray-700">Year</TableHead>
+                    <TableHead className="text-gray-700">Price</TableHead>
+                    <TableHead className="text-gray-700">Mileage</TableHead>
+                    <TableHead className="text-gray-700">Description</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {previewData.slice(0, FILE_UPLOAD.MAX_PREVIEW_ROWS).map((row, index) => (
-                    <TableRow key={index} className="border-gray-800 hover:bg-gray-800/50">
-                      <TableCell className="font-medium text-gray-100">{row.make}</TableCell>
-                      <TableCell className="text-gray-300">{row.model}</TableCell>
-                      <TableCell className="text-gray-300">{row.year}</TableCell>
-                      <TableCell className="text-gray-300">
+                    <TableRow key={index} className="border-amber-200 hover:bg-amber-50/50">
+                      <TableCell className="font-medium text-black">{row.make}</TableCell>
+                      <TableCell className="text-gray-700">{row.model}</TableCell>
+                      <TableCell className="text-gray-700">{row.year}</TableCell>
+                      <TableCell className="text-gray-700">
                         {typeof row.price === 'string' ? row.price : `$${row.price.toLocaleString()}`}
                       </TableCell>
-                      <TableCell className="text-gray-300">{row.mileage ? row.mileage.toLocaleString() : '-'}</TableCell>
-                      <TableCell className="max-w-xs truncate text-gray-300">
+                      <TableCell className="text-gray-700">{row.mileage ? row.mileage.toLocaleString() : '-'}</TableCell>
+                      <TableCell className="max-w-xs truncate text-gray-700">
                         {row.description || '-'}
                       </TableCell>
                     </TableRow>
@@ -267,7 +267,7 @@ export default function InventoryUploadPage() {
                 </TableBody>
               </Table>
               {previewData.length > FILE_UPLOAD.MAX_PREVIEW_ROWS && (
-                <p className="text-sm text-gray-400 mt-2">
+                <p className="text-sm text-gray-600 mt-2">
                   Showing first {FILE_UPLOAD.MAX_PREVIEW_ROWS} rows of {previewData.length} total
                 </p>
               )}
@@ -278,9 +278,9 @@ export default function InventoryUploadPage() {
 
       {/* Upload Results */}
       {uploadResult && (
-        <Card className="bg-gray-900/50 border-gray-800">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-gray-100">
+            <CardTitle className="flex items-center gap-2 text-black">
               {uploadResult.errorCount === 0 ? (
                 <CheckCircle className="h-5 w-5 text-green-500" />
               ) : (
@@ -292,26 +292,26 @@ export default function InventoryUploadPage() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex gap-4 flex-wrap">
-                <Badge variant="default" className="bg-green-500">
+                <Badge variant="default" className="bg-green-100 text-green-700 border-green-200">
                   {uploadResult.successCount} vehicles uploaded
                 </Badge>
                 {uploadResult.embeddingsGenerated !== undefined && (
-                  <Badge variant="secondary" className="bg-blue-500">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
                     {uploadResult.embeddingsGenerated} AI embeddings generated
                   </Badge>
                 )}
                 {uploadResult.errorCount > 0 && (
-                  <Badge variant="destructive">
+                  <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200">
                     {uploadResult.errorCount} rows failed
                   </Badge>
                 )}
               </div>
 
               {uploadResult.embeddingsError && (
-                <Alert className="border-yellow-500/30 bg-yellow-500/10">
-                  <AlertCircle className="h-4 w-4 text-yellow-400" />
-                  <AlertDescription className="text-gray-300">
-                    <p className="font-medium text-gray-100">Embedding Warning:</p>
+                <Alert className="border-yellow-200 bg-yellow-50">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription className="text-gray-700">
+                    <p className="font-medium text-black">Embedding Warning:</p>
                     <p className="text-sm">{uploadResult.embeddingsError}</p>
                     <p className="text-sm mt-1">Your inventory was uploaded successfully, but AI search may not include these items immediately.</p>
                   </AlertDescription>
@@ -319,15 +319,15 @@ export default function InventoryUploadPage() {
               )}
 
               {uploadResult.errors.length > 0 && (
-                <Alert className="border-red-500/30 bg-red-500/10">
-                  <AlertCircle className="h-4 w-4 text-red-400" />
-                  <AlertDescription className="text-gray-300">
+                <Alert className="border-red-200 bg-red-50">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-gray-700">
                     <div className="space-y-2">
-                      <p className="font-medium text-gray-100">Errors found:</p>
+                      <p className="font-medium text-black">Errors found:</p>
                       <div className="space-y-1">
                         {uploadResult.errors.map((error, index) => (
                           <div key={index} className="flex items-center gap-2 text-sm">
-                            <X className="h-3 w-3 text-red-400" />
+                            <X className="h-3 w-3 text-red-600" />
                             Row {error.row}: {error.error}
                           </div>
                         ))}

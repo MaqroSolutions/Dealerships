@@ -227,15 +227,15 @@ function BillingContent() {
   }
 
   return (
-    <div className="space-y-8 ml-4">
+    <div className="space-y-8 ml-4 bg-white">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">Billing</h1>
-          <p className="text-gray-400">View and manage your plan.</p>
+          <h1 className="text-4xl font-bold text-black mb-2">Billing</h1>
+          <p className="text-gray-700">View and manage your plan.</p>
         </div>
 
         {/* Horizontal Separator */}
-        <div className="border-t border-gray-700 mb-8"></div>
+        <div className="border-t border-amber-200 mb-8"></div>
 
         {/* Plan Summary Card */}
         <div className="mb-8">
@@ -245,7 +245,7 @@ function BillingContent() {
               <p className="text-gray-400">View and manage your billing plan.</p>
             </div>
             
-            <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 flex-shrink-0 ml-[0%] min-w-[600px] h-[60px] flex items-center justify-between">
+            <div className="bg-white/90 border border-amber-200 rounded-2xl p-4 shadow-md flex-shrink-0 ml-[0%] min-w-[600px] h-[60px] flex items-center justify-between">
               {loading ? (
                 <div className="flex items-center space-x-2">
                   <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
@@ -254,12 +254,12 @@ function BillingContent() {
               ) : current ? (
                 <>
                   <div className="flex items-center space-x-6">
-                    <div className="text-lg font-semibold text-white">
+                    <div className="text-lg font-semibold text-black">
                       {getSummaryLine()}
                     </div>
-                    <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-                      <Clock className="w-4 h-4 text-amber-400" />
-                      <span className="text-sm text-amber-400 font-medium">On trial until {getTrialEndDate()}</span>
+                    <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200">
+                      <Clock className="w-4 h-4 text-amber-600" />
+                      <span className="text-sm text-amber-700 font-medium">On trial until {getTrialEndDate()}</span>
                     </div>
                   </div>
                   {isPro() ? (

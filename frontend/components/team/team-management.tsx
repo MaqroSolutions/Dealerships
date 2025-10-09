@@ -290,12 +290,12 @@ export function TeamManagement() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 bg-white">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-100">Team Management</h1>
-          <p className="text-gray-400 mt-2">
+          <h1 className="text-4xl font-bold text-black">Team Management</h1>
+          <p className="text-gray-700 mt-2">
             Manage your sales team and invite new members
           </p>
         </div>
@@ -306,16 +306,16 @@ export function TeamManagement() {
               Invite Member
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-800">
+          <DialogContent className="bg-white border-amber-200 rounded-2xl shadow-md">
             <DialogHeader>
-              <DialogTitle className="text-gray-100">Invite Team Member</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogTitle className="text-black">Invite Team Member</DialogTitle>
+              <DialogDescription className="text-gray-700">
                 Send an invitation to join your dealership team
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateInvite} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-200">Email Address</Label>
+                <Label htmlFor="email" className="text-gray-700 font-medium">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
@@ -325,12 +325,12 @@ export function TeamManagement() {
                     ...prev, 
                     inviteForm: { ...prev.inviteForm, email: e.target.value }
                   }))}
-                  className="bg-gray-800 border-gray-700 text-gray-100"
+                  className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role" className="text-gray-200">Role</Label>
+                <Label htmlFor="role" className="text-gray-700 font-medium">Role</Label>
                 <Select
                   value={state.inviteForm.role_name}
                   onValueChange={(value: UserRole) => setState(prev => ({ 
@@ -338,10 +338,10 @@ export function TeamManagement() {
                     inviteForm: { ...prev.inviteForm, role_name: value }
                   }))}
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
+                  <SelectTrigger className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectContent className="bg-white/95 backdrop-blur-sm border-amber-200 rounded-xl">
                     <SelectItem value="salesperson">Salesperson</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
                   </SelectContent>
@@ -352,12 +352,13 @@ export function TeamManagement() {
                   type="button"
                   variant="outline"
                   onClick={() => setState(prev => ({ ...prev, inviteDialogOpen: false }))}
+                  className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl"
                   disabled={state.inviteLoading}
                 >
                   {state.inviteLoading ? (
@@ -416,10 +417,10 @@ function TeamMembersSection({
   currentUserId?: string
 }) {
   return (
-    <Card className="bg-gray-900/70 border-gray-800">
+    <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
       <CardHeader>
-        <CardTitle className="text-gray-100">Team Members</CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardTitle className="text-black">Team Members</CardTitle>
+        <CardDescription className="text-gray-700">
           {teamMembers.length} active team members
         </CardDescription>
       </CardHeader>
@@ -453,21 +454,21 @@ function TeamMemberCard({
   isCurrentUser: boolean
 }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
+    <div className="flex items-center justify-between p-4 bg-white border border-amber-200 rounded-xl shadow-sm">
       <div className="flex items-center space-x-4">
-        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+        <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
           <span className="text-white font-semibold">
             {member.full_name ? member.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
           </span>
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-gray-200">{member.full_name}</p>
+            <p className="text-sm font-medium text-black">{member.full_name}</p>
             {isCurrentUser && (
-              <span className="text-xs text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded">You</span>
+              <span className="text-xs text-gray-700 bg-amber-100 px-2 py-0.5 rounded">You</span>
             )}
           </div>
-          <p className="text-xs text-gray-400">{member.phone || ''}</p>
+          <p className="text-xs text-gray-600">{member.phone || ''}</p>
         </div>
       </div>
       <div className="flex items-center space-x-2">
@@ -478,7 +479,7 @@ function TeamMemberCard({
           <Button
             variant="ghost"
             size="icon"
-            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
             onClick={() => onRemoveMember(member.user_id)}
             aria-label="Remove user"
           >
@@ -512,10 +513,10 @@ function PendingInvitesSection({
   onCancelInvite: (inviteId: string) => void
 }) {
   return (
-    <Card className="bg-gray-900/70 border-gray-800">
+    <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
       <CardHeader>
-        <CardTitle className="text-gray-100">Pending Invites</CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardTitle className="text-black">Pending Invites</CardTitle>
+        <CardDescription className="text-gray-700">
           {invites.length} pending invitations
         </CardDescription>
       </CardHeader>
@@ -549,12 +550,12 @@ function PendingInviteCard({
   onCancelInvite: (inviteId: string) => void
 }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
+    <div className="flex items-center justify-between p-4 bg-white border border-amber-200 rounded-xl shadow-sm">
       <div className="flex items-center space-x-4">
-        <Mail className="w-5 h-5 text-gray-400" />
+        <Mail className="w-5 h-5 text-gray-500" />
         <div>
-          <p className="text-sm font-medium text-gray-200">{invite.email}</p>
-          <p className="text-xs text-gray-400">
+          <p className="text-sm font-medium text-black">{invite.email}</p>
+          <p className="text-xs text-gray-600">
             Expires {new Date(invite.expires_at).toLocaleDateString()}
           </p>
         </div>
@@ -567,6 +568,7 @@ function PendingInviteCard({
           size="sm"
           variant="outline"
           onClick={() => onCopyLink(invite.token)}
+          className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl"
         >
           <Copy className="w-4 h-4" />
         </Button>
@@ -574,6 +576,7 @@ function PendingInviteCard({
           size="sm"
           variant="outline"
           onClick={() => onCancelInvite(invite.id)}
+          className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl"
         >
           <Trash2 className="w-4 h-4" />
         </Button>
@@ -601,10 +604,10 @@ function RecentInvitesSection({
   getStatusBadgeColor: (status: string) => string
 }) {
   return (
-    <Card className="bg-gray-900/70 border-gray-800">
+    <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
       <CardHeader>
-        <CardTitle className="text-gray-100">Recent Invites</CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardTitle className="text-black">Recent Invites</CardTitle>
+        <CardDescription className="text-gray-700">
           History of recent invitations
         </CardDescription>
       </CardHeader>
@@ -613,13 +616,13 @@ function RecentInvitesSection({
           {invites.slice(0, 5).map((invite) => (
             <div
               key={invite.id}
-              className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg"
+              className="flex items-center justify-between p-4 bg-white border border-amber-200 rounded-xl shadow-sm"
             >
               <div className="flex items-center space-x-4">
-                <Mail className="w-5 h-5 text-gray-400" />
+                <Mail className="w-5 h-5 text-gray-500" />
                 <div>
-                  <p className="text-sm font-medium text-gray-200">{invite.email}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-sm font-medium text-black">{invite.email}</p>
+                  <p className="text-xs text-gray-600">
                     Expires {new Date(invite.expires_at).toLocaleDateString()}
                   </p>
                 </div>
