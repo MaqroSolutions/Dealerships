@@ -23,6 +23,7 @@ function AdminDashboardContent() {
   const [activeInventory, setActiveInventory] = useState<number | null>(null)
   const [activeSalespeople, setActiveSalespeople] = useState<number | null>(null)
   const [refreshing, setRefreshing] = useState<boolean>(false)
+  const [isLoadingStats, setIsLoadingStats] = useState<boolean>(true)
 
   useEffect(() => {
     let timer: number | undefined
@@ -42,6 +43,7 @@ function AdminDashboardContent() {
         setActiveSalespeople(salespeopleCount)
       } finally {
         setRefreshing(false)
+        setIsLoadingStats(false)
       }
     }
 
@@ -86,8 +88,17 @@ function AdminDashboardContent() {
             <MessageSquare className="h-4 w-4 text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-100">{leadTotal ?? '—'}</div>
-            <p className="text-xs text-gray-400">{refreshing ? 'Updating…' : 'Live'}</p>
+            {isLoadingStats ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-700 rounded w-16 mb-2"></div>
+                <div className="h-3 bg-gray-700 rounded w-12"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-gray-100">{leadTotal ?? 0}</div>
+                <p className="text-xs text-gray-400">{refreshing ? 'Updating…' : 'Live'}</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -97,8 +108,17 @@ function AdminDashboardContent() {
             <Users className="h-4 w-4 text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-100">{activeSalespeople ?? '—'}</div>
-            <p className="text-xs text-gray-400">Salespeople in team</p>
+            {isLoadingStats ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-700 rounded w-16 mb-2"></div>
+                <div className="h-3 bg-gray-700 rounded w-24"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-gray-100">{activeSalespeople ?? 0}</div>
+                <p className="text-xs text-gray-400">Salespeople in team</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -108,8 +128,17 @@ function AdminDashboardContent() {
             <Car className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-100">{activeInventory ?? '—'}</div>
-            <p className="text-xs text-gray-400">Active vehicles</p>
+            {isLoadingStats ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-700 rounded w-16 mb-2"></div>
+                <div className="h-3 bg-gray-700 rounded w-20"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-gray-100">{activeInventory ?? 0}</div>
+                <p className="text-xs text-gray-400">Active vehicles</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
