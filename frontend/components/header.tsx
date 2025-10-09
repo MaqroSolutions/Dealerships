@@ -21,6 +21,13 @@ const pageNames: Record<string, string> = {
   "/conversations": "Conversations",
   "/templates": "Template Manager",
   "/settings": "Settings",
+  "/admin/dashboard": "Home",
+  "/admin/team": "Team Management",
+  "/admin/inventory": "Inventory",
+  "/admin/billing": "Billing",
+  "/admin/settings": "Settings",
+  "/leads": "My Leads",
+  "/inventory": "Inventory",
 }
 
 export function Header() {
