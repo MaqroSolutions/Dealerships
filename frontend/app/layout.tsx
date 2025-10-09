@@ -21,8 +21,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-gray-950 text-gray-100 antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="dark">
+      <body className={`${inter.className} bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 text-gray-900 antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="light">
           <ClientAuthWrapper>
             <ConditionalLayoutWrapper>
               {children}

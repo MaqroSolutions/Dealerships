@@ -111,37 +111,37 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl flex items-center justify-center mb-4 shadow-lg">
             <Mail className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-100">Reset your password</h1>
-          <p className="text-gray-400 mt-2">Enter your email to receive a reset link</p>
+          <h1 className="text-2xl font-bold text-gray-900">Reset your password</h1>
+          <p className="text-gray-600 mt-2">Enter your email to receive a reset link</p>
         </div>
 
-        <Card className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl rounded-2xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-gray-100">Forgot Password</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-2xl text-gray-900">Forgot Password</CardTitle>
+            <CardDescription className="text-gray-600">
               We'll send you a link to reset your password
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
-              <div className="bg-red-900/30 border border-red-800 text-red-200 p-3 rounded-md text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm">
                 {error}
               </div>
             )}
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-200">
+                <Label htmlFor="email" className="text-gray-700">
                   Email Address
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="email"
                     name="email"
@@ -149,7 +149,7 @@ export default function ForgotPasswordPage() {
                     placeholder="Enter your email address"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                   />
                 </div>
@@ -157,7 +157,7 @@ export default function ForgotPasswordPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-white text-gray-900 hover:opacity-90 rounded-full font-semibold"
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -176,9 +176,9 @@ export default function ForgotPasswordPage() {
 
             <div className="text-center space-y-4">
               <div className="text-center">
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-600 text-sm">
                   Remember your password?{" "}
-                  <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
+                  <Link href="/login" className="text-orange-600 hover:text-orange-500 font-medium">
                     Sign in
                   </Link>
                 </p>

@@ -95,14 +95,14 @@ export default function ResetPasswordPage() {
   // Show loading while checking session
   if (isValidSession === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-4">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <div className="mx-auto w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+            <div className="mx-auto w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl flex items-center justify-center mb-4 shadow-lg">
               <PremiumSpinner size="lg" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-100">Loading...</h1>
-            <p className="text-gray-400 mt-2">Verifying your reset link</p>
+            <h1 className="text-2xl font-bold text-gray-900">Loading...</h1>
+            <p className="text-gray-600 mt-2">Verifying your reset link</p>
           </div>
         </div>
       </div>
@@ -112,26 +112,26 @@ export default function ResetPasswordPage() {
   // Show error if invalid session
   if (isValidSession === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-4">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <div className="mx-auto w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
+            <div className="mx-auto w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center mb-4 shadow-lg">
               <span className="text-xl font-bold text-white">!</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-100">Invalid Reset Link</h1>
-            <p className="text-gray-400 mt-2">This password reset link is invalid or has expired</p>
+            <h1 className="text-2xl font-bold text-gray-900">Invalid Reset Link</h1>
+            <p className="text-gray-600 mt-2">This password reset link is invalid or has expired</p>
           </div>
 
-          <Card className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl">
+          <Card className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl rounded-2xl">
             <CardContent className="p-6 space-y-4">
-              <p className="text-gray-300 text-center">
+              <p className="text-gray-700 text-center">
                 The password reset link may have expired or already been used. Please request a new one.
               </p>
               
               <div className="space-y-3">
                 <Button
                   onClick={() => router.push('/forgot-password')}
-                  className="w-full bg-white text-gray-900 hover:opacity-90 rounded-full font-semibold"
+                  className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
                 >
                   Request New Reset Link
                 </Button>
@@ -139,7 +139,7 @@ export default function ResetPasswordPage() {
                 <Button
                   onClick={() => router.push('/login')}
                   variant="ghost"
-                  className="w-full text-gray-400 hover:text-gray-300"
+                  className="w-full text-gray-600 hover:text-gray-800"
                 >
                   Back to sign in
                 </Button>
@@ -154,25 +154,25 @@ export default function ResetPasswordPage() {
   // Show success state
   if (passwordReset) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-4">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <div className="mx-auto w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mb-4">
+            <div className="mx-auto w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-100">Password Updated</h1>
-            <p className="text-gray-400 mt-2">Your password has been successfully reset</p>
+            <h1 className="text-2xl font-bold text-gray-900">Password Updated</h1>
+            <p className="text-gray-600 mt-2">Your password has been successfully reset</p>
           </div>
 
-          <Card className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl">
+          <Card className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl rounded-2xl">
             <CardContent className="p-6 space-y-4">
-              <p className="text-gray-300 text-center">
+              <p className="text-gray-700 text-center">
                 You can now sign in with your new password.
               </p>
               
               <Button
                 onClick={() => router.push('/login')}
-                className="w-full bg-white text-gray-900 hover:opacity-90 rounded-full font-semibold"
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
               >
                 <div className="flex items-center gap-2">
                   Continue to Sign In
@@ -188,26 +188,26 @@ export default function ResetPasswordPage() {
 
   // Show password reset form
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl flex items-center justify-center mb-4 shadow-lg">
             <Lock className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-100">Set new password</h1>
-          <p className="text-gray-400 mt-2">Choose a strong password for your account</p>
+          <h1 className="text-2xl font-bold text-gray-900">Set new password</h1>
+          <p className="text-gray-600 mt-2">Choose a strong password for your account</p>
         </div>
 
-        <Card className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl rounded-2xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-gray-100">Reset Password</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-2xl text-gray-900">Reset Password</CardTitle>
+            <CardDescription className="text-gray-600">
               Enter your new password below
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
-              <div className="bg-red-900/30 border border-red-800 text-red-200 p-3 rounded-md text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm">
                 {error}
               </div>
             )}
@@ -215,11 +215,11 @@ export default function ResetPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* New Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-200">
+                <Label htmlFor="password" className="text-gray-700">
                   New Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="password"
                     name="password"
@@ -227,7 +227,7 @@ export default function ResetPasswordPage() {
                     placeholder="Enter your new password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 pr-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                     minLength={6}
                   />
@@ -239,9 +239,9 @@ export default function ResetPasswordPage() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-gray-500" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <Eye className="h-4 w-4 text-gray-500" />
                     )}
                   </Button>
                 </div>
@@ -249,11 +249,11 @@ export default function ResetPasswordPage() {
 
               {/* Confirm Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-gray-200">
+                <Label htmlFor="confirmPassword" className="text-gray-700">
                   Confirm New Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
@@ -261,7 +261,7 @@ export default function ResetPasswordPage() {
                     placeholder="Confirm your new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 pr-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 pr-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                     minLength={6}
                   />
@@ -273,9 +273,9 @@ export default function ResetPasswordPage() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-gray-500" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <Eye className="h-4 w-4 text-gray-500" />
                     )}
                   </Button>
                 </div>
@@ -283,7 +283,7 @@ export default function ResetPasswordPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-white text-gray-900 hover:opacity-90 rounded-full font-semibold"
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
                 disabled={isLoading}
               >
                 {isLoading ? (

@@ -5,35 +5,29 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, Send, Check, X, Bot, User, MessageSquare, Phone } from "lucide-react"
+import { ArrowLeft, Send, Bot, User } from "lucide-react"
 import Link from "next/link"
 import { getMyLeadById } from "@/lib/leads-api"
 import { getConversations, addMessage } from "@/lib/conversations-api"
-import { sendSMS } from "@/lib/sms-api"
 import type { Lead, Conversation } from "@/lib/supabase"
 import { PremiumSpinner } from "@/components/ui/premium-spinner"
 
 const statusColors = {
-  new: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  warm: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  hot: "bg-red-500/20 text-red-400 border-red-500/30",
-  "follow-up": "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  cold: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  new: "bg-blue-100 text-blue-700 border-blue-200",
+  warm: "bg-orange-100 text-orange-700 border-orange-200",
+  hot: "bg-red-100 text-red-700 border-red-200",
+  "follow-up": "bg-yellow-100 text-yellow-700 border-yellow-200",
+  cold: "bg-gray-100 text-gray-700 border-gray-200",
 }
 
 export default function ConversationDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const [leadData, setLeadData] = useState<Lead | null>(null)
   const [customMessage, setCustomMessage] = useState("")
-  const [smsMessage, setSmsMessage] = useState("")
   const [messageList, setMessageList] = useState<Conversation[]>([])
   const [sending, setSending] = useState(false)
-  const [sendingSMS, setSendingSMS] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
-  const [smsError, setSmsError] = useState<string | null>(null)
   const [sendSuccess, setSendSuccess] = useState(false)
-  const [smsSuccess, setSmsSuccess] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
 
@@ -84,54 +78,39 @@ export default function ConversationDetail({ params }: { params: Promise<{ id: s
     }
   }
 
-  const handleSendSMS = async () => {
-    if (!smsMessage.trim() || !leadData?.phone) return
-    setSendingSMS(true)
-    setSmsError(null)
-    setSmsSuccess(false)
-    
-    const messageToSend = smsMessage.trim()
-    
-    try {
-      // Send SMS via backend
-      const smsResult = await sendSMS(leadData.phone, messageToSend)
-      
-      if (smsResult.success) {
-        // Also save as a conversation message
-        const newMessage = await addMessage(leadData.id, `SMS: ${messageToSend}`)
-        setSmsSuccess(true)
-        setMessageList((prev) => [...prev, newMessage])
-        setSmsMessage("")
-      } else {
-        setSmsError(smsResult.error || "Failed to send SMS")
-      }
-    } catch (err) {
-      setSmsError("Failed to send SMS")
-    } finally {
-      setSendingSMS(false)
-    }
-  }
 
   if (!leadData) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 shadow-md">
+          <div className="flex flex-col items-center space-y-4">
+            <PremiumSpinner size="lg" />
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading...</h2>
+              <p className="text-gray-700">Please wait while we load the conversation</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/conversations">
-          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-100">
+          <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 hover:bg-amber-50">
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <h2 className="text-2xl font-bold text-gray-100">{leadData.name}</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{leadData.name}</h2>
             <Badge className={`${statusColors[leadData.status as keyof typeof statusColors]} border`}>
               {leadData.status.charAt(0).toUpperCase() + leadData.status.slice(1)}
             </Badge>
           </div>
-          <div className="flex items-center gap-4 text-gray-400 text-sm">
+          <div className="flex items-center gap-4 text-gray-600 text-sm">
             <span>{leadData.car_interest}</span>
             <span>•</span>
             <span>{leadData.phone}</span>
@@ -143,9 +122,9 @@ export default function ConversationDetail({ params }: { params: Promise<{ id: s
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <Card className="bg-gray-900/50 border-gray-800 h-[600px] flex flex-col">
-            <CardHeader className="border-b border-gray-800 flex-shrink-0">
-              <h3 className="font-semibold text-gray-100">Conversation</h3>
+          <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md h-[600px] flex flex-col">
+            <CardHeader className="border-b border-amber-200 flex-shrink-0">
+              <h3 className="font-semibold text-gray-900">Conversation</h3>
             </CardHeader>
             <CardContent className="flex-1 p-0 overflow-hidden">
               <div className="h-full flex flex-col">
@@ -158,9 +137,9 @@ export default function ConversationDetail({ params }: { params: Promise<{ id: s
                       <div
                         className={`max-w-[70%] ${
                           message.sender === "customer"
-                            ? "bg-gray-800 text-gray-100"
-                            : "bg-blue-600 text-white"
-                        } rounded-lg p-4`}
+                            ? "bg-gray-100 text-gray-900 border border-gray-200"
+                            : "bg-gradient-to-r from-orange-500 to-amber-500 text-white"
+                        } rounded-xl p-4 shadow-sm`}
                       >
                         <div className="flex items-center gap-2 mb-2">
                           {message.sender === "customer" ? (
@@ -182,78 +161,30 @@ export default function ConversationDetail({ params }: { params: Promise<{ id: s
                   <div ref={messagesEndRef} />
                 </div>
 
-                <div className="border-t border-gray-800 p-4 flex-shrink-0">
-                  <Tabs defaultValue="message" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
-                      <TabsTrigger value="message" className="flex items-center gap-2 data-[state=active]:bg-gray-700">
-                        <MessageSquare className="w-4 h-4" />
-                        Internal Message
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="sms" 
-                        className="flex items-center gap-2 data-[state=active]:bg-gray-700"
-                        disabled={!leadData?.phone}
-                      >
-                        <Phone className="w-4 h-4" />
-                        SMS {!leadData?.phone && "(No phone)"}
-                      </TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="message" className="mt-4">
-                      <div className="flex gap-2">
-                        <Textarea
-                          placeholder="Type your internal message..."
-                          value={customMessage}
-                          onChange={(e) => setCustomMessage(e.target.value)}
-                          className="flex-1 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 resize-none"
-                          rows={2}
-                          disabled={sending}
-                        />
-                        <Button 
-                          onClick={handleSendMessage} 
-                          disabled={sending || !customMessage.trim()}
-                          className="bg-blue-600 hover:bg-blue-700 text-white self-end"
-                        >
-                                                     {sending ? <PremiumSpinner size="sm" /> : <Send className="w-4 h-4" />}
-                        </Button>
-                      </div>
-                      {sendSuccess && (
-                        <p className="text-green-400 text-sm mt-2">Message sent successfully!</p>
-                      )}
-                      {sendError && (
-                        <p className="text-red-400 text-sm mt-2">{sendError}</p>
-                      )}
-                    </TabsContent>
-                    
-                    <TabsContent value="sms" className="mt-4">
-                      <div className="flex gap-2">
-                        <Textarea
-                          placeholder={`Send SMS to ${leadData?.phone || 'phone number not available'}...`}
-                          value={smsMessage}
-                          onChange={(e) => setSmsMessage(e.target.value)}
-                          className="flex-1 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 resize-none"
-                          rows={2}
-                          disabled={sendingSMS || !leadData?.phone}
-                        />
-                        <Button 
-                          onClick={handleSendSMS} 
-                          disabled={sendingSMS || !smsMessage.trim() || !leadData?.phone}
-                          className="bg-green-600 hover:bg-green-700 text-white self-end"
-                        >
-                                                     {sendingSMS ? <PremiumSpinner size="sm" /> : <Phone className="w-4 h-4" />}
-                        </Button>
-                      </div>
-                      {smsSuccess && (
-                        <p className="text-green-400 text-sm mt-2">SMS sent successfully!</p>
-                      )}
-                      {smsError && (
-                        <p className="text-red-400 text-sm mt-2">{smsError}</p>
-                      )}
-                      {leadData?.phone && (
-                        <p className="text-gray-400 text-xs mt-2">SMS will be sent to {leadData.phone}</p>
-                      )}
-                    </TabsContent>
-                  </Tabs>
+                <div className="border-t border-amber-200 p-4 flex-shrink-0">
+                  <div className="flex gap-2">
+                    <Textarea
+                      placeholder="Type your message..."
+                      value={customMessage}
+                      onChange={(e) => setCustomMessage(e.target.value)}
+                      className="flex-1 bg-white/90 border-amber-200 text-gray-900 placeholder-gray-500 resize-none rounded-xl focus:border-orange-400 focus:ring-orange-200"
+                      rows={2}
+                      disabled={sending}
+                    />
+                    <Button 
+                      onClick={handleSendMessage} 
+                      disabled={sending || !customMessage.trim()}
+                      className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white self-end rounded-xl shadow-lg hover:shadow-xl transition-all"
+                    >
+                      {sending ? <PremiumSpinner size="sm" /> : <Send className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  {sendSuccess && (
+                    <p className="text-green-600 text-sm mt-2">Message sent successfully!</p>
+                  )}
+                  {sendError && (
+                    <p className="text-red-600 text-sm mt-2">{sendError}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -261,28 +192,28 @@ export default function ConversationDetail({ params }: { params: Promise<{ id: s
         </div>
 
         <div>
-          <Card className="bg-gray-900/50 border-gray-800">
+          <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
             <CardHeader>
-              <h3 className="font-semibold text-gray-100">Lead Information</h3>
+              <h3 className="font-semibold text-gray-900">Lead Information</h3>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm text-gray-400">Status</label>
-                <Badge className={`${statusColors[leadData.status as keyof typeof statusColors]} border mt-1`}>
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-gray-600">Status</label>
+                <Badge className={`${statusColors[leadData.status as keyof typeof statusColors]} border`}>
                   {leadData.status.charAt(0).toUpperCase() + leadData.status.slice(1)}
                 </Badge>
               </div>
               <div>
-                <label className="text-sm text-gray-400">Vehicle Interest</label>
-                <p className="text-gray-100 font-medium">{leadData.car_interest}</p>
+                <label className="text-sm text-gray-600">Vehicle Interest</label>
+                <p className="text-gray-900 font-medium">{leadData.car_interest}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-400">Phone</label>
-                <p className="text-gray-100">{leadData.phone}</p>
+                <label className="text-sm text-gray-600">Phone</label>
+                <p className="text-gray-900">{leadData.phone}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-400">Email</label>
-                <p className="text-gray-100">{leadData.email}</p>
+                <label className="text-sm text-gray-600">Email</label>
+                <p className="text-gray-900">{leadData.email}</p>
               </div>
             </CardContent>
           </Card>

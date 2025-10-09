@@ -253,29 +253,29 @@ export function DualSignupFlow() {
   }
 
   const renderRoleSelection = () => (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl flex items-center justify-center mb-4 shadow-lg">
             <User className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-100">Choose your role</h1>
-          <p className="text-gray-400 mt-2">Select how you'll be using Maqro</p>
+          <h1 className="text-2xl font-bold text-gray-900">Choose your role</h1>
+          <p className="text-gray-600 mt-2">Select how you'll be using Maqro</p>
         </div>
 
         <div className="space-y-4">
           <Card 
-            className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl cursor-pointer hover:border-blue-500 transition-colors"
+            className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl cursor-pointer hover:border-orange-400 transition-colors rounded-2xl"
             onClick={() => setCurrentFlow('dealership-signup')}
           >
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Building2 className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-100">Dealership Manager</h3>
-                  <p className="text-gray-400 text-sm">
+                  <h3 className="text-lg font-semibold text-gray-900">Dealership Manager</h3>
+                  <p className="text-gray-600 text-sm">
                     I'm a GM, Owner, or Marketing Director setting up my dealership
                   </p>
                 </div>
@@ -284,17 +284,17 @@ export function DualSignupFlow() {
           </Card>
 
           <Card 
-            className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl cursor-pointer hover:border-blue-500 transition-colors"
+            className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl cursor-pointer hover:border-orange-400 transition-colors rounded-2xl"
             onClick={() => setCurrentFlow('sales-signup')}
           >
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-100">Salesperson</h3>
-                  <p className="text-gray-400 text-sm">
+                  <h3 className="text-lg font-semibold text-gray-900">Salesperson</h3>
+                  <p className="text-gray-600 text-sm">
                     I'm joining an existing dealership via invite link
                   </p>
                 </div>
@@ -304,9 +304,9 @@ export function DualSignupFlow() {
         </div>
 
         <div className="text-center">
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-600 text-sm">
             Already have an account?{" "}
-            <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
+            <Link href="/login" className="text-orange-600 hover:text-orange-500 font-medium">
               Sign in
             </Link>
           </p>
@@ -316,24 +316,24 @@ export function DualSignupFlow() {
   )
 
   const renderDealershipSignup = () => (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl flex items-center justify-center mb-4 shadow-lg">
             <Building2 className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-100">Create your dealership</h1>
-          <p className="text-gray-400 mt-2">Set up your dealership account and start managing leads</p>
+          <h1 className="text-2xl font-bold text-gray-900">Create your dealership</h1>
+          <p className="text-gray-600 mt-2">Set up your dealership account and start managing leads</p>
         </div>
 
-        <Card className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl rounded-2xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-gray-100">Dealership Signup</CardTitle>
-            <CardDescription className="text-gray-400">Enter your information to create your dealership account</CardDescription>
+            <CardTitle className="text-2xl text-gray-900">Dealership Signup</CardTitle>
+            <CardDescription className="text-gray-600">Enter your information to create your dealership account</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
-              <div className="bg-red-900/30 border border-red-800 text-red-200 p-3 rounded-md text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm">
                 {error}
               </div>
             )}
@@ -341,9 +341,9 @@ export function DualSignupFlow() {
             <form onSubmit={handleDealershipSignup} className="space-y-4">
               {/* Name Field */}
               <div className="space-y-2">
-                <Label htmlFor="full_name" className="text-gray-200">Full Name</Label>
+                <Label htmlFor="full_name" className="text-gray-700">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="full_name"
                     name="full_name"
@@ -351,7 +351,7 @@ export function DualSignupFlow() {
                     placeholder="Enter your full name"
                     value={formData.full_name}
                     onChange={handleInputChange}
-                    className="pl-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                   />
                 </div>
@@ -359,9 +359,9 @@ export function DualSignupFlow() {
 
               {/* Dealership Name Field */}
               <div className="space-y-2">
-                <Label htmlFor="dealership_name" className="text-gray-200">Dealership Name</Label>
+                <Label htmlFor="dealership_name" className="text-gray-700">Dealership Name</Label>
                 <div className="relative">
-                  <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="dealership_name"
                     name="dealership_name"
@@ -369,7 +369,7 @@ export function DualSignupFlow() {
                     placeholder="Enter your dealership name"
                     value={formData.dealership_name}
                     onChange={handleInputChange}
-                    className="pl-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                   />
                 </div>
@@ -377,7 +377,7 @@ export function DualSignupFlow() {
 
               {/* Location Field */}
               <div className="space-y-2">
-                <Label htmlFor="location" className="text-gray-200">Location (Optional)</Label>
+                <Label htmlFor="location" className="text-gray-700">Location (Optional)</Label>
                 <Input
                   id="location"
                   name="location"
@@ -385,15 +385,15 @@ export function DualSignupFlow() {
                   placeholder="City, State"
                   value={formData.location}
                   onChange={handleInputChange}
-                  className="bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                  className="bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                 />
               </div>
               
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-200">Email</Label>
+                <Label htmlFor="email" className="text-gray-700">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="email"
                     name="email"
@@ -401,7 +401,7 @@ export function DualSignupFlow() {
                     placeholder="Enter your email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="pl-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                   />
                 </div>
@@ -409,9 +409,9 @@ export function DualSignupFlow() {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-200">Password</Label>
+                <Label htmlFor="password" className="text-gray-700">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="password"
                     name="password"
@@ -419,7 +419,7 @@ export function DualSignupFlow() {
                     placeholder="Create a password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="pl-10 pr-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 pr-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                   />
                   <Button
@@ -430,9 +430,9 @@ export function DualSignupFlow() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-gray-500" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <Eye className="h-4 w-4 text-gray-500" />
                     )}
                   </Button>
                 </div>
@@ -440,7 +440,7 @@ export function DualSignupFlow() {
 
               <Button
                 type="submit"
-                className="w-full bg-white text-gray-900 hover:opacity-90 rounded-full font-semibold"
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
                 disabled={isLoading}
               >
                                   {isLoading ? (
@@ -483,32 +483,32 @@ export function DualSignupFlow() {
   )
 
   const renderSalesSignup = () => (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mb-4">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mb-4 shadow-lg">
             <Users className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-100">Join your dealership</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Join your dealership</h1>
           {inviteDetails ? (
             <div className="mt-3">
-              <p className="text-gray-400">You've been invited to join</p>
-              <p className="text-green-400 font-semibold">{inviteDetails.dealership_name}</p>
-              <p className="text-gray-500 text-sm">as a {inviteDetails.role_name}</p>
+              <p className="text-gray-600">You've been invited to join</p>
+              <p className="text-green-600 font-semibold">{inviteDetails.dealership_name}</p>
+              <p className="text-gray-600 text-sm">as a {inviteDetails.role_name}</p>
             </div>
           ) : (
-            <p className="text-gray-400 mt-2">Complete your account setup to join your team</p>
+            <p className="text-gray-600 mt-2">Complete your account setup to join your team</p>
           )}
         </div>
 
-        <Card className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl rounded-2xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-gray-100">Account Setup</CardTitle>
-            <CardDescription className="text-gray-400">Complete your account information</CardDescription>
+            <CardTitle className="text-2xl text-gray-900">Account Setup</CardTitle>
+            <CardDescription className="text-gray-600">Complete your account information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
-              <div className="bg-red-900/30 border border-red-800 text-red-200 p-3 rounded-md text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm">
                 {error}
               </div>
             )}
@@ -516,9 +516,9 @@ export function DualSignupFlow() {
             <form onSubmit={handleSalesSignup} className="space-y-4">
               {/* Name Field */}
               <div className="space-y-2">
-                <Label htmlFor="full_name" className="text-gray-200">Full Name</Label>
+                <Label htmlFor="full_name" className="text-gray-700">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="full_name"
                     name="full_name"
@@ -526,7 +526,7 @@ export function DualSignupFlow() {
                     placeholder="Enter your full name"
                     value={formData.full_name}
                     onChange={handleInputChange}
-                    className="pl-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                   />
                 </div>
@@ -534,7 +534,7 @@ export function DualSignupFlow() {
 
               {/* Phone Field */}
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-gray-200">Phone (Optional)</Label>
+                <Label htmlFor="phone" className="text-gray-700">Phone (Optional)</Label>
                 <Input
                   id="phone"
                   name="phone"
@@ -542,17 +542,17 @@ export function DualSignupFlow() {
                   placeholder="Enter your phone number"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                  className="bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                 />
               </div>
               
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-200">
+                <Label htmlFor="email" className="text-gray-700">
                   Email {inviteDetails && <span className="text-gray-500 text-sm font-normal">(from invite)</span>}
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="email"
                     name="email"
@@ -560,10 +560,10 @@ export function DualSignupFlow() {
                     placeholder="Enter your email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`pl-10 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 ${
+                    className={`pl-10 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl ${
                       inviteDetails 
-                        ? 'bg-gray-700/50 cursor-not-allowed opacity-75' 
-                        : 'bg-gray-800/70'
+                        ? 'bg-gray-100 cursor-not-allowed opacity-75' 
+                        : 'bg-white/90'
                     }`}
                     required
                     disabled={!!inviteDetails}
@@ -574,9 +574,9 @@ export function DualSignupFlow() {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-200">Password</Label>
+                <Label htmlFor="password" className="text-gray-700">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="password"
                     name="password"
@@ -584,7 +584,7 @@ export function DualSignupFlow() {
                     placeholder="Create a password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="pl-10 pr-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 pr-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                   />
                   <Button
@@ -595,9 +595,9 @@ export function DualSignupFlow() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-gray-500" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <Eye className="h-4 w-4 text-gray-500" />
                     )}
                   </Button>
                 </div>
@@ -605,7 +605,7 @@ export function DualSignupFlow() {
 
               <Button
                 type="submit"
-                className="w-full bg-white text-gray-900 hover:opacity-90 rounded-full font-semibold"
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
                 disabled={isLoading}
               >
                                   {isLoading ? (
@@ -627,15 +627,15 @@ export function DualSignupFlow() {
                 type="button"
                 variant="ghost"
                 onClick={handleBackToRoleSelection}
-                className="text-gray-400 hover:text-gray-300"
+                className="text-gray-600 hover:text-gray-800"
               >
                 ← Back to role selection
               </Button>
               
               <div className="text-center">
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-600 text-sm">
                   Already have an account?{" "}
-                  <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
+                  <Link href="/login" className="text-orange-600 hover:text-orange-500 font-medium">
                     Sign in
                   </Link>
                 </p>
@@ -648,20 +648,20 @@ export function DualSignupFlow() {
   )
 
   const renderConfirmEmail = () => (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
             <CheckCircle className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-100">Check your email</h1>
-          <p className="text-gray-400 mt-2">We've sent a verification link to</p>
-          <p className="text-blue-400 font-medium">{emailForConfirmation}</p>
+          <h1 className="text-2xl font-bold text-gray-900">Check your email</h1>
+          <p className="text-gray-600 mt-2">We've sent a verification link to</p>
+          <p className="text-orange-600 font-medium">{emailForConfirmation}</p>
         </div>
 
-        <Card className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl rounded-2xl">
           <CardContent className="p-6 space-y-4">
-            <p className="text-gray-300 text-center">
+            <p className="text-gray-700 text-center">
               Click the link in your email to verify your account and complete setup.
             </p>
             
@@ -669,7 +669,7 @@ export function DualSignupFlow() {
               <Button
                 onClick={handleResendEmail}
                 variant="outline"
-                className="w-full border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="w-full border-amber-200 text-gray-700 hover:bg-amber-50 rounded-xl"
               >
                 Resend verification email
               </Button>
@@ -677,7 +677,7 @@ export function DualSignupFlow() {
               <Button
                 onClick={() => router.push('/login')}
                 variant="ghost"
-                className="w-full text-gray-400 hover:text-gray-300"
+                className="w-full text-gray-600 hover:text-gray-800"
               >
                 Back to sign in
               </Button>
