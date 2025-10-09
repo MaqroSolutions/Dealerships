@@ -24,28 +24,30 @@ class PromptBuilder:
         self.agent_config = AgentConfig()
     
     def build_full_prompt(
-        self, 
-        query: str, 
-        context: str = "", 
+        self,
+        query: str,
+        context: str = "",
+        conversation_history: List[Dict[str, str]] = None,
         agent_config: AgentConfig = None
     ) -> str:
         """
-        Build complete prompt with system instructions and user query.
-        
+        Build complete prompt with system instructions, conversation history, and user query.
+
         Args:
-            query: User's message
-            context: Conversation context
+            query: User's current message
+            context: Additional context (vehicle info, slots, etc.)
+            conversation_history: List of previous conversation turns
             agent_config: Agent configuration
-            
+
         Returns:
             Complete prompt string
         """
         if agent_config is None:
             agent_config = self.agent_config
-        
+
         system_prompt = self._build_system_prompt(agent_config)
-        user_prompt = self._build_user_prompt(query, context)
-        
+        user_prompt = self._build_user_prompt(query, context, conversation_history)
+
         return f"{system_prompt}\n\n{user_prompt}"
     
     def _build_system_prompt(self, agent_config: AgentConfig) -> str:
@@ -178,15 +180,67 @@ AGENT: You're set for 9 AM tomorrow.
 CUSTOMER: perfect
 AGENT: Great! I'll make sure the car's ready for you."""
     
-    def _build_user_prompt(self, query: str, context: str = "") -> str:
-        """Build user prompt with query and context."""
-        user_prompt = f"Customer: {query}"
-        
+    def _format_conversation_history(self, conversation_history: List[Dict[str, str]]) -> str:
+        """
+        Format conversation history for prompt.
+
+        Args:
+            conversation_history: List of conversation turns
+
+        Returns:
+            Formatted conversation history string
+        """
+        if not conversation_history:
+            return ""
+
+        # Take last 10 turns for context (balance between context and token usage)
+        recent_turns = conversation_history[-10:]
+
+        formatted_turns = []
+        for turn in recent_turns:
+            # Handle different possible formats of conversation history
+            sender = turn.get('sender', turn.get('role', 'customer'))
+            message = turn.get('message', turn.get('content', turn.get('text', '')))
+
+            # Format based on sender
+            if sender.lower() in ['customer', 'user']:
+                formatted_turns.append(f"CUSTOMER: {message}")
+            elif sender.lower() in ['agent', 'assistant', 'ai']:
+                formatted_turns.append(f"AGENT: {message}")
+            else:
+                # Default to customer if unclear
+                formatted_turns.append(f"CUSTOMER: {message}")
+
+        return "\n".join(formatted_turns)
+
+    def _build_user_prompt(self, query: str, context: str = "", conversation_history: List[Dict[str, str]] = None) -> str:
+        """Build user prompt with query, conversation history, and context."""
+
+        prompt_parts = []
+
+        # Add conversation history if available
+        if conversation_history:
+            formatted_history = self._format_conversation_history(conversation_history)
+            if formatted_history:
+                prompt_parts.append("Recent Conversation History:")
+                prompt_parts.append(formatted_history)
+                prompt_parts.append("")  # Blank line
+
+        # Add current customer message
+        prompt_parts.append(f"CUSTOMER (current message): {query}")
+
+        # Add context (vehicle info, slots, etc.)
         if context:
-            user_prompt += f"\n\nContext: {context}"
-            user_prompt += "\n\nIMPORTANT: Use the context above to understand what the customer has already said. Do not repeat questions or information already provided."
-        
-        return user_prompt
+            prompt_parts.append("")  # Blank line
+            prompt_parts.append("Additional Context:")
+            prompt_parts.append(context)
+
+        # Add critical reminder about context usage
+        if conversation_history or context:
+            prompt_parts.append("")
+            prompt_parts.append("IMPORTANT: Use the conversation history above to maintain context. Do not repeat questions already answered. Reference previous exchanges naturally.")
+
+        return "\n".join(prompt_parts)
     
     def get_few_shot_examples(self) -> List[Dict[str, Any]]:
         """Get few-shot examples for the model."""

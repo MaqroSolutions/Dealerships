@@ -2,13 +2,12 @@
 Enhanced RAG service for intelligent vehicle search and response generation.
 """
 
-import os
+
 import json
 from typing import List, Dict, Any, Callable, Optional, Tuple
 from dataclasses import dataclass
 from loguru import logger
 
-from .config import Config
 from .db_retriever import DatabaseRAGRetriever
 from .prompt_builder import PromptBuilder, AgentConfig
 from .handoff_router import HandoffRouter
@@ -136,9 +135,9 @@ class EnhancedRAGService:
         session,
         dealership_id: str,
         query: str, 
-        conversations: List[Dict], 
+        conversations: list[dict], 
         top_k: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Search vehicles with conversation context."""
         try:
             # Analyze conversation context
@@ -582,7 +581,7 @@ class EnhancedRAGService:
         """Generate response text using PromptBuilder with conversation context."""
         # Get conversation history from context if available
         conversation_history = getattr(context, 'conversation_history', None)
-        
+
         # Customize agent config based on context and dealership name
         agent_config = self._get_agent_config_from_context(context, lead_name, dealership_name)
 
@@ -593,11 +592,12 @@ class EnhancedRAGService:
             for i, vehicle in enumerate(vehicles[:3], 1):
                 vehicle_info += f"{i}. {vehicle.get('year', '')} {vehicle.get('make', '')} {vehicle.get('model', '')} - ${vehicle.get('price', 'N/A')}\n"
             context_string = vehicle_info
-        
-        # Use PromptBuilder for response with context
+
+        # Use PromptBuilder for response with conversation history AND context
         prompt = self.prompt_builder.build_full_prompt(
             query=query,
             context=context_string,
+            conversation_history=conversation_history,  
             agent_config=agent_config
         )
         
