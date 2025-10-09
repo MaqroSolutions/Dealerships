@@ -134,6 +134,28 @@ async def get_dealership_inventory(
     return response_items
 
 
+@router.get("/inventory/count")
+async def get_inventory_count_endpoint(
+    db: AsyncSession = Depends(get_db_session),
+    dealership_id: str = Depends(get_user_dealership_id)
+):
+    """
+    Get the count of active inventory items for the authenticated dealership
+
+    Headers required:
+    - Authorization: Bearer <JWT token>
+
+    Returns:
+        int: Count of active inventory items
+    """
+    try:
+        count = await get_inventory_count(session=db, dealership_id=dealership_id)
+        return count
+    except Exception as e:
+        logger.error(f"Error getting inventory count for dealership {dealership_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error getting inventory count")
+
+
 @router.get("/inventory/{inventory_id}", response_model=InventoryResponse)
 async def get_inventory_item(
     inventory_id: str,
@@ -142,7 +164,7 @@ async def get_inventory_item(
 ):
     """
     Get specific inventory item by UUID (Supabase compatible)
-    
+
     Headers required:
     - Authorization: Bearer <JWT token>
     """
@@ -245,21 +267,21 @@ async def delete_inventory_item(
 ):
     """
     Delete inventory item (Supabase compatible)
-    
+
     Headers required:
     - Authorization: Bearer <JWT token>
     """
     inventory = await get_inventory_by_id(session=db, inventory_id=inventory_id)
     if not inventory:
         raise HTTPException(status_code=404, detail="Inventory item not found")
-    
+
     # Verify the inventory belongs to the authenticated dealership
     if str(inventory.dealership_id) != dealership_id:
         raise HTTPException(status_code=403, detail="Access denied")
-    
+
     await db.delete(inventory)
     await db.commit()
-        
+
     return {"message": "Inventory item deleted successfully"}
 
 
@@ -329,16 +351,3 @@ async def upload_inventory_file(
     except Exception as e:
         logger.error(f"Database error during bulk insert: {e}")
         raise HTTPException(status_code=500, detail="Failed to save inventory to database")
-
-
-@router.get("/inventory/count", response_model=int)
-async def get_inventory_count_for_dealership(
-    db: AsyncSession = Depends(get_db_session),
-    dealership_id: str = Depends(get_user_dealership_id)
-):
-    """
-    Get the total count of inventory items for the authenticated dealership.
-    """
-    count = await get_inventory_count(session=db, dealership_id=dealership_id)
-    return count
-    

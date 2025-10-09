@@ -97,14 +97,20 @@ export class RoleBasedAuthAPI {
       }
 
       console.log('RoleBasedAuthAPI: Making API call to /api/user-profiles/me')
-      // Call the Next.js API route instead of backend API
+      // Call the Next.js API route instead of backend API with timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      
       const response = await fetch('/api/user-profiles/me', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include'
+        credentials: 'include',
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
       
       console.log('RoleBasedAuthAPI: API response status:', response.status)
       
@@ -139,8 +145,12 @@ export class RoleBasedAuthAPI {
       
       console.log('RoleBasedAuthAPI: Processed user info:', userInfo)
       return userInfo
-    } catch (error) {
-      console.error('RoleBasedAuthAPI: Error getting current user:', error)
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error('RoleBasedAuthAPI: Request timeout after 5 seconds')
+      } else {
+        console.error('RoleBasedAuthAPI: Error getting current user:', error)
+      }
       return null
     }
   }

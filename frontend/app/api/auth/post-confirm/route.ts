@@ -111,7 +111,8 @@ async function handleDealershipSignup(
       .rpc('handle_initial_setup', {
         p_user_id: user.id,
         p_dealership_name: formData.dealership_name || 'My Dealership',
-        p_full_name: formData.full_name
+        p_full_name: formData.full_name,
+        p_location: formData.location || null
       })
 
     if (functionError) {

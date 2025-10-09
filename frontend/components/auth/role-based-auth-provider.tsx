@@ -91,7 +91,7 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
         const isPublicRoute = publicRoutes.includes(pathname) || pathname.includes("/auth/")
         
         if (session?.user) {
-          // Always get fresh user info to ensure we have the latest role
+          // Get user info but don't redirect here - let onAuthStateChange handle it
           try {
             console.log('RoleBasedAuthProvider: Getting user info for authenticated user...', session.user.id)
             const userInfoResult = await RoleBasedAuthAPI.getCurrentUser()
@@ -100,46 +100,15 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
             if (userInfoResult) {
               setUserInfo(userInfoResult)
               authState.setUser(userInfoResult)
-              
-              // Now handle routing with the fresh user info
-              const userRole = userInfoResult.role;
-              console.log('RoleBasedAuthProvider: User role detected:', userRole, 'on path:', pathname, 'isPublicRoute:', isPublicRoute);
-              
-              // Role-based routing logic - always check for redirects
-              if (userRole === 'owner' || userRole === 'manager') {
-                // Admin users should go to admin dashboard
-                if (pathname === "/" || pathname.startsWith("/app/")) {
-                  console.log('RoleBasedAuthProvider: Redirecting admin user to admin dashboard');
-                  router.push("/admin/dashboard");
-                  return;
-                }
-              } else if (userRole === 'salesperson') {
-                // Salesperson users should go to leads page  
-                if (pathname === "/" || pathname.startsWith("/admin/")) {
-                  console.log('RoleBasedAuthProvider: Redirecting salesperson to leads dashboard');
-                  router.push("/leads");
-                  return;
-                }
-              }
             } else {
               console.log('RoleBasedAuthProvider: No user profile found, user may need to complete setup')
               setUserInfo(null)
               authState.setUser(null)
-              // User doesn't have a profile, redirect to setup
-              if (pathname !== "/setup-complete" && !isPublicRoute) {
-                setTimeout(() => router.push("/setup-complete"), 100);
-                return;
-              }
             }
           } catch (error) {
             console.error('RoleBasedAuthProvider: Error getting user info:', error)
             setUserInfo(null)
             authState.setUser(null)
-            // If there's an error getting profile, redirect to setup
-            if (pathname !== "/setup-complete" && !isPublicRoute) {
-              setTimeout(() => router.push("/setup-complete"), 100);
-              return;
-            }
           }
         } else {
           setUserInfo(null)
@@ -176,28 +145,27 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
         setUser(session?.user || null)
         
         if (event === "SIGNED_IN" && session?.user) {
-          // Check for pending signup data first
-          const pendingSignup = localStorage.getItem('pendingSignup')
-          if (pendingSignup) {
-            // User just signed up, redirect to setup-complete
-            router.push("/setup-complete")
-            setLoading(false)
-            return
-          }
+          // Clear any stale signup data
+          localStorage.removeItem('pendingSignup')
           
-          // Get user info with role
-          const userInfo = await RoleBasedAuthAPI.getCurrentUser()
-          setUserInfo(userInfo)
-          authState.setUser(userInfo)
-          
-          // Handle role-based routing after sign in
-          if (userInfo) {
-            const redirectPath = RouteProtection.getRedirectPath(userInfo)
-            if (pathname === "/login" || pathname === "/signup") {
+          try {
+            // Get user info with role
+            const userInfo = await RoleBasedAuthAPI.getCurrentUser()
+            setUserInfo(userInfo)
+            authState.setUser(userInfo)
+            
+            // Handle role-based routing after sign in
+            if (userInfo) {
+              const redirectPath = RouteProtection.getRedirectPath(userInfo)
+              console.log('RoleBasedAuthProvider: Redirecting to:', redirectPath)
               router.push(redirectPath)
+            } else {
+              // No profile found, redirect to setup-complete
+              console.log('RoleBasedAuthProvider: No profile found, redirecting to setup')
+              router.push("/setup-complete")
             }
-          } else {
-            // No profile found, redirect to setup-complete
+          } catch (error) {
+            console.error('RoleBasedAuthProvider: Error handling sign in:', error)
             router.push("/setup-complete")
           }
         } else if (event === "SIGNED_OUT") {

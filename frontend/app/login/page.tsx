@@ -30,6 +30,9 @@ export default function LoginPage() {
     setIsLoading(true)
     setError(null)
 
+    // Clear any stale signup data that might block redirects
+    localStorage.removeItem('pendingSignup')
+
     try {
       // Use Supabase auth
       const { error } = await supabase.auth.signInWithPassword({
@@ -39,14 +42,13 @@ export default function LoginPage() {
 
       if (error) throw error
       
-      // Show success message and redirect
+      // Show success message - let the auth provider handle redirect
       toast.success('Welcome back!')
-      router.push('/')
+      // Don't redirect here - the onAuthStateChange listener will handle it
     } catch (err: any) {
       setError(err.message || "Failed to sign in. Please check your credentials.")
       console.error("Login error:", err)
-    } finally {
-      setIsLoading(false)
+      setIsLoading(false) // Only set loading false on error
     }
   }
 

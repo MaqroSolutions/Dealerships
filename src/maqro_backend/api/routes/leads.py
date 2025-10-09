@@ -192,6 +192,17 @@ async def get_all_leads(
     ]
 
 
+@router.get("/leads/stats")
+async def get_stats(
+    db: AsyncSession = Depends(get_db_session),
+    dealership_id: str = Depends(get_user_dealership_id)
+):
+    """
+    Get lead statistics for the dealership
+    """
+    return await get_lead_stats(session=db, dealership_id=dealership_id)
+
+
 @router.get("/leads/{lead_id}", response_model=LeadResponse)
 async def get_lead(
     lead_id: str, 
@@ -293,14 +304,3 @@ async def delete_lead(
     await db.commit()
     
     return {"message": "Lead deleted successfully"}
-
-
-@router.get("/leads/stats")
-async def get_stats(
-    db: AsyncSession = Depends(get_db_session),
-    dealership_id: str = Depends(get_user_dealership_id)
-):
-    """
-    Get lead statistics for the dealership
-    """
-    return await get_lead_stats(session=db, dealership_id=dealership_id)
