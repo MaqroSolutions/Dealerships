@@ -65,17 +65,17 @@ export function PricingSection() {
 
   return (
     <section id="pricing" className="relative py-20 sm:py-28 px-4 sm:px-6 lg:px-8">
-      <div className="absolute inset-0 pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]">
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-64 w-[80%] rounded-full bg-purple-500/10 blur-3xl" />
+      <div className="absolute inset-0 pointer-events-none [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)]">
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-64 w-[80%] rounded-full bg-amber-500/10 blur-3xl" />
       </div>
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 border border-amber-200 text-amber-800 text-sm font-medium mb-6 shadow-sm">
             <Star className="w-4 h-4" />
             Simple pricing that scales
           </div>
-          <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-[-0.02em] mb-4 font-['Geist']">Pricing</h2>
-          <p className="text-xl sm:text-2xl text-gray-300/90 max-w-2xl mx-auto font-['Geist'] font-light">Simple plans that scale with your dealership.</p>
+          <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 tracking-[-0.02em] mb-4 font-['Geist']">Pricing</h2>
+          <p className="text-xl sm:text-2xl text-gray-700 max-w-2xl mx-auto font-['Geist'] font-light">Simple plans that scale with your dealership.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
@@ -84,23 +84,23 @@ export function PricingSection() {
               key={idx}
               className={`group relative rounded-2xl p-6 sm:p-8 border transition-all flex flex-col ${
                 tier.highlight
-                  ? "bg-white/[0.05] border-white/20 shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]"
-                  : "bg-white/[0.03] border-white/10 hover:shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+                  ? "bg-white/90 border-orange-300 shadow-xl hover:shadow-2xl"
+                  : "bg-white/80 border-amber-200 hover:shadow-lg"
               }`}
             >
               {tier.highlight && (
-                <div className="absolute -top-3 right-6 text-xs px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white/90 font-medium tracking-wide uppercase">Most Value</div>
+                <div className="absolute -top-3 right-6 text-xs px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-medium tracking-wide uppercase shadow-lg">Most Value</div>
               )}
-              <h3 className="text-2xl font-bold text-white tracking-tight font-['Geist']">{tier.name}</h3>
+              <h3 className="text-2xl font-bold text-gray-900 tracking-tight font-['Geist']">{tier.name}</h3>
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="text-4xl sm:text-5xl font-bold text-white tracking-tight font-['Geist']">{tier.price}</span>
-                {tier.cadence && <span className="text-gray-400 text-sm font-medium font-['Geist']">{tier.cadence}</span>}
+                <span className="text-4xl sm:text-5xl font-bold text-gray-900 tracking-tight font-['Geist']">{tier.price}</span>
+                {tier.cadence && <span className="text-gray-600 text-sm font-medium font-['Geist']">{tier.cadence}</span>}
               </div>
-              <p className="mt-3 text-gray-300/90 text-base font-['Geist'] font-medium leading-relaxed">{tier.description}</p>
+              <p className="mt-3 text-gray-700 text-base font-['Geist'] font-medium leading-relaxed">{tier.description}</p>
               <ul className="mt-6 space-y-3 flex-1">
                 {tier.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-3 text-gray-300/90 text-sm font-['Geist'] leading-relaxed">
-                    <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <li key={i} className="flex items-start gap-3 text-gray-700 text-sm font-['Geist'] leading-relaxed">
+                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="font-medium">{f}</span>
                   </li>
                 ))}
@@ -109,10 +109,10 @@ export function PricingSection() {
               <Link
                 href={tier.cta.href}
                 onClick={(e) => handleDemoClick(e, tier.cta.isDemo || false)}
-                className={`mt-auto inline-flex w-full items-center justify-center rounded-full px-6 py-3 font-bold text-base transition-all font-['Geist'] ${
+                className={`mt-auto inline-flex w-full items-center justify-center rounded-xl px-6 py-3 font-bold text-base transition-all font-['Geist'] ${
                   tier.highlight
-                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:shadow-[0_8px_30px_rgba(59,130,246,0.4)] hover:-translate-y-0.5 transition-all duration-300"
-                    : "border border-white/15 text-white/90 hover:bg-white/5 hover:border-white/25 hover:text-white transition-all duration-200"
+                    ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+                    : "border border-amber-200 text-gray-700 hover:bg-amber-50 hover:border-orange-300 hover:text-gray-900 transition-all duration-200"
                 }`}
               >
                 {tier.cta.label}
@@ -133,14 +133,14 @@ export function PricingSection() {
             <X className="w-6 h-6" />
           </button>
           
-          <div className="relative w-full max-w-5xl h-[600px] bg-gray-900 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+          <div className="relative w-full max-w-5xl h-[600px] bg-white rounded-2xl border border-amber-200 shadow-2xl overflow-hidden">
 
             {/* Loading State */}
             {isCalendarLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-[#171717] z-10">
+              <div className="absolute inset-0 flex items-center justify-center bg-amber-50 z-10">
                 <div className="text-center">
                   <PremiumSpinner />
-                  <p className="text-white text-sm font-medium tracking-wide font-['Geist']">Loading calendar...</p>
+                  <p className="text-gray-700 text-sm font-medium tracking-wide font-['Geist']">Loading calendar...</p>
                 </div>
               </div>
             )}

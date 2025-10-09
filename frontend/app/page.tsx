@@ -35,9 +35,11 @@ function DashboardContent() {
 function LandingContent() {
   return (
     <LandingNav>
-      <Hero />
-      <FeatureList />
-      <PricingSection />
+      <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100">
+        <Hero />
+        <FeatureList />
+        <PricingSection />
+      </div>
       <Footer />
     </LandingNav>
   )
@@ -49,8 +51,8 @@ export default function HomePage() {
   // Always show loading for authenticated users on root page while they get redirected
   if (user || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="text-gray-400">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100">
+        <div className="text-gray-700">Loading...</div>
       </div>
     )
   }

@@ -13,7 +13,7 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   // Show loading state while checking authentication
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100">
         <PremiumSpinner size="xl" text="Loading..." />
       </div>
     )

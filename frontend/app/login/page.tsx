@@ -58,26 +58,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl flex items-center justify-center mb-4 shadow-lg">
             <span className="text-xl font-bold text-white">M</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-100">Welcome back</h1>
-          <p className="text-gray-400 mt-2">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+          <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
 
-        <Card className="bg-gray-900/70 border-gray-800 backdrop-blur-sm shadow-xl">
+        <Card className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl rounded-2xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-gray-100">Sign in</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-2xl text-gray-900">Sign in</CardTitle>
+            <CardDescription className="text-gray-600">
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
-              <div className="bg-red-900/30 border border-red-800 text-red-200 p-3 rounded-md text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm">
                 {error}
               </div>
             )}
@@ -85,11 +85,11 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-200">
+                <Label htmlFor="email" className="text-gray-700">
                   Email
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="email"
                     name="email"
@@ -97,7 +97,7 @@ export default function LoginPage() {
                     placeholder="Enter your email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="pl-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                   />
                 </div>
@@ -105,11 +105,11 @@ export default function LoginPage() {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-200">
+                <Label htmlFor="password" className="text-gray-700">
                   Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     id="password"
                     name="password"
@@ -117,7 +117,7 @@ export default function LoginPage() {
                     placeholder="Enter your password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="pl-10 pr-10 bg-gray-800/70 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 pr-10 bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-orange-400 focus:ring-orange-200 rounded-xl"
                     required
                   />
                   <Button
@@ -128,9 +128,9 @@ export default function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-gray-500" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <Eye className="h-4 w-4 text-gray-500" />
                     )}
                   </Button>
                 </div>
@@ -138,7 +138,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-white text-gray-900 hover:opacity-90 rounded-full font-semibold"
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
                 disabled={isLoading}
               >
                                   {isLoading ? (
@@ -156,13 +156,13 @@ export default function LoginPage() {
             </form>
 
             <div className="text-center space-y-4">
-              <Link href="/forgot-password" className="text-blue-400 hover:text-blue-300 text-sm">
+              <Link href="/forgot-password" className="text-orange-600 hover:text-orange-500 text-sm">
                 Forgot your password?
               </Link>
-              <Separator className="bg-gray-800" />
-              <p className="text-gray-400 text-sm">
+              <Separator className="bg-amber-200" />
+              <p className="text-gray-600 text-sm">
                 Don't have an account?{" "}
-                <Link href="/signup" className="text-blue-400 hover:text-blue-300 font-medium">
+                <Link href="/signup" className="text-orange-600 hover:text-orange-500 font-medium">
                   Sign up
                 </Link>
               </p>
