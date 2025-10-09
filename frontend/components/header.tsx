@@ -92,7 +92,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="text-gray-400 hover:text-gray-100 hover:bg-gray-800/50 animate-float transition-all duration-300"
+            className="text-gray-400 hover:text-gray-100 hover:bg-gray-800/50 transition-all duration-300"
           >
             <Bell className="w-5 h-5" />
           </Button>
@@ -102,7 +102,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-gray-400 hover:text-gray-100 hover:bg-gray-800/50 animate-float transition-all duration-300"
+                className="text-gray-400 hover:text-gray-100 hover:bg-gray-800/50 transition-all duration-300"
               >
                 <User className="w-5 h-5" />
               </Button>

@@ -284,7 +284,7 @@ export class RoleBasedAuthAPI {
   static async removeUserFromDealership(userId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const api = await getAuthenticatedApi()
-      await api.delete(`/roles/users/${userId}`)
+      await api.delete(`/user-profiles/${userId}`)
       return { success: true }
     } catch (error: any) {
       return { success: false, error: error.message }

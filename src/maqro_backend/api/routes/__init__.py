@@ -1,5 +1,7 @@
 from fastapi import APIRouter
-from . import health, leads, conversation, ai, inventory, dealerships, user_profiles, vonage, telnyx, settings, roles, invites, stripe_webhook, billing
+from . import health, leads, conversation, ai, inventory, dealerships, user_profiles, vonage, telnyx, settings, invites, stripe_webhook, billing
+# Commented out: roles route uses legacy RolesService that expects non-existent 'roles' table
+# from . import roles
 
 api_router = APIRouter()
 
@@ -12,7 +14,8 @@ api_router.include_router(ai.router, tags=["ai"])
 api_router.include_router(dealerships.router, tags=["dealerships"])
 api_router.include_router(user_profiles.router, tags=["user-profiles"])
 api_router.include_router(settings.router, tags=["settings"])
-api_router.include_router(roles.router, tags=["roles"])
+# Commented out: roles route uses legacy RolesService that expects non-existent 'roles' table
+# api_router.include_router(roles.router, tags=["roles"])
 api_router.include_router(invites.router, tags=["invites"])
 api_router.include_router(billing.router, tags=["billing"])
 api_router.include_router(vonage.router, prefix="/vonage", tags=["vonage"])
