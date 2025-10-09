@@ -17,7 +17,7 @@ export function LandingNav({ children }: { children?: React.ReactNode }) {
               {/* Logo */}
               <div className="flex items-center">
                 <Link href="/" className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold text-sm">M</span>
                   </div>
                   <span className="text-white font-semibold text-lg font-['Geist']">Maqro</span>

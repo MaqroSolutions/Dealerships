@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart3, MessageSquare, Settings, LayoutTemplateIcon as Template, Home, Upload, Car, Users, Building2, CreditCard } from 'lucide-react'
+import { MessageSquare, Settings, LayoutTemplateIcon as Template, Home, Upload, Car, Users, Building2, CreditCard } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -88,7 +88,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-6 bg-[#f2f1ef]" style={{ backgroundColor: '#f2f1ef' }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center shadow-lg">
-            <BarChart3 className="w-6 h-6 text-white" />
+            <span className="text-white font-bold text-xl">M</span>
           </div>
           <span className="text-xl font-bold text-black">Maqro</span>
         </div>
