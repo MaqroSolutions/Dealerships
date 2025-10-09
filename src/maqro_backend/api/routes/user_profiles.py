@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id, require_dealership_manager
+from maqro_backend.api.deps import get_db_session, get_current_user_id, get_user_dealership_id, require_dealership_manager, require_dealership_owner
 from maqro_backend.schemas.user_profile import (
     UserProfileCreate, 
     UserProfileResponse, 
@@ -21,6 +21,9 @@ from maqro_backend.crud import (
     get_user_profiles_by_dealership,
     update_user_profile
 )
+from maqro_backend.db.models import UserProfile
+from sqlalchemy import delete
+import uuid
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -189,16 +192,17 @@ async def get_dealership_user_profiles(
 ):
     """
     Get all user profiles for the current dealership
-    
+
     Requires manager or owner role.
     Returns all user profiles in the dealership.
     """
-    # Simple permission check: get current user's profile and check role
-    current_user_profile = await get_user_profile_by_user_id(session=db, user_id=user_id)
+    # Optimization: Fetch all profiles in one query, then check permission from result
+    profiles = await get_user_profiles_by_dealership(session=db, dealership_id=dealership_id)
+
+    # Check if current user has manager/owner role (from the fetched profiles)
+    current_user_profile = next((p for p in profiles if str(p.user_id) == user_id), None)
     if not current_user_profile or current_user_profile.role not in ['owner', 'manager']:
         raise HTTPException(status_code=403, detail="Insufficient permissions. Owner or manager role required.")
-    
-    profiles = await get_user_profiles_by_dealership(session=db, dealership_id=dealership_id)
     
     return [
         UserProfileResponse(
@@ -213,3 +217,56 @@ async def get_dealership_user_profiles(
             updated_at=profile.updated_at
         ) for profile in profiles
     ]
+
+
+@router.delete("/user-profiles/{target_user_id}")
+async def remove_user_from_dealership(
+    target_user_id: str,
+    dealership_id: str = Depends(get_user_dealership_id),
+    owner_user_id: str = Depends(require_dealership_owner),  # Only owners can remove users
+    db: AsyncSession = Depends(get_db_session)
+):
+    """
+    Remove a user from the current dealership
+
+    Requires owner role.
+    This deletes the user's profile from the dealership.
+    Replaces the legacy /roles/users/{user_id} DELETE endpoint.
+    """
+    try:
+        # Don't allow owners to remove themselves
+        if target_user_id == owner_user_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot remove your own profile. Transfer ownership first."
+            )
+
+        # Delete the user profile
+        target_uuid = uuid.UUID(target_user_id)
+        dealership_uuid = uuid.UUID(dealership_id)
+
+        result = await db.execute(
+            delete(UserProfile).where(
+                UserProfile.user_id == target_uuid,
+                UserProfile.dealership_id == dealership_uuid
+            )
+        )
+        await db.commit()
+
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="User profile not found in this dealership")
+
+        logger.info(f"User {target_user_id} removed from dealership {dealership_id} by {owner_user_id}")
+
+        return {
+            "message": "User removed from dealership",
+            "user_id": target_user_id,
+            "dealership_id": dealership_id
+        }
+    except HTTPException:
+        raise
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID or dealership ID format")
+    except Exception as e:
+        logger.error(f"Error removing user {target_user_id} from dealership: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error removing user from dealership")

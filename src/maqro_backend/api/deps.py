@@ -7,7 +7,6 @@ from maqro_rag import EnhancedRAGService
 from ..db.session import get_db
 from ..core.lifespan import get_enhanced_rag_service
 from ..db.models import UserProfile
-from ..services.roles_service import RolesService
 from ..services.settings_service import SettingsService
 from .auth import get_current_user_id, get_optional_user_id
 import logging
@@ -122,26 +121,44 @@ async def require_dealership_manager(
 ) -> str:
     """
     Dependency that requires manager or owner role for dealership operations.
-    
+    Uses the simple role system from user_profiles.role column.
+
     Returns:
         str: User ID if user has sufficient permissions
-        
+
     Raises:
         HTTPException: If user doesn't have manager+ permissions
     """
-    has_permission = await RolesService.user_can_manage_settings(
-        db, user_id, dealership_id
-    )
-    
-    if not has_permission:
-        logger.warning(f"❌ User {user_id} denied manager access to dealership {dealership_id}")
-        raise HTTPException(
-            status_code=403,
-            detail="Insufficient permissions. Manager or owner role required."
+    # Query user's role from user_profiles table
+    try:
+        user_uuid = uuid.UUID(user_id)
+        dealership_uuid = uuid.UUID(dealership_id)
+
+        result = await db.execute(
+            text("SELECT role FROM user_profiles WHERE user_id = :user_id AND dealership_id = :dealership_id"),
+            {"user_id": user_uuid, "dealership_id": dealership_uuid}
         )
-    
-    logger.info(f"✅ User {user_id} granted manager access to dealership {dealership_id}")
-    return user_id
+        row = result.fetchone()
+        user_role = row[0] if row else None
+
+        if not user_role or user_role.lower() not in ['owner', 'manager']:
+            logger.warning(f"❌ User {user_id} denied manager access (role: {user_role})")
+            raise HTTPException(
+                status_code=403,
+                detail="Insufficient permissions. Manager or owner role required."
+            )
+
+        logger.info(f"✅ User {user_id} granted manager access (role: {user_role})")
+        return user_id
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error checking permissions for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error checking user permissions"
+        )
 
 
 async def require_dealership_owner(
@@ -151,26 +168,44 @@ async def require_dealership_owner(
 ) -> str:
     """
     Dependency that requires owner role for sensitive operations.
-    
+    Uses the simple role system from user_profiles.role column.
+
     Returns:
         str: User ID if user has owner permissions
-        
+
     Raises:
         HTTPException: If user doesn't have owner permissions
     """
-    has_permission = await RolesService.user_can_assign_roles(
-        db, user_id, dealership_id
-    )
-    
-    if not has_permission:
-        logger.warning(f"❌ User {user_id} denied owner access to dealership {dealership_id}")
-        raise HTTPException(
-            status_code=403,
-            detail="Insufficient permissions. Owner role required."
+    # Query user's role from user_profiles table
+    try:
+        user_uuid = uuid.UUID(user_id)
+        dealership_uuid = uuid.UUID(dealership_id)
+
+        result = await db.execute(
+            text("SELECT role FROM user_profiles WHERE user_id = :user_id AND dealership_id = :dealership_id"),
+            {"user_id": user_uuid, "dealership_id": dealership_uuid}
         )
-    
-    logger.info(f"✅ User {user_id} granted owner access to dealership {dealership_id}")
-    return user_id
+        row = result.fetchone()
+        user_role = row[0] if row else None
+
+        if not user_role or user_role.lower() != 'owner':
+            logger.warning(f"❌ User {user_id} denied owner access (role: {user_role})")
+            raise HTTPException(
+                status_code=403,
+                detail="Insufficient permissions. Owner role required."
+            )
+
+        logger.info(f"✅ User {user_id} granted owner access (role: {user_role})")
+        return user_id
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error checking permissions for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error checking user permissions"
+        )
 
 
 async def get_user_role_info(
@@ -180,31 +215,47 @@ async def get_user_role_info(
 ) -> tuple[str, str, str]:
     """
     Get user role information for the current dealership.
-    
+    Uses the simple role system from user_profiles.role column.
+
     Returns:
         tuple[str, str, str]: (user_id, dealership_id, role_name)
-        
+
     Raises:
         HTTPException: If user has no role in the dealership
     """
-    role_name = await RolesService.get_user_role_name(db, user_id, dealership_id)
-    
-    if not role_name:
-        logger.error(f"❌ User {user_id} has no role in dealership {dealership_id}")
-        raise HTTPException(
-            status_code=403,
-            detail="User has no role assigned in this dealership"
+    # Query user's role from user_profiles table
+    try:
+        user_uuid = uuid.UUID(user_id)
+        dealership_uuid = uuid.UUID(dealership_id)
+
+        result = await db.execute(
+            text("SELECT role FROM user_profiles WHERE user_id = :user_id AND dealership_id = :dealership_id"),
+            {"user_id": user_uuid, "dealership_id": dealership_uuid}
         )
-    
-    return user_id, dealership_id, role_name
+        row = result.fetchone()
+        role_name = row[0] if row else None
+
+        if not role_name:
+            logger.error(f"❌ User {user_id} has no role in dealership {dealership_id}")
+            raise HTTPException(
+                status_code=403,
+                detail="User has no role assigned in this dealership"
+            )
+
+        logger.info(f"✅ Retrieved role info for user {user_id}: {role_name}")
+        return user_id, dealership_id, role_name
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting role info for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error retrieving user role information"
+        )
 
 
 # Service dependencies
 async def get_settings_service() -> SettingsService:
     """Dependency to get settings service instance"""
     return SettingsService()
-
-
-async def get_roles_service() -> RolesService:
-    """Dependency to get roles service instance"""
-    return RolesService()
