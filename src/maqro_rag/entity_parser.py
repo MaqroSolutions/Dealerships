@@ -33,6 +33,16 @@ class VehicleQuery:
             self.budget_max, self.body_type
         ])
 
+    def get_signal_count(self) -> int:
+        """Count how many search criteria the customer provided."""
+        return sum([
+            bool(self.make),
+            bool(self.model),
+            bool(self.body_type),
+            bool(self.budget_max),
+            bool(self.year_min or self.year_max)
+        ])
+
 
 class EntityParser:
     """Parser for extracting vehicle and customer entities from text."""

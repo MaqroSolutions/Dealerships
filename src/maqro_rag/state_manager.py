@@ -118,10 +118,11 @@ class ConversationStateManager:
         return StateSnapshot(self._state, "Handoff state")
 
     def _has_min_constraints(self, signals: Dict[str, Any]) -> bool:
+        """Move to NARROWING if customer provided ANY constraint."""
         return bool(
-            signals.get("has_specific_model") or (
-                signals.get("has_vehicle_type") and signals.get("has_budget")
-            )
+            signals.get("has_specific_model") or
+            signals.get("has_vehicle_type") or
+            signals.get("has_budget")
         )
 
     def _is_recommendation_ready(self, signals: Dict[str, Any]) -> bool:

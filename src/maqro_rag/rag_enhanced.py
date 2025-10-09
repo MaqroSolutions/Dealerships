@@ -146,18 +146,45 @@ class EnhancedRAGService:
             # Derive state from signals and early-stage heuristics
             state = self._infer_state(conversations, query)
             
-            # Gate retrieval: only search when the user provided specifics
+            # Gate retrieval: require 2+ signals or specific model
             vehicle_query = self.entity_parser.parse_message(query)
-            has_specific_signals = any([
-                vehicle_query.has_strong_signals,
-                bool(context.budget_range),
-                bool(context.vehicle_type)
-            ])
-            # Also obey state machine: do not retrieve in early discovery
-            if state in {ConversationState.GREETING, ConversationState.DISCOVERY}:
+
+            # Never retrieve in greeting
+            if state == ConversationState.GREETING:
+                logger.debug("Blocking retrieval: GREETING state")
                 return []
-            if not has_specific_signals:
-                # Not enough specifics yet — stay in discovery; let the prompt ask clarifiers
+
+            # Count signals from query
+            signal_count = vehicle_query.get_signal_count()
+
+            # Add signals from conversation context (if not already in query)
+            if context.budget_range and not vehicle_query.budget_max:
+                signal_count += 1
+            if context.vehicle_type and not vehicle_query.body_type:
+                signal_count += 1
+
+            # Check for specific model mention (e.g., "Honda Civic")
+            has_specific_model = bool(vehicle_query.model)
+
+            # Retrieval decision based on state
+            if state == ConversationState.DISCOVERY:
+                # Need specific model OR 2+ signals to retrieve
+                if has_specific_model or signal_count >= 2:
+                    logger.info(f"Allowing retrieval in DISCOVERY: model={has_specific_model}, signals={signal_count}")
+                else:
+                    logger.debug(f"Blocking retrieval in DISCOVERY: only {signal_count} signal(s), need 2+")
+                    return []
+
+            elif state in {ConversationState.NARROWING, ConversationState.RECOMMENDATION}:
+                # In later states, need at least 1 signal
+                if signal_count >= 1 or has_specific_model:
+                    logger.info(f"Allowing retrieval in {state.name}: signals={signal_count}")
+                else:
+                    logger.debug(f"Blocking retrieval in {state.name}: no signals")
+                    return []
+            else:
+                # Other states (SCHEDULE, HANDOFF) - no retrieval
+                logger.debug(f"Blocking retrieval: {state.name} state")
                 return []
             
             # Generate search queries based on context
