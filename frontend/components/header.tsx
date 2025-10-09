@@ -114,7 +114,10 @@ export function Header() {
                 <User className="w-5 h-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 mr-2 bg-white/95 backdrop-blur-sm border-amber-200 text-black shadow-lg rounded-xl">
+            <DropdownMenuContent
+              align="end"
+              className="w-56 bg-white/95 backdrop-blur-sm border-amber-200 text-black shadow-lg rounded-xl"
+            >
               <DropdownMenuLabel className="text-gray-700">
                 {loading ? 'Loading...' : user?.email || 'My Account'}
               </DropdownMenuLabel>
@@ -124,7 +127,7 @@ export function Header() {
                   Settings
                 </DropdownMenuItem>
               </Link>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="cursor-pointer hover:bg-red-50 text-red-600"
                 onClick={() => signOut()}
               >
