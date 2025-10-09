@@ -150,13 +150,13 @@ export function ReplyTimingSettings({ dealershipId, onSave }: ReplyTimingSetting
   }
 
   return (
-    <Card className="bg-gray-900/50 border-gray-800">
+    <Card className="bg-white/90 backdrop-blur-sm border-amber-200 rounded-2xl shadow-md">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-gray-100">
-          <Clock className="h-5 w-5" />
+        <CardTitle className="flex items-center gap-2 text-black">
+          <Clock className="h-5 w-5 text-gray-500" />
           Reply Timing Settings
         </CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardDescription className="text-gray-700">
           Configure how quickly the AI responds to customer messages.
         </CardDescription>
       </CardHeader>
@@ -165,8 +165,8 @@ export function ReplyTimingSettings({ dealershipId, onSave }: ReplyTimingSetting
         {/* Temporarily hide load error UI */}
         
         {success && (
-          <Alert className="bg-green-900/30 border-green-900/40">
-            <AlertDescription className="text-green-200">Reply timing settings saved successfully.</AlertDescription>
+          <Alert className="bg-green-50 border-green-200">
+            <AlertDescription className="text-green-700">Reply timing settings saved successfully.</AlertDescription>
           </Alert>
         )}
 
@@ -193,8 +193,8 @@ export function ReplyTimingSettings({ dealershipId, onSave }: ReplyTimingSetting
         )}
 
         {/* Info Box */}
-        <Alert>
-          <AlertDescription>
+        <Alert className="bg-amber-50 border-amber-200">
+          <AlertDescription className="text-gray-700">
             <strong>Smart Reply Rules:</strong>
             <ul className="mt-2 space-y-1 text-sm">
               <li>• Transactional queries (hours, inventory, pricing) always get instant replies</li>
@@ -207,7 +207,7 @@ export function ReplyTimingSettings({ dealershipId, onSave }: ReplyTimingSetting
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl">
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -243,12 +243,12 @@ const ReplyModeSelector = ({
   onChange: (value: string) => void; 
 }) => (
   <div className="space-y-3">
-    <Label htmlFor="reply-mode" className="text-gray-300">Reply timing mode</Label>
+    <Label htmlFor="reply-mode" className="text-gray-700 font-medium">Reply timing mode</Label>
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100 justify-start">
+      <SelectTrigger className="bg-white/90 border-gray-300 text-black justify-start rounded-xl focus:border-amber-400 focus:ring-amber-200">
         <SelectValue placeholder="Select reply timing mode" className="text-left" />
       </SelectTrigger>
-      <SelectContent className="bg-gray-900 border-gray-800 text-gray-100">
+      <SelectContent className="bg-white/95 backdrop-blur-sm border-amber-200 text-black rounded-xl">
         {REPLY_TIMING_MODES.map((mode) => (
           <SelectItem key={mode.value} value={mode.value}>
             <div className="flex items-center gap-2">
@@ -256,8 +256,8 @@ const ReplyModeSelector = ({
               {mode.value === 'custom_delay' && <Clock className="h-4 w-4" />}
               {mode.value === 'business_hours' && <Building className="h-4 w-4" />}
               <div>
-                <div className="font-medium">{mode.label}</div>
-                <div className="text-sm text-gray-400">{mode.description}</div>
+                <div className="font-medium text-gray-900">{mode.label}</div>
+                <div className="text-sm text-gray-600">{mode.description}</div>
               </div>
             </div>
           </SelectItem>
@@ -275,7 +275,7 @@ const CustomDelaySettings = ({
   onChange: (field: keyof ReplyTimingSettings, value: string) => void; 
 }) => (
   <div className="space-y-3">
-    <Label htmlFor="custom-delay" className="text-gray-300">Custom delay (seconds)</Label>
+    <Label htmlFor="custom-delay" className="text-gray-700 font-medium">Custom delay (seconds)</Label>
     <Input
       id="custom-delay"
       type="number"
@@ -284,9 +284,9 @@ const CustomDelaySettings = ({
       value={settings.reply_delay_seconds}
       onChange={(e) => onChange('reply_delay_seconds', e.target.value)}
       placeholder="30"
-      className="bg-gray-800 border-gray-700 text-gray-100"
+      className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
     />
-    <p className="text-sm text-gray-400">
+    <p className="text-sm text-gray-600">
       The AI will wait this many seconds before responding (with random jitter).
     </p>
   </div>
@@ -302,29 +302,29 @@ const BusinessHoursSettings = ({
   <div className="space-y-4">
     <div className="grid grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label htmlFor="business-start" className="text-gray-300">Business hours start</Label>
+        <Label htmlFor="business-start" className="text-gray-700 font-medium">Business hours start</Label>
         <Input
           id="business-start"
           type="time"
           value={settings.business_hours_start}
           onChange={(e) => onChange('business_hours_start', e.target.value)}
-          className="bg-gray-800 border-gray-700 text-gray-100"
+          className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="business-end" className="text-gray-300">Business hours end</Label>
+        <Label htmlFor="business-end" className="text-gray-700 font-medium">Business hours end</Label>
         <Input
           id="business-end"
           type="time"
           value={settings.business_hours_end}
           onChange={(e) => onChange('business_hours_end', e.target.value)}
-          className="bg-gray-800 border-gray-700 text-gray-100"
+          className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
         />
       </div>
     </div>
     
     <div className="space-y-2">
-      <Label htmlFor="business-delay" className="text-gray-300">Delay during business hours (seconds)</Label>
+      <Label htmlFor="business-delay" className="text-gray-700 font-medium">Delay during business hours (seconds)</Label>
       <Input
         id="business-delay"
         type="number"
@@ -333,9 +333,9 @@ const BusinessHoursSettings = ({
         value={settings.business_hours_delay_seconds}
         onChange={(e) => onChange('business_hours_delay_seconds', e.target.value)}
         placeholder="60"
-        className="bg-gray-800 border-gray-700 text-gray-100"
+        className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
       />
-      <p className="text-sm text-gray-400">
+      <p className="text-sm text-gray-600">
         Responses are instant after hours, delayed during business hours.
       </p>
     </div>

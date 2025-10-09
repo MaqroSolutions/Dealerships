@@ -8,14 +8,14 @@ import Link from "next/link"
 import { getLeadsWithConversations, type LeadWithConversationSummary } from "@/lib/conversations-api"
 
 const statusColors = {
-  new: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  warm: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  hot: "bg-red-500/20 text-red-400 border-red-500/30",
-  "follow-up": "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  cold: "bg-gray-500/20 text-gray-400 border-gray-500/30",
-  "appointment_booked": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  "deal_won": "bg-green-500/20 text-green-400 border-green-500/30",
-  "deal_lost": "bg-red-600/20 text-red-300 border-red-600/30",
+  new: "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 shadow-sm",
+  warm: "bg-gradient-to-r from-yellow-100 to-amber-100 text-amber-700 border-amber-200 shadow-sm",
+  hot: "bg-gradient-to-r from-red-100 to-orange-100 text-red-700 border-red-200 shadow-sm",
+  "follow-up": "bg-gradient-to-r from-yellow-100 to-amber-100 text-amber-700 border-amber-200 shadow-sm",
+  cold: "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 border-gray-200 shadow-sm",
+  "appointment_booked": "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-purple-200 shadow-sm",
+  "deal_won": "bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border-green-200 shadow-sm",
+  "deal_lost": "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border-red-200 shadow-sm",
 }
 
 const statusDescriptions = {
@@ -89,12 +89,12 @@ export default function Conversations() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-100">Conversations</h2>
-            <p className="text-gray-400">Manage your lead conversations</p>
+            <h2 className="text-3xl font-bold text-black">Conversations</h2>
+            <p className="text-gray-700 text-lg">Manage your lead conversations</p>
           </div>
         </div>
         <div className="flex items-center justify-center py-12">
-          <div className="text-gray-400">Loading conversations...</div>
+          <div className="text-gray-600 text-lg font-medium">Loading conversations...</div>
         </div>
       </div>
     )
@@ -105,17 +105,17 @@ export default function Conversations() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-100">Conversations</h2>
-            <p className="text-gray-400">Manage your lead conversations</p>
+            <h2 className="text-3xl font-bold text-black">Conversations</h2>
+            <p className="text-gray-700 text-lg">Manage your lead conversations</p>
           </div>
         </div>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-red-400 mb-2">Error loading conversations</h3>
-            <p className="text-gray-400">{error}</p>
+            <h3 className="text-lg font-semibold text-red-500 mb-2">Error loading conversations</h3>
+            <p className="text-gray-600">{error}</p>
             <button 
               onClick={() => window.location.reload()} 
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="mt-4 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
             >
               Try Again
             </button>
@@ -126,27 +126,27 @@ export default function Conversations() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-100">Conversations</h2>
-          <p className="text-gray-400">Manage your lead conversations ({conversations.length} leads)</p>
+          <h2 className="text-3xl font-bold text-black">Conversations</h2>
+          <p className="text-gray-700 text-lg">Manage your lead conversations ({conversations.length} leads)</p>
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-6">
         {filteredConversations.map((conversation, index) => (
           <Link key={conversation.id} href={`/conversations/${conversation.id}`}>
             <Card
-              className="bg-gray-900/50 border-gray-800 hover:bg-gray-900/70 transition-all duration-300 hover:scale-[1.01] cursor-pointer"
+              className="bg-white/90 backdrop-blur-sm border-amber-200 shadow-md hover:shadow-lg transition-all duration-200 hover:border-amber-300 cursor-pointer rounded-2xl"
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center">
-                        <span className="text-gray-300 font-medium">
+                      <div className="w-12 h-12 bg-gradient-to-r from-orange-100 to-amber-100 border border-amber-200 rounded-full flex items-center justify-center">
+                        <span className="text-amber-800 font-semibold">
                           {conversation.name
                             .split(" ")
                             .map((n) => n[0])
@@ -154,28 +154,28 @@ export default function Conversations() {
                         </span>
                       </div>
                       {conversation.unreadCount > 0 && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center shadow-sm">
                           <span className="text-xs text-white font-medium">{conversation.unreadCount}</span>
                         </div>
                       )}
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h4 className="font-semibold text-gray-100">{conversation.name}</h4>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="font-semibold text-black text-lg">{conversation.name}</h4>
                         <Badge
-                          className={`${statusColors[conversation.status as keyof typeof statusColors]} border text-xs`}
+                          className={`${statusColors[conversation.status as keyof typeof statusColors]} text-sm font-medium px-3 py-1 rounded-full`}
                           title={statusDescriptions[conversation.status as keyof typeof statusDescriptions]}
                         >
                           {conversation.status.charAt(0).toUpperCase() + conversation.status.slice(1)}
                         </Badge>
                         {conversation.conversationCount > 0 && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-sm text-gray-600">
                             {conversation.conversationCount} message{conversation.conversationCount !== 1 ? 's' : ''}
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-400 text-sm mb-1">{conversation.car_interest}</p>
-                      <p className="text-gray-300 text-sm">{conversation.lastMessage}</p>
+                      <p className="text-gray-600 text-sm mb-1 font-medium">{conversation.car_interest}</p>
+                      <p className="text-gray-700 text-sm">{conversation.lastMessage}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -190,15 +190,15 @@ export default function Conversations() {
 
       {filteredConversations.length === 0 && searchTerm && (
         <div className="text-center py-12">
-          <h3 className="text-lg font-semibold text-gray-300 mb-2">No conversations found</h3>
-          <p className="text-gray-400">Try adjusting your search terms.</p>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">No conversations found</h3>
+          <p className="text-gray-600">Try adjusting your search terms.</p>
         </div>
       )}
       
       {filteredConversations.length === 0 && !searchTerm && !loading && (
          <div className="text-center py-12">
-          <h3 className="text-lg font-semibold text-gray-300 mb-2">No conversations yet</h3>
-          <p className="text-gray-400">Start by creating some leads to see conversations here.</p>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">No conversations yet</h3>
+          <p className="text-gray-600">Start by creating some leads to see conversations here.</p>
         </div>
       )}
     </div>

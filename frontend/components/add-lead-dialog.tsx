@@ -95,53 +95,53 @@ export function AddLeadDialog({ open, onOpenChange, onSuccess }: AddLeadDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-gray-900 border-gray-800">
+      <DialogContent className="sm:max-w-[520px] bg-white border-amber-200 rounded-2xl shadow-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle className="text-gray-100">Add New Lead</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-black text-xl font-semibold">Add New Lead</DialogTitle>
+            <DialogDescription className="text-gray-700">
               Create a new lead manually. Fill in the available information.
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name" className="text-gray-300">Name</Label>
+              <Label htmlFor="name" className="text-gray-700 font-medium">Name</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="John Smith"
-                className="bg-gray-800 border-gray-700 text-gray-100"
+                className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="email" className="text-gray-300">Email</Label>
+              <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="john.smith@email.com"
-                className="bg-gray-800 border-gray-700 text-gray-100"
+                className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="phone" className="text-gray-300">Phone</Label>
+              <Label htmlFor="phone" className="text-gray-700 font-medium">Phone</Label>
               <Input
                 id="phone"
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="+1 (555) 123-4567"
-                className="bg-gray-800 border-gray-700 text-gray-100"
+                className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="car_interest" className="text-gray-300">
+              <Label htmlFor="car_interest" className="text-gray-700 font-medium">
                 Car Interest <span className="text-red-400">*</span>
               </Label>
               <Input
@@ -150,28 +150,28 @@ export function AddLeadDialog({ open, onOpenChange, onSuccess }: AddLeadDialogPr
                 onChange={(e) => setFormData({ ...formData, car_interest: e.target.value })}
                 placeholder="2024 Toyota Camry"
                 required
-                className="bg-gray-800 border-gray-700 text-gray-100"
+                className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="source" className="text-gray-300">Source</Label>
+              <Label htmlFor="source" className="text-gray-700 font-medium">Source</Label>
               <Input
                 id="source"
                 value={formData.source}
                 onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-gray-100"
+                className="bg-white/90 border-gray-300 text-black rounded-xl focus:border-amber-400 focus:ring-amber-200"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="message" className="text-gray-300">Initial Message</Label>
+              <Label htmlFor="message" className="text-gray-700 font-medium">Initial Message</Label>
               <Textarea
                 id="message"
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 placeholder="Customer's initial inquiry or notes..."
-                className="bg-gray-800 border-gray-700 text-gray-100 min-h-[100px]"
+                className="bg-white/90 border-gray-300 text-black min-h-[100px] rounded-xl focus:border-amber-400 focus:ring-amber-200"
               />
             </div>
           </div>
@@ -182,14 +182,14 @@ export function AddLeadDialog({ open, onOpenChange, onSuccess }: AddLeadDialogPr
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
-              className="border-gray-700 text-gray-300"
+              className="border-amber-200 text-gray-700 bg-white hover:bg-amber-50 rounded-xl"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl"
             >
               {loading ? "Creating..." : "Create Lead"}
             </Button>

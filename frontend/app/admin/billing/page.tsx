@@ -227,25 +227,17 @@ function BillingContent() {
   }
 
   return (
-    <div className="space-y-8 ml-4">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">Billing</h1>
-          <p className="text-gray-400">View and manage your plan.</p>
-        </div>
-
-        {/* Horizontal Separator */}
-        <div className="border-t border-gray-700 mb-8"></div>
+    <div className="space-y-8 ml-4 bg-white">
 
         {/* Plan Summary Card */}
         <div className="mb-8">
           <div className="flex items-start mb-4">
             <div className="w-[40%]">
-              <h2 className="text-xl font-semibold text-white mb-1">Billing plan</h2>
-              <p className="text-gray-400">View and manage your billing plan.</p>
+              <h2 className="text-xl font-semibold text-black mb-1">Billing plan</h2>
+              <p className="text-gray-700">View and manage your billing plan.</p>
             </div>
             
-            <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 flex-shrink-0 ml-[0%] min-w-[600px] h-[60px] flex items-center justify-between">
+            <div className="bg-white/90 border border-amber-200 rounded-2xl p-4 shadow-md flex-shrink-0 ml-[0%] min-w-[600px] h-[60px] flex items-center justify-between">
               {loading ? (
                 <div className="flex items-center space-x-2">
                   <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
@@ -254,12 +246,12 @@ function BillingContent() {
               ) : current ? (
                 <>
                   <div className="flex items-center space-x-6">
-                    <div className="text-lg font-semibold text-white">
+                    <div className="text-lg font-semibold text-black">
                       {getSummaryLine()}
                     </div>
-                    <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-                      <Clock className="w-4 h-4 text-amber-400" />
-                      <span className="text-sm text-amber-400 font-medium">On trial until {getTrialEndDate()}</span>
+                    <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200">
+                      <Clock className="w-4 h-4 text-amber-600" />
+                      <span className="text-sm text-amber-700 font-medium">On trial until {getTrialEndDate()}</span>
                     </div>
                   </div>
                   {isPro() ? (
@@ -282,8 +274,8 @@ function BillingContent() {
                 </>
               ) : (
                 <>
-                  <div className="text-lg text-gray-400">
-                    <span className="font-semibold text-white">Current plan:</span> No active subscription
+                  <div className="text-lg text-gray-600">
+                    <span className="font-semibold text-black">Current plan:</span> No active subscription
                   </div>
                   <Button 
                     onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
@@ -301,21 +293,21 @@ function BillingContent() {
         {/* Plans Section */}
         <div id="plans" className="mb-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-sm font-medium mb-4">
               <Star className="w-4 h-4" />
               Simple pricing that scales
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2">Plans</h2>
-            <p className="text-gray-400">Simple plans that scale with your dealership.</p>
+            <h2 className="text-3xl font-bold text-black mb-2">Plans</h2>
+            <p className="text-gray-700">Simple plans that scale with your dealership.</p>
           </div>
           
           <div className="flex items-center justify-center mb-8">
             <div className="flex items-center space-x-3">
-              <span className="text-sm text-gray-400">Save with yearly billing</span>
+              <span className="text-sm text-gray-700">Save with yearly billing</span>
               <Switch
                 checked={isYearly}
                 onCheckedChange={setIsYearly}
-                className="data-[state=checked]:bg-blue-600"
+                className="data-[state=checked]:bg-orange-500"
               />
             </div>
           </div>
@@ -324,10 +316,10 @@ function BillingContent() {
             {planData.map((plan, idx) => (
               <div
                 key={plan.id}
-                className={`group relative rounded-xl p-6 sm:p-8 border transition-all flex flex-col ${
+                className={`group relative rounded-2xl p-6 sm:p-8 border transition-all flex flex-col ${
                   plan.isPopular
-                    ? "bg-white/[0.05] border-white/20 shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)]"
-                    : "bg-white/[0.03] border-white/10 hover:shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+                    ? "bg-white/90 backdrop-blur-sm border-amber-200 shadow-md hover:shadow-lg"
+                    : "bg-white/90 backdrop-blur-sm border-amber-200 shadow-md hover:shadow-lg"
                 }`}
               >
                 {plan.isCurrent && (
@@ -336,15 +328,15 @@ function BillingContent() {
                   </div>
                 )}
                 {plan.isPopular && !plan.isCurrent && (
-                  <div className="absolute -top-3 right-6 text-xs px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white/90 font-medium tracking-wide uppercase">
+                  <div className="absolute -top-3 right-6 text-xs px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-medium tracking-wide uppercase">
                     Most Value
                   </div>
                 )}
                 
-                <h3 className="text-2xl font-bold text-white tracking-tight font-['Geist']">{plan.name}</h3>
+                <h3 className="text-2xl font-bold text-black tracking-tight font-['Geist']">{plan.name}</h3>
                 
                 <div className="mt-4 flex items-baseline gap-2">
-                  <span className="text-4xl sm:text-5xl font-bold text-white tracking-tight font-['Geist']">
+                  <span className="text-4xl sm:text-5xl font-bold text-black tracking-tight font-['Geist']">
                     {plan.id === 'scale'
                       ? 'Contact us'
                       : (plan.monthlyPrice === 0
@@ -353,10 +345,10 @@ function BillingContent() {
                   </span>
                   {plan.monthlyPrice === 0 ? (
                     plan.id === 'pilot' ? (
-                      <span className="text-gray-400 text-sm font-medium font-['Geist']">for 14 days</span>
+                      <span className="text-gray-600 text-sm font-medium font-['Geist']">for 14 days</span>
                     ) : null
                   ) : (
-                    <span className="text-gray-400 text-sm font-medium font-['Geist']">
+                    <span className="text-gray-600 text-sm font-medium font-['Geist']">
                       {isYearly && plan.yearlyPrice ? (
                         <>
                           /year
@@ -371,14 +363,14 @@ function BillingContent() {
                   )}
                 </div>
                 
-                <p className="mt-3 text-gray-300/90 text-base font-['Geist'] font-medium leading-relaxed">
+                <p className="mt-3 text-gray-700 text-base font-['Geist'] font-medium leading-relaxed">
                   {plan.description}
                 </p>
                 
                 <ul className="mt-6 space-y-3 flex-1">
                   {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-3 text-gray-300/90 text-sm font-['Geist'] leading-relaxed">
-                      <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <li key={i} className="flex items-start gap-3 text-gray-700 text-sm font-['Geist'] leading-relaxed">
+                      <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                       <span className="font-medium">{feature}</span>
                     </li>
                   ))}
@@ -389,12 +381,12 @@ function BillingContent() {
                   <button
                     onClick={() => handleCheckout(plan)}
                     disabled={checkoutLoading === plan.id || (plan.id === 'pro' && isPro())}
-                    className={`mt-auto inline-flex w-full items-center justify-center rounded-full px-6 py-3 font-bold text-base transition-all font-['Geist'] ${
+                    className={`mt-auto inline-flex w-full items-center justify-center rounded-xl px-6 py-3 font-bold text-base transition-all font-['Geist'] ${
                       plan.id === 'pro' && isPro()
-                        ? "bg-gray-600/50 text-gray-400 cursor-not-allowed border border-gray-600"
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed border border-gray-300"
                         : plan.isPopular
-                          ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:shadow-[0_8px_30px_rgba(59,130,246,0.4)] hover:-translate-y-0.5 transition-all duration-300"
-                          : "border border-white/15 text-white/90 hover:bg-white/5 hover:border-white/25 hover:text-white transition-all duration-200"
+                          ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                          : "border border-amber-200 text-gray-700 hover:bg-amber-50 hover:border-amber-300 hover:text-gray-800 transition-all duration-200"
                     }`}
                   >
                     {checkoutLoading === plan.id ? (
@@ -420,12 +412,12 @@ function BillingContent() {
 
         {/* Invoices Section */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold text-white mb-2">Invoices</h3>
-          <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-black mb-2">Invoices</h3>
+          <div className="bg-white/90 backdrop-blur-sm border border-amber-200 rounded-2xl shadow-md p-6">
             {isPilot() ? (
-              <p className="text-gray-400">No invoices yet.</p>
+              <p className="text-gray-600">No invoices yet.</p>
             ) : (
-              <p className="text-gray-400">Invoices will appear here after your first payment.</p>
+              <p className="text-gray-600">Invoices will appear here after your first payment.</p>
             )}
           </div>
         </div>

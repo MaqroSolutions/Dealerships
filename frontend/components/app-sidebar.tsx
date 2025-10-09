@@ -84,16 +84,16 @@ export function AppSidebar() {
   const items = getItems()
 
   return (
-    <Sidebar className="border-r border-gray-800">
-      <SidebarHeader className="p-6">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-white" />
+    <Sidebar className="border-r border-gray-300 bg-[#f2f1ef]" style={{ backgroundColor: '#f2f1ef' }}>
+      <SidebarHeader className="p-6 bg-[#f2f1ef]" style={{ backgroundColor: '#f2f1ef' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center shadow-lg">
+            <BarChart3 className="w-6 h-6 text-white" />
           </div>
-          <span className="text-xl font-semibold text-gray-100">Maqro</span>
+          <span className="text-xl font-bold text-black">Maqro</span>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="bg-[#f2f1ef] px-4" style={{ backgroundColor: '#f2f1ef' }}>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -102,11 +102,11 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={pathname === item.url}
-                    className="text-gray-100 hover:text-white hover:bg-gray-800/50 transition-all duration-200 data-[active=true]:bg-gray-800 data-[active=true]:text-white"
+                    className="text-gray-700 hover:text-black hover:bg-[#e5e4e2] transition-all duration-200 data-[active=true]:bg-[#e5e4e2] data-[active=true]:text-black data-[active=true]:shadow-sm rounded-xl w-full"
                   >
-                    <Link href={item.url} className="flex items-center gap-3 px-3 py-2 text-gray-100">
+                    <Link href={item.url} className="flex items-center gap-3 px-4 py-3 text-gray-700 font-medium">
                       <item.icon className="w-5 h-5" />
-                      <span className="font-medium">{item.title}</span>
+                      <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

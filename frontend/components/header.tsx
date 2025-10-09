@@ -21,6 +21,13 @@ const pageNames: Record<string, string> = {
   "/conversations": "Conversations",
   "/templates": "Template Manager",
   "/settings": "Settings",
+  "/admin/dashboard": "Home",
+  "/admin/team": "Team Management",
+  "/admin/inventory": "Inventory",
+  "/admin/billing": "Billing",
+  "/admin/settings": "Settings",
+  "/leads": "My Leads",
+  "/inventory": "Inventory",
 }
 
 export function Header() {
@@ -70,21 +77,21 @@ export function Header() {
   const showSearchBar = pathname === "/" || pathname === "/conversations"
 
   return (
-    <header className="border-b border-gray-800 bg-gray-950/50 backdrop-blur-sm min-w-0">
+    <header className="border-b border-amber-200 bg-white min-w-0 shadow-sm">
       <div className="flex items-center justify-between px-6 py-4 min-w-0">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-100">{pageName}</h1>
+          <h1 className="text-2xl font-bold text-black">{pageName}</h1>
         </div>
 
         <div className="flex items-center gap-4">
           {showSearchBar && (
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
               <Input
                 placeholder={getSearchPlaceholder()}
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 w-80 bg-gray-900/50 border-gray-700 text-gray-100 placeholder-gray-400 focus:border-blue-500 transition-colors"
+                className="pl-12 w-80 bg-white/90 border-gray-300 text-black placeholder-gray-500 focus:border-amber-400 focus:ring-amber-200 transition-all duration-200 rounded-xl h-10"
               />
             </div>
           )}
@@ -92,7 +99,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="text-gray-400 hover:text-gray-100 hover:bg-gray-800/50 animate-float transition-all duration-300"
+            className="text-gray-500 hover:text-black hover:bg-amber-50 transition-all duration-200 rounded-xl"
           >
             <Bell className="w-5 h-5" />
           </Button>
@@ -102,23 +109,23 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-gray-400 hover:text-gray-100 hover:bg-gray-800/50 animate-float transition-all duration-300"
+                className="text-gray-500 hover:text-black hover:bg-amber-50 transition-all duration-200 rounded-xl"
               >
                 <User className="w-5 h-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 mr-2 bg-gray-900 border-gray-800 text-gray-100">
-              <DropdownMenuLabel>
+            <DropdownMenuContent className="w-56 mr-2 bg-white/95 backdrop-blur-sm border-amber-200 text-black shadow-lg rounded-xl">
+              <DropdownMenuLabel className="text-gray-700">
                 {loading ? 'Loading...' : user?.email || 'My Account'}
               </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-gray-800" />
+              <DropdownMenuSeparator className="bg-amber-200" />
               <Link href="/settings">
-                <DropdownMenuItem className="cursor-pointer hover:bg-gray-800">
+                <DropdownMenuItem className="cursor-pointer hover:bg-amber-50 text-gray-700">
                   Settings
                 </DropdownMenuItem>
               </Link>
               <DropdownMenuItem 
-                className="cursor-pointer hover:bg-gray-800 text-red-400"
+                className="cursor-pointer hover:bg-red-50 text-red-600"
                 onClick={() => signOut()}
               >
                 <LogOut className="mr-2 h-4 w-4" />
