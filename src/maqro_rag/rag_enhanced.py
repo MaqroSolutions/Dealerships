@@ -168,11 +168,11 @@ class EnhancedRAGService:
 
             # Retrieval decision based on state
             if state == ConversationState.DISCOVERY:
-                # Need specific model OR 2+ signals to retrieve
-                if has_specific_model or signal_count >= 2:
+                # Need specific model OR 1+ signals to retrieve (relaxed from 2+)
+                if has_specific_model or signal_count >= 1:
                     logger.info(f"Allowing retrieval in DISCOVERY: model={has_specific_model}, signals={signal_count}")
                 else:
-                    logger.debug(f"Blocking retrieval in DISCOVERY: only {signal_count} signal(s), need 2+")
+                    logger.debug(f"Blocking retrieval in DISCOVERY: only {signal_count} signal(s), need 1+")
                     return []
 
             elif state in {ConversationState.NARROWING, ConversationState.RECOMMENDATION}:
@@ -616,8 +616,26 @@ class EnhancedRAGService:
         context_string = ""
         if vehicles:
             vehicle_info = "\n\nAvailable vehicles:\n"
-            for i, vehicle in enumerate(vehicles[:3], 1):
-                vehicle_info += f"{i}. {vehicle.get('year', '')} {vehicle.get('make', '')} {vehicle.get('model', '')} - ${vehicle.get('price', 'N/A')}\n"
+            for i, result in enumerate(vehicles[:3], 1):
+                # Extract vehicle data from the correct nested structure
+                vehicle_data = result.get('vehicle', {})
+                if not vehicle_data:
+                    logger.warning(f"Vehicle data missing for result {i}: {result}")
+                    continue
+
+                year = vehicle_data.get('year', '')
+                make = vehicle_data.get('make', '')
+                model = vehicle_data.get('model', '')
+                price = vehicle_data.get('price', 'N/A')
+
+                # Format price properly
+                if isinstance(price, (int, float)) and price > 0:
+                    price_str = f"${price:,.0f}"
+                else:
+                    price_str = "Price available upon request"
+
+                vehicle_info += f"{i}. {year} {make} {model} - {price_str}\n"
+
             context_string = vehicle_info
 
         # Use PromptBuilder for response with conversation history AND context
