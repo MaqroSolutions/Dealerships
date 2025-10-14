@@ -148,7 +148,7 @@ export function PricingSection() {
             {/* Calendar iframe */}
             <div className="h-full">
               <iframe
-                src="https://cal.com/aryan-mundre?embed=true"
+                src="https://cal.com/aryan-mundre?embed=true&theme=dark"
                 width="100%"
                 height="100%"
                 frameBorder="0"

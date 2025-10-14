@@ -106,14 +106,14 @@ export function RoleBasedAuthProvider({ children }: { children: React.ReactNode 
               // Role-based routing logic - always check for redirects
               if (userRole === 'owner' || userRole === 'manager') {
                 // Admin users should go to admin dashboard
-                if (pathname === "/" || pathname.startsWith("/app/")) {
+                if (pathname === "/" || pathname.startsWith("/app/") || pathname === "/login" || pathname === "/signup") {
                   console.log('RoleBasedAuthProvider: Redirecting admin user to admin dashboard');
                   router.push("/admin/dashboard");
                   return;
                 }
               } else if (userRole === 'salesperson') {
                 // Salesperson users should go to leads page  
-                if (pathname === "/" || pathname.startsWith("/admin/")) {
+                if (pathname === "/" || pathname.startsWith("/admin/") || pathname === "/login" || pathname === "/signup") {
                   console.log('RoleBasedAuthProvider: Redirecting salesperson to leads dashboard');
                   router.push("/leads");
                   return;
